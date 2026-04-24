@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 
 interface AudioState {
-  // Define audio state here
+  volume: number;
+  muted: boolean;
 }
 
-export const useAudioStore = create<AudioState>((set) => ({
-  // Initial state
+export const useAudioStore = create<AudioState>(() => ({
+  volume: 1,
+  muted: false,
 }));

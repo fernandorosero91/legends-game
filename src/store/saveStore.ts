@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
 interface SaveState {
-  // Define save state here
+  lastSave: Date | null;
 }
 
-export const useSaveStore = create<SaveState>((set) => ({
-  // Initial state
+export const useSaveStore = create<SaveState>(() => ({
+  lastSave: null,
 }));

@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 
 interface GameState {
-  // Define game state here
+  score: number;
+  level: number;
 }
 
-export const useGameStore = create<GameState>((set) => ({
-  // Initial state
+export const useGameStore = create<GameState>(() => ({
+  score: 0,
+  level: 1,
 }));
