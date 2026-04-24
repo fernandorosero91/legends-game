@@ -1,51 +1,40 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '../../store/uiStore';
 import { CityBackground } from './CityBackground';
+import { useMusic } from '../../hooks/useAudio';
 
 export function LoadingScreen() {
   const setScreen = useUIStore((s) => s.setScreen);
   const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState('Haz click para iniciar...');
+  const [phase, setPhase] = useState('');
   const [show, setShow] = useState(false);
   const [done, setDone] = useState(false);
   const [started, setStarted] = useState(false);
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const startedRef = useRef(false);
+  const music = useMusic('/audio/inicio.mp3', 0.35);
 
   useEffect(() => { setTimeout(() => setShow(true), 200); }, []);
 
-  // Start loading + music on first user interaction
-  const handleStart = () => {
-    if (started) return;
-    setStarted(true);
-
-    // Play background music
-    const music = new Audio('/audio/inicio.mp3');
-    music.loop = true;
-    music.volume = 0.35;
-    musicRef.current = music;
-    music.play().catch(() => {});
-
-    // Store music ref globally so MainMenu can access it
-    (window as unknown as Record<string, unknown>).__legendsMusic = music;
-
-    setPhase('Inicializando Purple City...');
-  };
-
-  // Listen for any click or key to start
   useEffect(() => {
-    const handler = () => handleStart();
-    window.addEventListener('click', handler, { once: true });
-    window.addEventListener('keydown', handler, { once: true });
+    const handler = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      setStarted(true);
+      music.play();
+      setPhase('Inicializando Purple City...');
+    };
+    window.addEventListener('click', handler);
+    window.addEventListener('touchstart', handler);
+    window.addEventListener('keydown', handler);
     return () => {
       window.removeEventListener('click', handler);
+      window.removeEventListener('touchstart', handler);
       window.removeEventListener('keydown', handler);
     };
-  }, [started]);
+  }, [music]);
 
-  // Progress bar runs only after started
   useEffect(() => {
     if (!started) return;
-
     const phases = [
       { at: 10, text: 'Cargando modelos 3D...' },
       { at: 25, text: 'Renderizando Purple City...' },
@@ -78,27 +67,20 @@ export function LoadingScreen() {
     <div className={`fixed inset-0 z-50 transition-opacity duration-700 ${done ? 'opacity-0' : 'opacity-100'}`}>
       <CityBackground />
 
-      {/* Dark gradient at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-[35%] pointer-events-none" style={{
-        background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)',
-      }} />
-
       {show && (
-        <div className="relative z-10 flex flex-col items-center justify-end h-full px-8 pb-12">
+        <div className="relative z-10 flex flex-col items-center justify-end h-full px-4 sm:px-8 pb-8 sm:pb-12">
           <div className="w-full max-w-2xl animate-fade-in">
 
-            {/* "Click to start" or phase text */}
-            <p className="text-base md:text-lg font-mono mb-3 tracking-wide"
+            <p className="text-sm sm:text-base md:text-lg font-mono mb-2 sm:mb-3 tracking-wide"
               style={{
-                color: !started ? 'rgba(34,211,238,0.8)' : 'rgba(200,220,240,0.7)',
-                textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                color: !started ? 'rgba(34,211,238,0.9)' : 'rgba(200,220,240,0.7)',
+                textShadow: '0 2px 4px rgba(0,0,0,0.9)',
                 animation: !started ? 'pulse-neon 1.5s ease-in-out infinite' : 'none',
               }}>
-              {!started ? '▶ Haz click para iniciar' : phase}
+              {!started ? '▶ Toca para iniciar' : phase}
             </p>
 
-            {/* Bar */}
-            <div className="relative h-5 md:h-6 rounded-full overflow-hidden"
+            <div className="relative h-4 sm:h-5 md:h-6 rounded-full overflow-hidden"
               style={{
                 background: 'rgba(0,0,0,0.6)',
                 border: '1px solid rgba(34,211,238,0.15)',
@@ -108,26 +90,16 @@ export function LoadingScreen() {
                 style={{
                   width: `${progress}%`,
                   background: 'linear-gradient(90deg, #0891b2, #22d3ee, #67e8f9)',
-                  boxShadow: '0 0 15px rgba(34,211,238,0.5), 0 0 30px rgba(34,211,238,0.2)',
+                  boxShadow: '0 0 15px rgba(34,211,238,0.5)',
                 }}>
                 <div className="absolute inset-0 rounded-full"
                   style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)' }} />
-                <div className="absolute inset-0 rounded-full overflow-hidden">
-                  <div className="absolute inset-0" style={{
-                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
-                    animation: 'shimmer 2s ease-in-out infinite',
-                  }} />
-                </div>
               </div>
             </div>
 
-            {/* Percentage */}
-            <div className="flex justify-end mt-2">
-              <span className="text-xl md:text-2xl font-black font-mono"
-                style={{
-                  color: '#22d3ee',
-                  textShadow: '0 0 10px rgba(34,211,238,0.6), 0 0 20px rgba(34,211,238,0.3)',
-                }}>
+            <div className="flex justify-end mt-1.5 sm:mt-2">
+              <span className="text-lg sm:text-xl md:text-2xl font-black font-mono"
+                style={{ color: '#22d3ee', textShadow: '0 0 10px rgba(34,211,238,0.6)' }}>
                 {started ? `${pct}%` : ''}
               </span>
             </div>
