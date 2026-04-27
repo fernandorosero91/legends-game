@@ -60,6 +60,7 @@ export function useInsForge() {
   // Verificar sesión al montar
   useEffect(() => {
     checkSession();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -67,30 +68,31 @@ export function useInsForge() {
    */
   const checkSession = useCallback(async () => {
     try {
-      const { data: sessionData, error: sessionError } = await insforge.auth.getSession();
+      // Obtener el usuario actual
+      const { data: userData, error: userError } = await insforge.auth.getCurrentUser();
       
-      if (sessionError || !sessionData?.session?.user) {
+      if (userError || !userData?.user) {
         setUser(null);
         return;
       }
 
-      // Obtener datos del usuario
-      const { data: userData, error: userError } = await insforge.database
+      // Obtener datos adicionales del usuario desde la tabla users
+      const { data: userRecord, error: recordError } = await insforge.database
         .from('users')
         .select('*')
-        .eq('id', sessionData.session.user.id)
+        .eq('id', userData.user.id)
         .single();
 
-      if (userError || !userData) {
+      if (recordError || !userRecord) {
         setUser(null);
         return;
       }
 
       setUser({
-        id: userData.id,
-        email: userData.email,
-        username: userData.username,
-        emailVerified: true,
+        id: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
+        emailVerified: userData.user.emailVerified || false,
       });
 
       // Cargar partidas del usuario
@@ -104,7 +106,8 @@ export function useInsForge() {
   /**
    * Registra un nuevo usuario
    */
-  const register = useCallback(async (email: string, password: string, username: string) => {
+  const register = useCallback(async (credentials: { email: string; password: string; username: string }) => {
+    const { email, password, username } = credentials;
     setIsLoading(true);
     try {
       // Registrar en auth
@@ -157,7 +160,8 @@ export function useInsForge() {
   /**
    * Inicia sesión
    */
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (credentials: { email: string; password: string }) => {
+    const { email, password } = credentials;
     setIsLoading(true);
     try {
       const { data, error } = await insforge.auth.signInWithPassword({

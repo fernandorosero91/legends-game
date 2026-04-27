@@ -125,7 +125,7 @@ export function Player({ position = [0, 0, 0] }: { position?: [number, number, n
   );
 }
 
-function hitWall(x: number, z: number, walls: THREE.Box3[]): boolean {
+function hitWall(x: number, z: number, walls: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>): boolean {
   for (const box of walls) {
     const cx = Math.max(box.min.x, Math.min(x, box.max.x));
     const cz = Math.max(box.min.z, Math.min(z, box.max.z));

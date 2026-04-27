@@ -32,7 +32,7 @@ export const ApartmentScene = () => {
 
     // Collect wall colliders: meshes that are walls (tall + thin in at least one XZ axis)
     // Skip floors (very flat) and very small objects
-    const walls: THREE.Box3[] = [];
+    const walls: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }> = [];
     house.scene.traverse((child) => {
       if (!(child as THREE.Mesh).isMesh) return;
       const meshBox = new THREE.Box3().setFromObject(child);
@@ -45,7 +45,11 @@ export const ApartmentScene = () => {
       // Wall: tall (> 0.3) and thin in at least one horizontal axis (< 0.3)
       // This catches walls but not floors or large furniture tops
       if (height > 0.3 && minXZ < 0.3) {
-        walls.push(meshBox);
+        walls.push({
+          id: child.uuid,
+          min: { x: meshBox.min.x, y: meshBox.min.y, z: meshBox.min.z },
+          max: { x: meshBox.max.x, y: meshBox.max.y, z: meshBox.max.z },
+        });
       }
     });
 

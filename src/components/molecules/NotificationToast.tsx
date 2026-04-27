@@ -51,6 +51,13 @@ const NotificationToast = ({
         iconColor: 'text-white',
         emoji: '❌',
       },
+      error: {
+        icon: 'close' as const,
+        bgColor: 'bg-red-600/90',
+        borderColor: 'border-red-600',
+        iconColor: 'text-white',
+        emoji: '🚫',
+      },
       info: {
         icon: 'check' as const,
         bgColor: 'bg-purple-500/90',

@@ -142,7 +142,7 @@ export class LevelSystem {
   /**
    * Obtiene información del siguiente nivel
    */
-  static getNextLevelInfo(): typeof LevelSystem.getCurrentLevelInfo {
+  static getNextLevelInfo(): ReturnType<typeof LevelSystem.getCurrentLevelInfo> {
     const { currentLevel } = useGameStore.getState();
     const nextLevel = getLevelById(currentLevel + 1);
 
