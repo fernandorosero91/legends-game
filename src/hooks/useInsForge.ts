@@ -1,14 +1,18 @@
 /**
- * 🔗 LEGENDS: useInsForge Hook (Simplified)
- * Hook simplificado para desarrollo sin InsForge
+ * 🔗 LEGENDS: useInsForge Hook
+ * Hook para integración con InsForge (Auth, Save/Load, Leaderboard)
+ * Autor: Fernando (Backend Developer)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { insforge, type GameSave, type User, type LeaderboardEntry } from '../services/insforge';
+import { saveService } from '../services/saveService';
 
-// Tipos simplificados
+// Tipos
 export interface AuthUser {
   id: string;
   email: string;
+  username: string;
   emailVerified: boolean;
 }
 
@@ -19,15 +23,10 @@ export interface SaveSlot {
     currentDay: number;
     currentLevel: number;
     monthlyListeners: number;
+    money: number;
   };
   createdAt: string;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  username: string;
-  finalListeners: number;
-  won: boolean;
+  updatedAt: string;
 }
 
 export interface GlobalStats {
@@ -40,13 +39,13 @@ export interface GlobalStats {
 }
 
 /**
- * Hook principal de InsForge (Mock)
+ * Hook principal de InsForge
  */
 export function useInsForge() {
-  const [user] = useState<AuthUser | null>(null);
-  const [saves] = useState<SaveSlot[]>([]);
-  const [topPlayers] = useState<LeaderboardEntry[]>([]);
-  const [globalStats] = useState<GlobalStats>({
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [saves, setSaves] = useState<SaveSlot[]>([]);
+  const [topPlayers, setTopPlayers] = useState<LeaderboardEntry[]>([]);
+  const [globalStats, setGlobalStats] = useState<GlobalStats>({
     totalPlayers: 0,
     totalWinners: 0,
     averageListeners: 0,
@@ -54,58 +53,381 @@ export function useInsForge() {
     averageDays: 0,
     averageSongs: 0,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
 
-  const register = useCallback(async () => {
-    console.log('[useInsForge] Mock register');
-    return { success: false, error: 'Mock mode' };
+  // Verificar sesión al montar
+  useEffect(() => {
+    checkSession();
   }, []);
 
-  const login = useCallback(async () => {
-    console.log('[useInsForge] Mock login');
-    return { success: false, error: 'Mock mode' };
+  /**
+   * Verifica si hay una sesión activa
+   */
+  const checkSession = useCallback(async () => {
+    try {
+      const { data, error } = await insforge.auth.getSession();
+      
+      if (error || !data?.session) {
+        setUser(null);
+        return;
+      }
+
+      // Obtener datos del usuario
+      const { data: userData, error: userError } = await insforge.database
+        .from('users')
+        .select('*')
+        .eq('id', data.session.user.id)
+        .single();
+
+      if (userError || !userData) {
+        setUser(null);
+        return;
+      }
+
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        emailVerified: true,
+      });
+
+      // Cargar partidas del usuario
+      await refreshSaves();
+    } catch (error) {
+      console.error('[useInsForge] Error checking session:', error);
+      setUser(null);
+    }
   }, []);
 
+  /**
+   * Registra un nuevo usuario
+   */
+  const register = useCallback(async (email: string, password: string, username: string) => {
+    setIsLoading(true);
+    try {
+      // Registrar en auth
+      const { data: authData, error: authError } = await insforge.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) {
+        return { success: false, error: authError.message };
+      }
+
+      if (!authData.user) {
+        return { success: false, error: 'Error al crear usuario' };
+      }
+
+      // Crear registro en tabla users
+      const { error: userError } = await insforge.database
+        .from('users')
+        .insert([{
+          id: authData.user.id,
+          email,
+          username,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          total_games_played: 0,
+          best_score: 0,
+        }]);
+
+      if (userError) {
+        return { success: false, error: userError.message };
+      }
+
+      setUser({
+        id: authData.user.id,
+        email,
+        username,
+        emailVerified: false,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error registering:', error);
+      return { success: false, error: error.message || 'Error al registrar' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Inicia sesión
+   */
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await insforge.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.user) {
+        return { success: false, error: 'Error al iniciar sesión' };
+      }
+
+      // Obtener datos del usuario
+      const { data: userData, error: userError } = await insforge.database
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userError || !userData) {
+        return { success: false, error: 'Error al obtener datos del usuario' };
+      }
+
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        emailVerified: true,
+      });
+
+      // Cargar partidas del usuario
+      await refreshSaves();
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error logging in:', error);
+      return { success: false, error: error.message || 'Error al iniciar sesión' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Cierra sesión
+   */
   const logout = useCallback(async () => {
-    console.log('[useInsForge] Mock logout');
+    try {
+      await insforge.auth.signOut();
+      setUser(null);
+      setSaves([]);
+    } catch (error) {
+      console.error('[useInsForge] Error logging out:', error);
+    }
   }, []);
 
-  const saveGame = useCallback(async () => {
-    console.log('[useInsForge] Mock saveGame');
-    return { success: false, error: 'Mock mode' };
+  /**
+   * Guarda la partida actual
+   */
+  const saveGame = useCallback(async (slotName: string = 'auto') => {
+    if (!user) {
+      return { success: false, error: 'Debes iniciar sesión para guardar' };
+    }
+
+    setIsSaving(true);
+    try {
+      await saveService.saveGame(user.id, slotName);
+      setLastSaveTime(Date.now());
+      await refreshSaves();
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error saving game:', error);
+      return { success: false, error: error.message || 'Error al guardar' };
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user]);
+
+  /**
+   * Carga una partida guardada
+   */
+  const loadGame = useCallback(async (saveId: string) => {
+    setIsLoading(true);
+    try {
+      await saveService.loadGame(saveId);
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error loading game:', error);
+      return { success: false, error: error.message || 'Error al cargar' };
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const loadGame = useCallback(async () => {
-    console.log('[useInsForge] Mock loadGame');
-    return { success: false, error: 'Mock mode' };
+  /**
+   * Elimina una partida guardada
+   */
+  const deleteSave = useCallback(async (saveId: string) => {
+    try {
+      await saveService.deleteSave(saveId);
+      await refreshSaves();
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error deleting save:', error);
+      return { success: false, error: error.message || 'Error al eliminar' };
+    }
   }, []);
 
-  const deleteSave = useCallback(async () => {
-    console.log('[useInsForge] Mock deleteSave');
-    return { success: false, error: 'Mock mode' };
-  }, []);
-
+  /**
+   * Recarga las partidas guardadas del usuario
+   */
   const refreshSaves = useCallback(async () => {
-    console.log('[useInsForge] Mock refreshSaves');
-  }, []);
+    if (!user) return;
 
-  const submitScore = useCallback(async () => {
-    console.log('[useInsForge] Mock submitScore');
-    return { success: false, error: 'Mock mode' };
-  }, []);
+    try {
+      const gameSaves = await saveService.getUserSaves(user.id);
+      
+      const formattedSaves: SaveSlot[] = gameSaves.map((save: GameSave) => ({
+        id: save.id,
+        slotName: save.slot_name,
+        gameData: {
+          currentDay: save.current_day,
+          currentLevel: save.current_level,
+          monthlyListeners: save.monthly_listeners,
+          money: save.money,
+        },
+        createdAt: save.created_at,
+        updatedAt: save.updated_at,
+      }));
 
+      setSaves(formattedSaves);
+    } catch (error) {
+      console.error('[useInsForge] Error refreshing saves:', error);
+    }
+  }, [user]);
+
+  /**
+   * Envía puntuación al leaderboard
+   */
+  const submitScore = useCallback(async (scoreData: {
+    finalListeners: number;
+    finalDay: number;
+    totalSongs: number;
+    won: boolean;
+    finalMoney: number;
+    finalReputation: number;
+    totalJobsCompleted: number;
+    perfectSongs: number;
+    collaborations: number;
+  }) => {
+    if (!user) {
+      return { success: false, error: 'Debes iniciar sesión' };
+    }
+
+    try {
+      const { error } = await insforge.database
+        .from('leaderboard')
+        .insert([{
+          user_id: user.id,
+          username: user.username,
+          final_listeners: scoreData.finalListeners,
+          final_day: scoreData.finalDay,
+          total_songs: scoreData.totalSongs,
+          won: scoreData.won,
+          completed_at: new Date().toISOString(),
+          final_money: scoreData.finalMoney,
+          final_reputation: scoreData.finalReputation,
+          total_jobs_completed: scoreData.totalJobsCompleted,
+          perfect_songs: scoreData.perfectSongs,
+          collaborations: scoreData.collaborations,
+        }]);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      await refreshLeaderboard();
+      return { success: true };
+    } catch (error: any) {
+      console.error('[useInsForge] Error submitting score:', error);
+      return { success: false, error: error.message || 'Error al enviar puntuación' };
+    }
+  }, [user]);
+
+  /**
+   * Recarga el leaderboard
+   */
   const refreshLeaderboard = useCallback(async () => {
-    console.log('[useInsForge] Mock refreshLeaderboard');
+    try {
+      const { data, error } = await insforge.database
+        .from('leaderboard')
+        .select('*')
+        .order('final_listeners', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('[useInsForge] Error loading leaderboard:', error);
+        return;
+      }
+
+      setTopPlayers((data || []) as LeaderboardEntry[]);
+
+      // Calcular estadísticas globales
+      if (data && data.length > 0) {
+        const totalPlayers = data.length;
+        const totalWinners = data.filter((p: any) => p.won).length;
+        const avgListeners = data.reduce((sum: number, p: any) => sum + p.final_listeners, 0) / totalPlayers;
+        const highestListeners = Math.max(...data.map((p: any) => p.final_listeners));
+        const avgDays = data.reduce((sum: number, p: any) => sum + p.final_day, 0) / totalPlayers;
+        const avgSongs = data.reduce((sum: number, p: any) => sum + p.total_songs, 0) / totalPlayers;
+
+        setGlobalStats({
+          totalPlayers,
+          totalWinners,
+          averageListeners: Math.round(avgListeners),
+          highestListeners,
+          averageDays: Math.round(avgDays),
+          averageSongs: Math.round(avgSongs),
+        });
+      }
+    } catch (error) {
+      console.error('[useInsForge] Error refreshing leaderboard:', error);
+    }
   }, []);
 
+  /**
+   * Obtiene el ranking del jugador
+   */
   const getPlayerRank = useCallback(async () => {
-    console.log('[useInsForge] Mock getPlayerRank');
-  }, []);
+    if (!user) return null;
+
+    try {
+      const { data, error } = await insforge.database
+        .from('leaderboard')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('final_listeners', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      // Obtener ranking
+      const { data: allPlayers } = await insforge.database
+        .from('leaderboard')
+        .select('final_listeners')
+        .order('final_listeners', { ascending: false });
+
+      const rank = (allPlayers || []).findIndex((p: any) => p.final_listeners <= data.final_listeners) + 1;
+
+      return {
+        rank,
+        totalPlayers: allPlayers?.length || 0,
+        entry: data as LeaderboardEntry,
+      };
+    } catch (error) {
+      console.error('[useInsForge] Error getting player rank:', error);
+      return null;
+    }
+  }, [user]);
 
   return {
     // Estado de autenticación
     user,
-    isAuthenticated: false,
-    isLoading: false,
+    isAuthenticated: user !== null,
+    isLoading,
     
     // Funciones de autenticación
     register,
@@ -114,8 +436,8 @@ export function useInsForge() {
     
     // Estado de guardado
     saves,
-    isSaving: false,
-    lastSaveTime: null,
+    isSaving,
+    lastSaveTime,
     
     // Funciones de guardado
     saveGame,
@@ -125,7 +447,6 @@ export function useInsForge() {
     
     // Estado de leaderboard
     topPlayers,
-    playerRank: { rank: 0, totalPlayers: 0, entry: null },
     globalStats,
     
     // Funciones de leaderboard
