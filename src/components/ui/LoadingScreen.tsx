@@ -1,111 +1,241 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '../../store/uiStore';
 import { CityBackground } from './CityBackground';
-import { useMusic } from '../../hooks/useAudio';
 
 export function LoadingScreen() {
   const setScreen = useUIStore((s) => s.setScreen);
+  const setLoading = useUIStore((s) => s.setLoading);
   const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState('');
+  const [phase, setPhase] = useState('Inicializando Purple City...');
   const [show, setShow] = useState(false);
+  const [showBg, setShowBg] = useState(false);
   const [done, setDone] = useState(false);
-  const [started, setStarted] = useState(false);
-  const startedRef = useRef(false);
-  const music = useMusic('/audio/inicio.mp3', 0.35);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => { setTimeout(() => setShow(true), 200); }, []);
+  useEffect(() => { 
+    setTimeout(() => setShow(true), 200);
+    
+    // Iniciar música solo si no existe ya
+    setTimeout(() => {
+      const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
+      
+      if (!existingMusic) {
+        const music = new Audio('/audio/inicio.mp3');
+        music.loop = true;
+        music.volume = 0.35;
+        musicRef.current = music;
+        music.play().catch(() => {});
+        (window as unknown as Record<string, unknown>).__legendsMusic = music;
+      } else {
+        musicRef.current = existingMusic;
+      }
+    }, 300);
+  }, []);
 
+  // Progress bar con lógica de develop pero más lento
   useEffect(() => {
-    const handler = () => {
-      if (startedRef.current) return;
-      startedRef.current = true;
-      setStarted(true);
-      music.play();
-      setPhase('Inicializando Purple City...');
-    };
-    window.addEventListener('click', handler);
-    window.addEventListener('touchstart', handler);
-    window.addEventListener('keydown', handler);
-    return () => {
-      window.removeEventListener('click', handler);
-      window.removeEventListener('touchstart', handler);
-      window.removeEventListener('keydown', handler);
-    };
-  }, [music]);
-
-  useEffect(() => {
-    if (!started) return;
     const phases = [
-      { at: 10, text: 'Cargando modelos 3D...' },
-      { at: 25, text: 'Renderizando Purple City...' },
-      { at: 40, text: 'Preparando beats...' },
-      { at: 55, text: 'Conectando con SoundCloud...' },
-      { at: 70, text: 'Configurando el estudio...' },
-      { at: 85, text: 'Afinando instrumentos...' },
-      { at: 95, text: 'Casi listo...' },
+      { at: 15, text: 'Cargando modelos 3D...' },
+      { at: 30, text: 'Renderizando Purple City...' },
+      { at: 45, text: 'Preparando beats...' },
+      { at: 60, text: 'Conectando con SoundCloud...' },
+      { at: 75, text: 'Configurando el estudio...' },
+      { at: 90, text: 'Afinando instrumentos...' },
+      { at: 98, text: 'Casi listo...' },
     ];
+    
+    console.log('[LoadingScreen] Starting progress animation');
+    
     const iv = setInterval(() => {
       setProgress((p) => {
-        const next = p + Math.random() * 2 + 0.8;
+        // Incremento más controlado: entre 0.5 y 1.5 por tick
+        const next = p + Math.random() * 1 + 0.5;
+        
+        // Mostrar fondo al 30%
+        if (next >= 30 && !showBg) {
+          setShowBg(true);
+        }
+        
         if (next >= 100) {
+          console.log('[LoadingScreen] Progress complete, switching to main menu');
           clearInterval(iv);
           setDone(true);
-          setTimeout(() => setScreen('main_menu'), 1000);
+          setTimeout(() => {
+            console.log('[LoadingScreen] Calling setScreen(main_menu)');
+            setLoading(false); // Desactivar el estado de loading
+            setScreen('main_menu');
+          }, 1000);
           return 100;
         }
+        
         const ph = phases.filter((x) => x.at <= next).pop();
         if (ph) setPhase(ph.text);
         return next;
       });
-    }, 70);
-    return () => clearInterval(iv);
-  }, [started, setScreen]);
+    }, 80); // 80ms por tick = aproximadamente 5-6 segundos total
+    
+    return () => {
+      console.log('[LoadingScreen] Cleaning up interval');
+      clearInterval(iv);
+    };
+  }, [setScreen, setLoading, showBg]);
 
   const pct = Math.floor(progress);
 
   return (
     <div className={`fixed inset-0 z-50 transition-opacity duration-700 ${done ? 'opacity-0' : 'opacity-100'}`}>
-      <CityBackground />
+      {/* Fondo negro inicial */}
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-950 via-purple-900 to-black" />
+      
+      {/* Fondo de ciudad que aparece gradualmente */}
+      <div className={`absolute inset-0 transition-opacity duration-2000 ${showBg ? 'opacity-100' : 'opacity-0'}`}>
+        <CityBackground />
+      </div>
+
+      {/* Partículas flotantes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${3 + Math.random() * 4}s`,
+              opacity: 0.3 + Math.random() * 0.4,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
 
       {show && (
-        <div className="relative z-10 flex flex-col items-center justify-end h-full px-4 sm:px-8 pb-8 sm:pb-12">
-          <div className="w-full max-w-2xl animate-fade-in">
-
-            <p className="text-sm sm:text-base md:text-lg font-mono mb-2 sm:mb-3 tracking-wide"
-              style={{
-                color: !started ? 'rgba(34,211,238,0.9)' : 'rgba(200,220,240,0.7)',
-                textShadow: '0 2px 4px rgba(0,0,0,0.9)',
-                animation: !started ? 'pulse-neon 1.5s ease-in-out infinite' : 'none',
-              }}>
-              {!started ? '▶ Toca para iniciar' : phase}
-            </p>
-
-            <div className="relative h-4 sm:h-5 md:h-6 rounded-full overflow-hidden"
-              style={{
-                background: 'rgba(0,0,0,0.6)',
-                border: '1px solid rgba(34,211,238,0.15)',
-                boxShadow: '0 0 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.5)',
-              }}>
-              <div className="h-full rounded-full transition-all duration-200 ease-out relative"
+        <div className="relative z-10 flex flex-col items-center justify-center h-full px-8">
+          <div className="w-full max-w-2xl">
+            
+            {/* Logo animado */}
+            <div className="text-center mb-12 animate-fade-in">
+              <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-wider"
                 style={{
-                  width: `${progress}%`,
-                  background: 'linear-gradient(90deg, #0891b2, #22d3ee, #67e8f9)',
-                  boxShadow: '0 0 15px rgba(34,211,238,0.5)',
+                  background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 50%, #164e63 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 0 40px rgba(34,211,238,0.3)',
+                  fontFamily: "'Arial Black', 'Impact', sans-serif",
                 }}>
-                <div className="absolute inset-0 rounded-full"
-                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)' }} />
+                LEGENDS
+              </h1>
+              <p className="text-lg md:text-xl text-cyan-300 tracking-[0.3em] font-light"
+                style={{ textShadow: '0 2px 10px rgba(34,211,238,0.5)' }}>
+                THE MUSIC CAREER SIMULATOR
+              </p>
+            </div>
+
+            {/* Contenedor de carga con efecto glassmorphism */}
+            <div className="backdrop-blur-md bg-black/40 border border-cyan-500/20 rounded-2xl p-8 shadow-2xl"
+              style={{ boxShadow: '0 0 40px rgba(34,211,238,0.1), inset 0 0 20px rgba(0,0,0,0.3)' }}>
+              
+              {/* Phase text */}
+              <p className="text-base md:text-lg font-mono mb-4 tracking-wide text-center"
+                style={{
+                  color: 'rgba(200,220,240,0.9)',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                }}>
+                {phase}
+              </p>
+
+              {/* Barra de progreso con múltiples capas */}
+              <div className="relative">
+                {/* Glow exterior */}
+                <div className="absolute -inset-1 rounded-full blur-sm"
+                  style={{
+                    background: `linear-gradient(90deg, transparent 0%, rgba(34,211,238,0.3) ${progress}%, transparent ${progress}%)`,
+                  }} />
+                
+                {/* Barra principal */}
+                <div className="relative h-6 md:h-7 rounded-full overflow-hidden"
+                  style={{
+                    background: 'rgba(0,0,0,0.7)',
+                    border: '2px solid rgba(34,211,238,0.2)',
+                    boxShadow: '0 0 20px rgba(0,0,0,0.5), inset 0 2px 6px rgba(0,0,0,0.6)',
+                  }}>
+                  
+                  {/* Progreso con gradiente animado */}
+                  <div className="h-full rounded-full transition-all duration-300 ease-out relative overflow-hidden"
+                    style={{
+                      width: `${progress}%`,
+                      background: 'linear-gradient(90deg, #0891b2, #22d3ee, #67e8f9, #22d3ee, #0891b2)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 3s linear infinite',
+                      boxShadow: '0 0 20px rgba(34,211,238,0.6), 0 0 40px rgba(34,211,238,0.3)',
+                    }}>
+                    
+                    {/* Brillo superior */}
+                    <div className="absolute inset-0 rounded-full"
+                      style={{ 
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 50%)',
+                      }} />
+                    
+                    {/* Onda animada */}
+                    <div className="absolute inset-0 rounded-full overflow-hidden">
+                      <div className="absolute inset-0" style={{
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+                        animation: 'shimmer 2s ease-in-out infinite',
+                      }} />
+                    </div>
+                    
+                    {/* Puntos de luz */}
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-full bg-white/30"
+                        style={{
+                          left: `${i * 20}%`,
+                          animation: `pulse-neon ${1 + i * 0.2}s ease-in-out infinite`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Porcentaje con efecto neon */}
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex gap-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-cyan-400"
+                      style={{
+                        animation: `pulse-neon ${0.6 + i * 0.2}s ease-in-out infinite`,
+                        animationDelay: `${i * 0.2}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+                
+                <span className="text-2xl md:text-3xl font-black font-mono"
+                  style={{
+                    color: '#22d3ee',
+                    textShadow: '0 0 10px rgba(34,211,238,0.8), 0 0 20px rgba(34,211,238,0.5), 0 0 30px rgba(34,211,238,0.3)',
+                  }}>
+                  {pct}%
+                </span>
               </div>
             </div>
 
-            <div className="flex justify-end mt-1.5 sm:mt-2">
-              <span className="text-lg sm:text-xl md:text-2xl font-black font-mono"
-                style={{ color: '#22d3ee', textShadow: '0 0 10px rgba(34,211,238,0.6)' }}>
-                {started ? `${pct}%` : ''}
-              </span>
-            </div>
+            {/* Texto inferior */}
+            <p className="text-center mt-8 text-xs md:text-sm text-cyan-300/50 font-mono tracking-wider">
+              Purple City, 2015 · Preparando tu carrera musical...
+            </p>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+export default LoadingScreen;

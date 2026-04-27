@@ -1,42 +1,110 @@
-import { Howl } from 'howler';
-import { useRef, useCallback } from 'react';
+/**
+ * 🎮 LEGENDS: Audio Hook
+ * Hook para gestión de audio y música
+ * Autor: Felipe (Systems Developer)
+ */
 
-const sfxCache: Record<string, Howl> = {};
+import { useCallback } from 'react';
+import { useAudioStore } from '../store/audioStore';
 
-function getHowl(src: string, loop = false, volume = 0.5): Howl {
-  if (!sfxCache[src]) {
-    sfxCache[src] = new Howl({ src: [src], loop, volume, preload: true });
-  }
-  return sfxCache[src];
-}
+export const useAudio = () => {
+  const {
+    masterVolume,
+    musicVolume,
+    sfxVolume,
+    muted,
+    currentTrack,
+    setMasterVolume,
+    setMusicVolume,
+    setSfxVolume,
+    toggleMute,
+    playTrack,
+    stopTrack,
+    pauseTrack,
+    resumeTrack,
+  } = useAudioStore();
 
-/** Play a one-shot sound effect */
-export function playSfx(src: string, volume = 0.5) {
-  const h = getHowl(src, false, volume);
-  h.volume(volume);
-  h.play();
-}
+  // Reproducir música de fondo
+  const playMusic = useCallback(
+    (trackName: string, loop: boolean = true) => {
+      playTrack(trackName, loop);
+    },
+    [playTrack]
+  );
 
-/** Hook for background music — returns play/pause/stop */
-export function useMusic(src: string, volume = 0.35) {
-  const howlRef = useRef<Howl | null>(null);
+  // Reproducir efecto de sonido
+  const playSFX = useCallback(
+    (sfxName: string) => {
+      if (muted) return;
+      
+      // Aquí se implementaría la lógica con Howler.js
+      console.log(`[Audio] Playing SFX: ${sfxName} at volume ${sfxVolume}`);
+    },
+    [muted, sfxVolume]
+  );
 
-  const play = useCallback(() => {
-    if (!howlRef.current) {
-      howlRef.current = getHowl(src, true, volume);
-    }
-    if (!howlRef.current.playing()) {
-      howlRef.current.play();
-    }
-  }, [src, volume]);
+  // Detener toda la música
+  const stopMusic = useCallback(() => {
+    stopTrack();
+  }, [stopTrack]);
 
-  const pause = useCallback(() => {
-    howlRef.current?.pause();
-  }, []);
+  // Pausar música
+  const pauseMusic = useCallback(() => {
+    pauseTrack();
+  }, [pauseTrack]);
 
-  const stop = useCallback(() => {
-    howlRef.current?.stop();
-  }, []);
+  // Reanudar música
+  const resumeMusic = useCallback(() => {
+    resumeTrack();
+  }, [resumeTrack]);
 
-  return { play, pause, stop };
-}
+  // Cambiar volumen master
+  const changeMasterVolume = useCallback(
+    (volume: number) => {
+      setMasterVolume(Math.max(0, Math.min(100, volume)));
+    },
+    [setMasterVolume]
+  );
+
+  // Cambiar volumen de música
+  const changeMusicVolume = useCallback(
+    (volume: number) => {
+      setMusicVolume(Math.max(0, Math.min(100, volume)));
+    },
+    [setMusicVolume]
+  );
+
+  // Cambiar volumen de SFX
+  const changeSFXVolume = useCallback(
+    (volume: number) => {
+      setSfxVolume(Math.max(0, Math.min(100, volume)));
+    },
+    [setSfxVolume]
+  );
+
+  // Toggle mute
+  const toggleAudioMute = useCallback(() => {
+    toggleMute();
+  }, [toggleMute]);
+
+  return {
+    // Estado
+    masterVolume,
+    musicVolume,
+    sfxVolume,
+    muted,
+    currentTrack,
+    isPlaying: currentTrack !== null,
+
+    // Acciones
+    playMusic,
+    playSFX,
+    stopMusic,
+    pauseMusic,
+    resumeMusic,
+    changeMasterVolume,
+    changeMusicVolume,
+    changeSFXVolume,
+    toggleMute: toggleAudioMute,
+  };
+};
