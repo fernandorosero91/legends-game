@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { ApartmentScene } from '../scenes/ApartmentScene';
+import { AnimatePresence } from 'framer-motion';
+import { SceneManager } from '../scenes/SceneManager';
 import { 
   LoadingScreen, 
   MainMenu,
@@ -11,6 +12,9 @@ import {
   DialogBox,
   PauseMenu,
 } from '../components/ui';
+import { LocationMap } from '../components/ui/LocationMap';
+import { MiniMap } from '../components/ui/MiniMap';
+import { MapTutorial } from '../components/ui/MapTutorial';
 import { AuthTestScreen } from '../components/ui/AuthTestScreen';
 import { GameInitializer } from '../components/GameInitializer';
 import { useUIStore } from '../store/uiStore';
@@ -20,6 +24,7 @@ import { useShopStore } from '../store/shopStore';
 import { useJobStore } from '../store/jobStore';
 import { ShopSystem } from '../systems/shopSystem';
 import { JobSystem } from '../systems/jobSystem';
+import { motion } from 'framer-motion';
 
 // Lazy load de pantallas pesadas para optimización
 const ShopScreen = lazy(() => import('../components/ui/ShopScreen'));
@@ -33,9 +38,19 @@ const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
 
 function GameScene() {
   // Estados del juego
-  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause } = useGameStore();
+  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
   const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
+  const [showLocationMap, setShowLocationMap] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Mostrar tutorial la primera vez
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('legends-map-tutorial');
+    if (!hasSeenTutorial && currentDay === 1) {
+      setShowTutorial(true);
+    }
+  }, [currentDay]);
 
   // Nombre del nivel
   const levelNames: Record<number, string> = {
@@ -47,17 +62,44 @@ function GameScene() {
     6: 'Leyenda',
   };
   
-  // Detectar tecla ESC para pausar
+  // Detectar tecla ESC para pausar y M para mapa
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         togglePause();
+      }
+      if (e.key === 'm' || e.key === 'M') {
+        setShowLocationMap(prev => !prev);
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePause]);
+
+  const handleCloseTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('legends-map-tutorial', 'seen');
+  };
+
+  const handleLocationSelect = (locationId: string) => {
+    setCurrentScene(locationId as any);
+    setShowLocationMap(false);
+    
+    // Mostrar notificación
+    const locationNames: Record<string, string> = {
+      apartment: 'Tu Apartamento',
+      cafe: 'Café Purple Beans',
+      store: 'Almacén StreetWear',
+      shop: 'Purple Sound Shop',
+      restaurant: 'Restaurante La Esquina',
+      delivery: 'Delivery Express',
+      bar: 'Bar Neon Nights',
+      academy: 'Academia SoundWave'
+    };
+    
+    useUIStore.getState().addNotification('info', `Viajando a ${locationNames[locationId] || locationId}...`);
+  };
 
   return (
     <>
@@ -82,7 +124,7 @@ function GameScene() {
             shadow-camera-bottom={-15}
           />
           <hemisphereLight args={['#b1e1ff', '#b97a20', 0.3]} />
-          <ApartmentScene />
+          <SceneManager />
         </Canvas>
       </div>
 
@@ -103,6 +145,55 @@ function GameScene() {
         listeners={monthlyListeners}
         reputation={reputation}
         showReputation={currentLevel >= 3}
+      />
+
+      {/* Mini-mapa */}
+      <MiniMap
+        currentLocation={currentScene}
+        onOpenFullMap={() => setShowLocationMap(true)}
+      />
+
+      {/* Botón flotante para abrir mapa */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowLocationMap(true)}
+        className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
+        title="Abrir mapa (M)"
+      >
+        🗺️
+      </motion.button>
+
+      {/* Indicador de ubicación actual */}
+      <div className="fixed bottom-8 left-8 z-40 bg-black/70 backdrop-blur-md border-2 border-purple-500 rounded-xl px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">📍</span>
+          <div>
+            <div className="text-xs text-purple-400 font-medium">Ubicación</div>
+            <div className="text-sm text-white font-bold">
+              {currentScene === 'apartment' ? 'Tu Apartamento' : 'Purple City'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mapa de ubicaciones */}
+      <AnimatePresence>
+        {showLocationMap && (
+          <LocationMap
+            currentLocation={currentScene}
+            onSelectLocation={handleLocationSelect}
+            onClose={() => setShowLocationMap(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Tutorial del mapa */}
+      <MapTutorial
+        isOpen={showTutorial}
+        onClose={handleCloseTutorial}
       />
 
       {/* CameraHUD - Controles e interacción */}

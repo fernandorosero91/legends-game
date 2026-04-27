@@ -16,6 +16,7 @@ export { default as PauseMenu } from './PauseMenu';
 export { default as StatsPanel } from './StatsPanel';
 export { default as Notification } from './Notification';
 export { default as DialogBox } from './DialogBox';
+export { LocationMap } from './LocationMap';
 
 // Los siguientes componentes se cargan dinámicamente en App.tsx:
 // - SaveLoadScreen

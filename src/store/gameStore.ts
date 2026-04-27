@@ -9,6 +9,7 @@ import { devtools, persist } from 'zustand/middleware';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'dialogue' | 'rhythm_game' | 'working' | 'shopping' | 'game_over' | 'victory';
+export type GameScene = 'apartment' | 'cafe' | 'store' | 'shop' | 'restaurant' | 'delivery' | 'bar' | 'academy' | 'city';
 
 interface GameState {
   // Estado del juego
@@ -16,6 +17,7 @@ interface GameState {
   currentLevel: number;
   timeOfDay: TimeOfDay;
   gamePhase: GamePhase;
+  currentScene: GameScene;
   isPaused: boolean;
   isLoading: boolean;
 
@@ -33,6 +35,7 @@ interface GameState {
   advanceDay: () => void;
   setLevel: (level: number) => void;
   setGamePhase: (phase: GamePhase) => void;
+  setCurrentScene: (scene: GameScene) => void;
   togglePause: () => void;
   unlockFeature: (feature: string) => void;
   isFeatureUnlocked: (feature: string) => boolean;
@@ -45,6 +48,7 @@ const INITIAL_STATE = {
   currentLevel: 1,
   timeOfDay: 'morning' as TimeOfDay,
   gamePhase: 'menu' as GamePhase,
+  currentScene: 'apartment' as GameScene,
   isPaused: false,
   isLoading: false,
   totalDaysPlayed: 0,
@@ -124,6 +128,10 @@ export const useGameStore = create<GameState>()(
           set({ gamePhase: phase });
         },
 
+        setCurrentScene: (scene: GameScene) => {
+          set({ currentScene: scene });
+        },
+
         togglePause: () => {
           const { isPaused, gamePhase } = get();
           if (gamePhase === 'playing' || gamePhase === 'paused') {
@@ -167,6 +175,7 @@ export const useGameStore = create<GameState>()(
           currentDay: state.currentDay,
           currentLevel: state.currentLevel,
           timeOfDay: state.timeOfDay,
+          currentScene: state.currentScene,
           totalDaysPlayed: state.totalDaysPlayed,
           gameStartTime: state.gameStartTime,
           lastSaveTime: state.lastSaveTime,

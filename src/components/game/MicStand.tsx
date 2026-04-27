@@ -2,32 +2,32 @@ import { PropPlaceholder } from './PropPlaceholder';
 import { useUIStore } from '@/store/uiStore';
 import { usePlayerStore } from '@/store/playerStore';
 
-export function Computer() {
+export function MicStand() {
   const setCurrentScreen = useUIStore(state => state.setCurrentScreen);
   const energy = usePlayerStore(state => state.energy);
   const showNotification = useUIStore(state => state.showNotification);
 
   const handleInteract = () => {
-    if (energy < 15) {
+    if (energy < 30) {
       showNotification({
         type: 'warning',
-        message: 'Estás muy cansado para trabajar',
+        message: 'Necesitas al menos 30 de energía para grabar',
         duration: 3000
       });
       return;
     }
 
-    // Abrir pantalla de trabajos online
-    setCurrentScreen('jobs');
+    // Abrir minijuego rítmico
+    setCurrentScreen('rhythm');
   };
 
   return (
     <PropPlaceholder
-      type="computer"
-      position={[2, 0.8, -3]}
-      rotation={[0, Math.PI, 0]}
-      scale={0.8}
-      label="Trabajar Online"
+      type="mic"
+      position={[0, 0, -4]}
+      rotation={[0, 0, 0]}
+      scale={1}
+      label="Grabar Canción"
       onInteract={handleInteract}
     />
   );
