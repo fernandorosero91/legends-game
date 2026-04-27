@@ -67,9 +67,9 @@ export function useInsForge() {
    */
   const checkSession = useCallback(async () => {
     try {
-      const { data, error } = await insforge.auth.getSession();
+      const { data: sessionData, error: sessionError } = await insforge.auth.getSession();
       
-      if (error || !data?.session) {
+      if (sessionError || !sessionData?.session?.user) {
         setUser(null);
         return;
       }
@@ -78,7 +78,7 @@ export function useInsForge() {
       const { data: userData, error: userError } = await insforge.database
         .from('users')
         .select('*')
-        .eq('id', data.session.user.id)
+        .eq('id', sessionData.session.user.id)
         .single();
 
       if (userError || !userData) {
@@ -117,7 +117,7 @@ export function useInsForge() {
         return { success: false, error: authError.message };
       }
 
-      if (!authData.user) {
+      if (!authData || !authData.user) {
         return { success: false, error: 'Error al crear usuario' };
       }
 
@@ -169,7 +169,7 @@ export function useInsForge() {
         return { success: false, error: error.message };
       }
 
-      if (!data.user) {
+      if (!data || !data.user) {
         return { success: false, error: 'Error al iniciar sesión' };
       }
 
@@ -493,11 +493,10 @@ export function useSaveSlots() {
  * Hook específico para leaderboard
  */
 export function useLeaderboard() {
-  const { topPlayers, playerRank, globalStats, submitScore, refreshLeaderboard, getPlayerRank } = useInsForge();
+  const { topPlayers, globalStats, submitScore, refreshLeaderboard, getPlayerRank } = useInsForge();
   
   return {
     topPlayers,
-    playerRank,
     globalStats,
     submitScore,
     refreshLeaderboard,

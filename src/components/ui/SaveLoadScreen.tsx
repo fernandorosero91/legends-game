@@ -115,10 +115,7 @@ const SaveLoadScreen = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLoadGame(save.id);
-                      }}
+                      onClick={() => handleLoadGame(save.id)}
                       disabled={isLoading}
                     >
                       <Icon name="play" size="sm" />
@@ -128,13 +125,10 @@ const SaveLoadScreen = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSave(save.id);
-                      }}
+                      onClick={() => handleDeleteSave(save.id)}
                       className="text-red-400 hover:text-red-300"
                     >
-                      <Icon name="delete" size="sm" />
+                      <Icon name="x" size="sm" />
                     </Button>
                   </div>
                 </div>

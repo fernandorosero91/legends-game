@@ -88,10 +88,10 @@ export class MovementSystem {
 
     for (const box of wallBoxes) {
       if (
-        x >= box.minX &&
-        x <= box.maxX &&
-        z >= box.minZ &&
-        z <= box.maxZ
+        x >= box.min.x &&
+        x <= box.max.x &&
+        z >= box.min.z &&
+        z <= box.max.z
       ) {
         return true; // Hay colisión
       }
@@ -121,11 +121,9 @@ export class MovementSystem {
     const { position, wallBoxes } = usePlayerStore.getState();
 
     for (const box of wallBoxes) {
-      if (box.type !== 'interactable' || !box.interactId) continue;
-
       // Calcular centro del objeto
-      const centerX = (box.minX + box.maxX) / 2;
-      const centerZ = (box.minZ + box.maxZ) / 2;
+      const centerX = (box.min.x + box.max.x) / 2;
+      const centerZ = (box.min.z + box.max.z) / 2;
 
       // Calcular distancia
       const distance = Math.sqrt(
@@ -133,7 +131,7 @@ export class MovementSystem {
       );
 
       if (distance <= radius) {
-        return box.interactId;
+        return box.id;
       }
     }
 
@@ -288,7 +286,7 @@ export class MovementSystem {
   /**
    * Agrega una caja de colisión
    */
-  static addCollisionBox(box: CollisionBox): void {
+  static addCollisionBox(box: { id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }): void {
     usePlayerStore.getState().addWallBox(box);
   }
 

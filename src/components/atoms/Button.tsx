@@ -3,7 +3,7 @@
  * Componente de botón reutilizable con variantes y estados
  */
 
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { type ButtonHTMLAttributes, forwardRef } from 'react';
 import type { ButtonProps } from '@/types/ui';
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps & ButtonHTMLAttributes<HTMLButtonElement>>(

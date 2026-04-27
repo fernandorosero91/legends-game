@@ -19,16 +19,15 @@ import ShopScreen from '../components/ui/ShopScreen';
 import JobScreen from '../components/ui/JobScreen';
 import GameOverScreen from '../components/ui/GameOverScreen';
 import VictoryScreen from '../components/ui/VictoryScreen';
-import RhythmGame from '../components/rhythm/RhythmGame';
+import { RhythmGame } from '../components/rhythm/RhythmGame';
 
 // Importar hooks
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useResources } from '../hooks/useResources';
 
 export const GameIntegration: React.FC = () => {
-  const { gamePhase, currentScreen } = useGameStore();
-  const { dialogueActive, currentDialogue } = useUIStore();
-  const { isLoading } = useUIStore();
+  const { gamePhase } = useGameStore();
+  const { dialogueActive, currentDialogue, isLoading } = useUIStore();
 
   // Hooks del juego
   const gameLoop = useGameLoop();
@@ -49,19 +48,16 @@ export const GameIntegration: React.FC = () => {
   return (
     <div className="game-container relative w-full h-screen overflow-hidden bg-purple-900">
       {/* Pantalla principal según currentScreen */}
-      {currentScreen === 'main_menu' && <MainMenu />}
+      {useUIStore.getState().currentScreen === 'main_menu' && <MainMenu />}
       
-      {currentScreen === 'game' && (
+      {useUIStore.getState().currentScreen === 'game' && (
         <>
           {/* HUD siempre visible durante el juego */}
           <HUD
-            day={gameLoop.currentDay}
-            timeOfDay={gameLoop.timeOfDay}
             money={resources.money}
             energy={resources.energy}
             hunger={resources.hunger}
             listeners={resources.monthlyListeners}
-            reputation={resources.reputation}
           />
 
           {/* Escena 3D del juego (aquí iría el componente de Three.js) */}
@@ -72,28 +68,46 @@ export const GameIntegration: React.FC = () => {
       )}
 
       {/* Overlays según gamePhase */}
-      {gamePhase === 'paused' && <PauseMenu />}
+      {gamePhase === 'paused' && <PauseMenu isOpen={true} onContinue={() => {}} onSave={() => {}} onSettings={() => {}} onMainMenu={() => {}} />}
       
       {gamePhase === 'rhythm_game' && <RhythmGame />}
       
-      {gamePhase === 'shopping' && <ShopScreen />}
+      {gamePhase === 'shopping' && <ShopScreen items={[]} currentMoney={0} currentLevel={1} onPurchase={() => {}} onBack={() => {}} isOpen={true} />}
       
-      {gamePhase === 'working' && <JobScreen />}
+      {gamePhase === 'working' && <JobScreen jobs={[]} currentJob={null} onStartJob={() => {}} onCompleteJob={() => {}} onBack={() => {}} isWorking={false} />}
 
       {/* Diálogos */}
       {dialogueActive && currentDialogue && (
         <DialogBox
-          speaker={currentDialogue.speaker}
+          isOpen={true}
+          character={currentDialogue.speaker || 'Unknown'}
           text={currentDialogue.text}
-          portrait={currentDialogue.portrait}
-          options={currentDialogue.options}
+          onNext={() => {}}
         />
       )}
 
       {/* Pantallas de fin de juego */}
-      {gamePhase === 'game_over' && <GameOverScreen />}
+      {gamePhase === 'game_over' && <GameOverScreen reason="" stats={{
+        finalListeners: 0,
+        totalSongs: 0,
+        totalMoney: 0,
+        finalReputation: 0,
+        jobsCompleted: 0,
+        collaborations: 0,
+        daysPlayed: 0,
+        itemsPurchased: 0
+      }} onRetry={() => {}} onMainMenu={() => {}} />}
       
-      {gamePhase === 'victory' && <VictoryScreen />}
+      {gamePhase === 'victory' && <VictoryScreen stats={{
+        finalListeners: 0,
+        totalSongs: 0,
+        totalMoney: 0,
+        finalReputation: 0,
+        jobsCompleted: 0,
+        collaborations: 0,
+        daysPlayed: 0,
+        itemsPurchased: 0
+      }} onSaveToLeaderboard={() => {}} onMainMenu={() => {}} />}
     </div>
   );
 };

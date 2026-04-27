@@ -1,11 +1,7 @@
 {
-  "buildCommand": "cp -r dist .vercel/output/static",
-  "installCommand": "echo 'Skip install'",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "devCommand": null
 }
