@@ -10,10 +10,10 @@ import { useGameStore } from '../store/gameStore';
 export class EconomySystem {
   /**
    * Calcula ingresos pasivos diarios basados en oyentes
-   * Fórmula: 10 oyentes = $1 de ingreso pasivo por día
+   * Fórmula: 5 oyentes = $1 de ingreso pasivo por día
    */
   static calculatePassiveIncome(listeners: number): number {
-    return Math.floor(listeners / 10);
+    return Math.floor(listeners / 5);
   }
 
   /**
@@ -92,7 +92,7 @@ export class EconomySystem {
   /**
    * Calcula el costo total de la renta hasta el final del juego
    */
-  static calculateRemainingRentCost(rentPerDay: number = 1000): number {
+  static calculateRemainingRentCost(rentPerDay: number = 600): number {
     const currentDay = useGameStore.getState().currentDay;
     const remainingDays = 45 - currentDay;
     return rentPerDay * remainingDays;
@@ -101,7 +101,7 @@ export class EconomySystem {
   /**
    * Verifica si el jugador puede sobrevivir económicamente
    */
-  static canSurvive(daysToCheck: number = 7, rentPerDay: number = 1000): boolean {
+  static canSurvive(daysToCheck: number = 7, rentPerDay: number = 600): boolean {
     const { money } = usePlayerStore.getState();
     const projectedIncome = this.projectIncome(daysToCheck);
     const projectedRent = rentPerDay * daysToCheck;

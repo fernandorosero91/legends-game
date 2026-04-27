@@ -10,9 +10,9 @@ import { useUIStore } from '../store/uiStore';
 export class EnergySystem {
   static readonly MAX_ENERGY = 100;
   static readonly MIN_ENERGY = 0;
-  static readonly SLEEP_RESTORE = 50;
-  static readonly REST_RESTORE = 20;
-  static readonly RECORDING_COST = 30;
+  static readonly SLEEP_RESTORE = 60;
+  static readonly REST_RESTORE = 25;
+  static readonly RECORDING_COST = 25;
 
   /**
    * Consume energía del jugador

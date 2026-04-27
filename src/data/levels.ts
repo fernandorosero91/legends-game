@@ -32,7 +32,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'Luna (primer fan)',
     rhythmDifficulty: 'easy',
     listenerMultiplier: 1.0,
-    rentAmount: 1000,
+    rentAmount: 400,
   },
   {
     id: 2,
@@ -45,7 +45,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'Aparición de El Crítico',
     rhythmDifficulty: 'medium',
     listenerMultiplier: 1.2,
-    rentAmount: 1000,
+    rentAmount: 500,
   },
   {
     id: 3,
@@ -58,7 +58,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'Mensaje de DJ Sonic en la crisis',
     rhythmDifficulty: 'medium-high',
     listenerMultiplier: 1.5,
-    rentAmount: 1000,
+    rentAmount: 600,
   },
   {
     id: 4,
@@ -71,7 +71,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'Mensaje de Mamá + Cambio de tono de El de la Renta',
     rhythmDifficulty: 'high',
     listenerMultiplier: 1.8,
-    rentAmount: 1000,
+    rentAmount: 700,
   },
   {
     id: 5,
@@ -84,7 +84,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'El Crítico cambia de tono',
     rhythmDifficulty: 'very-high',
     listenerMultiplier: 2.2,
-    rentAmount: 1000,
+    rentAmount: 800,
   },
   {
     id: 6,
@@ -97,7 +97,7 @@ export const LEVELS: Level[] = [
     narrativeMilestone: 'Reconocimientos finales de todos los personajes',
     rhythmDifficulty: 'max',
     listenerMultiplier: 2.5,
-    rentAmount: 1000,
+    rentAmount: 900,
   },
 ];
 
