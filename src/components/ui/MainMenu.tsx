@@ -91,8 +91,8 @@ export function MainMenu() {
   const secondaryBtns = [
     { id: 'continue', label: 'CONTINUAR', icon: <IconDisc />, target: 'save_load' as const },
     { id: 'ranking', label: 'RANKING', icon: <IconTrophy />, target: 'leaderboard' as const },
-    { id: 'options', label: 'OPCIONES', icon: <IconSliders />, target: 'game' as const }, // Temporal: cambiar cuando esté disponible settings
-    { id: 'credits', label: 'CRÉDITOS', icon: <IconHeadphones />, target: 'game' as const }, // Temporal: cambiar cuando esté disponible credits
+    { id: 'options', label: 'OPCIONES', icon: <IconSliders />, target: 'settings' as const },
+    { id: 'credits', label: 'CRÉDITOS', icon: <IconHeadphones />, target: 'credits' as const },
   ];
 
   return (

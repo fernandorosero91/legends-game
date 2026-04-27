@@ -46,7 +46,14 @@ const ProgressBar = ({
       )}
 
       {/* Barra de progreso */}
-      <div className="relative w-full h-2 rounded-full overflow-hidden bg-gray-800">
+      <div 
+        className="relative w-full h-2 rounded-full overflow-hidden bg-gray-800"
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-label={label || 'Progress'}
+      >
         <motion.div
           className={`absolute top-0 left-0 h-full rounded-full ${colorClasses[color]} ${alertClass}`}
           initial={{ width: 0 }}

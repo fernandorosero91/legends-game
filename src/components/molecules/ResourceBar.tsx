@@ -18,13 +18,13 @@ const ResourceBar = ({
 }: ResourceBarProps) => {
   // Formatear valor según el tipo
   const formatValue = (val: number) => {
-    // Si es dinero (icon === 'money'), formatear con separador de miles
+    // Si es dinero (icon === 'money'), formatear con $ y separador de miles
     if (icon === 'money') {
-      return `$${val.toLocaleString()}`;
+      return `$${val.toLocaleString('en-US')}`;
     }
     // Si es oyentes (icon === 'listeners'), formatear con separador de miles
     if (icon === 'listeners') {
-      return val.toLocaleString();
+      return val.toLocaleString('en-US');
     }
     // Para otros recursos, mostrar el valor directo
     return val;

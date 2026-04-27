@@ -19,7 +19,9 @@ export type Screen =
   | 'stats'
   | 'leaderboard'
   | 'game_over'
-  | 'victory';
+  | 'victory'
+  | 'settings'
+  | 'credits';
 
 interface Notification {
   id: string;

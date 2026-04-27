@@ -28,6 +28,8 @@ const GameOverScreen = lazy(() => import('../components/ui/GameOverScreen'));
 const VictoryScreen = lazy(() => import('../components/ui/VictoryScreen'));
 const LeaderboardScreen = lazy(() => import('../components/ui/LeaderboardScreen'));
 const SaveLoadScreen = lazy(() => import('../components/ui/SaveLoadScreen'));
+const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
+const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
 
 function GameScene() {
   // Estados del juego
@@ -265,6 +267,10 @@ function App() {
             onBack={() => useUIStore.getState().setScreen('main_menu')}
           />
         )}
+
+        {currentScreen === 'settings' && <SettingsScreen />}
+        
+        {currentScreen === 'credits' && <CreditsScreen />}
       </Suspense>
 
       {/* Sistema de notificaciones (siempre visible) */}
