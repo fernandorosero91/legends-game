@@ -58,13 +58,21 @@ export function MapTutorial({ isOpen, onClose }: MapTutorialProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4"
+          style={{
+            backgroundImage: 'url(/inicio.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
         >
+          {/* Overlay oscuro para mejorar legibilidad */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-500 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+            className="relative bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-500 rounded-2xl p-8 max-w-md w-full shadow-2xl z-10"
           >
             {/* Progress bar */}
             <div className="mb-6">
