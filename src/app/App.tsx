@@ -270,6 +270,39 @@ function GameScene() {
   );
 }
 
+/* Wrapper to load leaderboard data from InsForge */
+function LeaderboardWrapper() {
+  const { topPlayers, refreshLeaderboard, isLoading } = useInsForge();
+  const [filter, setFilter] = useState<'all' | 'winners' | 'week'>('all');
+
+  useEffect(() => { refreshLeaderboard(); }, [refreshLeaderboard]);
+
+  const entries = topPlayers.map((p: any, i: number) => ({
+    id: p.id,
+    username: p.username,
+    finalListeners: p.final_listeners,
+    finalDay: p.final_day,
+    totalSongs: p.total_songs,
+    won: p.won,
+    completedAt: p.completed_at,
+    rank: i + 1,
+  }));
+
+  const filtered = filter === 'all' ? entries
+    : filter === 'winners' ? entries.filter((e: any) => e.won)
+    : entries; // 'week' filter would need date logic
+
+  return (
+    <LeaderboardScreen
+      entries={filtered}
+      isLoading={isLoading}
+      onBack={() => useUIStore.getState().setScreen('main_menu')}
+      filter={filter}
+      onFilterChange={setFilter}
+    />
+  );
+}
+
 function App() {
   const currentScreen = useUIStore((s) => s.currentScreen);
   const isLoading = useUIStore((s) => s.isLoading);
@@ -398,10 +431,7 @@ function App() {
         )}
         
         {currentScreen === 'leaderboard' && (
-          <LeaderboardScreen 
-            entries={[]}
-            onBack={() => useUIStore.getState().setScreen('main_menu')}
-          />
+          <LeaderboardWrapper />
         )}
 
         {currentScreen === 'settings' && <SettingsScreen />}
