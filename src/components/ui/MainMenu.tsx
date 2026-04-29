@@ -62,12 +62,19 @@ export function MainMenu() {
   useEffect(() => {
     setTimeout(() => setShow(true), 100);
 
-    // Pick up music from loading screen
+    // Pick up music from loading screen and try to play on mount
     const existing = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
-    if (existing) bgMusicRef.current = existing;
+    if (existing) {
+      bgMusicRef.current = existing;
+      existing.play().catch(() => {});
+    }
   }, []);
 
   const playBtnSound = useCallback(() => {
+    // Ensure background music is playing (browser autoplay policy)
+    if (bgMusicRef.current && bgMusicRef.current.paused) {
+      bgMusicRef.current.play().catch(() => {});
+    }
     if (btnSfxRef.current) {
       btnSfxRef.current.currentTime = 0;
       btnSfxRef.current.play().catch(() => {});

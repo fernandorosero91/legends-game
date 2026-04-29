@@ -15,16 +15,18 @@ export function LoadingScreen() {
   useEffect(() => { 
     setShow(true);
     
-    // Iniciar música solo si no existe ya
+    // Precargar música (no reproducir — los navegadores bloquean autoplay)
     const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
     
     if (!existingMusic) {
       const music = new Audio('/audio/inicio.mp3');
       music.loop = true;
       music.volume = 0.35;
+      music.preload = 'auto';
       musicRef.current = music;
-      music.play().catch(() => {});
       (window as unknown as Record<string, unknown>).__legendsMusic = music;
+      // Intentar reproducir (funciona en localhost, falla en producción — OK)
+      music.play().catch(() => {});
     } else {
       musicRef.current = existingMusic;
     }
