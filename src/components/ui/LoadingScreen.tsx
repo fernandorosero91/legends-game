@@ -113,26 +113,8 @@ export function LoadingScreen() {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
 
       {show && (
-        <div className="relative z-10 flex flex-col items-center justify-center h-full px-8">
+        <div className="relative z-10 flex flex-col items-center justify-end h-full px-8 pb-16">
           <div className="w-full max-w-2xl">
-            
-            {/* Logo animado */}
-            <div className="text-center mb-12 animate-fade-in">
-              <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-wider"
-                style={{
-                  background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 50%, #164e63 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 0 40px rgba(34,211,238,0.3)',
-                  fontFamily: "'Arial Black', 'Impact', sans-serif",
-                }}>
-                LEGENDS
-              </h1>
-              <p className="text-lg md:text-xl text-cyan-300 tracking-[0.3em] font-light"
-                style={{ textShadow: '0 2px 10px rgba(34,211,238,0.5)' }}>
-                THE MUSIC CAREER SIMULATOR
-              </p>
-            </div>
 
             {/* Contenedor de carga con efecto glassmorphism */}
             <div className="backdrop-blur-md bg-black/40 border border-cyan-500/20 rounded-2xl p-8 shadow-2xl"

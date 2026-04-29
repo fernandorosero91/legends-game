@@ -73,6 +73,9 @@ interface PlayerState {
   playerRef: any; // Referencia al mesh del jugador en Three.js
   wallBoxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>;
 
+  // Personaje
+  characterGender: 'male' | 'female';
+
   // Acciones - Recursos
   addMoney: (amount: number) => void;
   spendMoney: (amount: number) => boolean;
@@ -123,6 +126,9 @@ interface PlayerState {
   clearWallBoxes: () => void;
   setWallBoxes: (boxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>) => void;
 
+  // Personaje
+  setCharacterGender: (gender: 'male' | 'female') => void;
+
   // Acciones - Sistema
   resetPlayer: () => void;
   loadPlayer: (savedState: Partial<PlayerState>) => void;
@@ -158,6 +164,7 @@ const INITIAL_STATE = {
   position: { x: 0, y: 0, z: 0 },
   playerRef: null,
   wallBoxes: [],
+  characterGender: 'male' as const,
 };
 
 export const usePlayerStore = create<PlayerState>()(
@@ -419,6 +426,10 @@ export const usePlayerStore = create<PlayerState>()(
           set({ wallBoxes: boxes });
         },
 
+        setCharacterGender: (gender: 'male' | 'female') => {
+          set({ characterGender: gender });
+        },
+
         // Sistema
         resetPlayer: () => {
           set(INITIAL_STATE);
@@ -445,6 +456,7 @@ export const usePlayerStore = create<PlayerState>()(
           inventory: state.inventory,
           jobHistory: state.jobHistory,
           dialogueFlags: state.dialogueFlags,
+          characterGender: state.characterGender,
         }),
       }
     ),

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useUIStore } from '../../store/uiStore';
+import { useAuth } from '../../hooks/useInsForge';
 import { CityBackground } from './CityBackground';
 
 /* SVG Icons */
@@ -51,6 +52,7 @@ const IconHeadphones = () => (
 
 export function MainMenu() {
   const setScreen = useUIStore((s) => s.setScreen);
+  const { isAuthenticated, user } = useAuth();
   const [show, setShow] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [pressed, setPressed] = useState<string | null>(null);
@@ -85,8 +87,32 @@ export function MainMenu() {
   const handleClick = useCallback((target: Parameters<typeof setScreen>[0]) => {
     playBtnSound();
     if (bgMusicRef.current) bgMusicRef.current.pause();
+    
+    // Si presiona JUGAR
+    if (target === 'game') {
+      if (!isAuthenticated) {
+        // No hay sesión, ir a auth
+        setScreen('auth' as any);
+        return;
+      }
+      if (user?.needsCharacterSetup) {
+        // Tiene sesión pero necesita elegir personaje
+        setScreen('character_select' as any);
+        return;
+      }
+      // Tiene sesión y personaje, ir al juego
+      setScreen('game');
+      return;
+    }
+    
+    // Si presiona CONTINUAR y no está autenticado, ir a auth
+    if (target === 'save_load' && !isAuthenticated) {
+      setScreen('auth' as any);
+      return;
+    }
+    
     setScreen(target);
-  }, [setScreen, playBtnSound]);
+  }, [setScreen, playBtnSound, isAuthenticated, user]);
 
   const secondaryBtns = [
     { id: 'continue', label: 'CONTINUAR', icon: <IconDisc />, target: 'save_load' as const },
@@ -219,8 +245,14 @@ export function MainMenu() {
           })}
         </div>
 
-        {/* Version */}
-        <p className={`mt-6 text-[10px] font-mono transition-all duration-700 delay-700 ${show ? 'opacity-100' : 'opacity-0'}`}
+        {/* Version + Session info */}
+        {isAuthenticated && user && (
+          <p className={`mt-4 text-xs font-mono transition-all duration-700 delay-600 ${show ? 'opacity-100' : 'opacity-0'}`}
+            style={{ color: 'rgba(34,211,238,0.5)', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
+            🎤 {user.username}
+          </p>
+        )}
+        <p className={`mt-2 text-[10px] font-mono transition-all duration-700 delay-700 ${show ? 'opacity-100' : 'opacity-0'}`}
           style={{ color: 'rgba(130,130,160,0.25)', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
           v1.0 · Purple City, 2015
         </p>
