@@ -1,12 +1,13 @@
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 import { usePlayerStore } from '../../store/playerStore';
 
 const ANIMS = {
-  idle: 'CharacterArmature|Idle_Neutral',
-  walk: 'CharacterArmature|Walk',
+  idle: 'idle.001',
+  walk: 'walking',
 };
 
 const PLAYER_RADIUS = 0.08;
@@ -14,6 +15,10 @@ const PLAYER_RADIUS = 0.08;
 export function Player({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/models/player1.glb');
+
+  // Clone the scene so the skeleton is properly owned by this group
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+
   const { actions } = useAnimations(animations, group);
   const setPlayerRef = usePlayerStore((s) => s.setPlayerRef);
   const wallBoxes = usePlayerStore((s) => s.wallBoxes);
@@ -43,16 +48,30 @@ export function Player({ position = [0, 0, 0] }: { position?: [number, number, n
   }, [setPlayerRef, position]);
 
   useEffect(() => {
-    scene.traverse((child) => {
+    // Debug: log available animation names so we can verify they match
+    console.log('[Player] Available animations:', animations.map((a) => a.name));
+    console.log('[Player] Actions keys:', Object.keys(actions));
+
+    clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
 
-    if (actions[ANIMS.idle]) {
-      actions[ANIMS.idle]!.reset().play();
+    // Try to play the idle animation
+    const idleAction = actions[ANIMS.idle];
+    if (idleAction) {
+      idleAction.reset().play();
       currentAction.current = ANIMS.idle;
+    } else {
+      // Fallback: play the first available animation
+      const firstKey = Object.keys(actions)[0];
+      if (firstKey && actions[firstKey]) {
+        console.warn(`[Player] '${ANIMS.idle}' not found, falling back to '${firstKey}'`);
+        actions[firstKey]!.reset().play();
+        currentAction.current = firstKey;
+      }
     }
 
     const setKey = (e: KeyboardEvent, val: boolean) => {
@@ -75,7 +94,7 @@ export function Player({ position = [0, 0, 0] }: { position?: [number, number, n
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
     };
-  }, [actions, scene]);
+  }, [actions, clone, animations]);
 
   useFrame((_s, delta) => {
     if (!group.current) return;
@@ -120,7 +139,7 @@ export function Player({ position = [0, 0, 0] }: { position?: [number, number, n
 
   return (
     <group ref={group} position={position}>
-      <primitive object={scene} scale={0.3} castShadow />
+      <primitive object={clone} scale={0.3} castShadow />
     </group>
   );
 }

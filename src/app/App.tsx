@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { AnimatePresence } from 'framer-motion';
 import { SceneManager } from '../scenes/SceneManager';
 import { 
@@ -106,7 +107,7 @@ function GameScene() {
       {/* Escena 3D */}
       <div className="w-screen h-screen">
         <Canvas
-          shadows
+          shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.01, far: 200, position: [0, 3, 3] }}
         >
           <color attach="background" args={['#87CEEB']} />
