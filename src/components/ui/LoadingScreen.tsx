@@ -13,23 +13,21 @@ export function LoadingScreen() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => { 
-    setTimeout(() => setShow(true), 200);
+    setShow(true);
     
     // Iniciar música solo si no existe ya
-    setTimeout(() => {
-      const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
-      
-      if (!existingMusic) {
-        const music = new Audio('/audio/inicio.mp3');
-        music.loop = true;
-        music.volume = 0.35;
-        musicRef.current = music;
-        music.play().catch(() => {});
-        (window as unknown as Record<string, unknown>).__legendsMusic = music;
-      } else {
-        musicRef.current = existingMusic;
-      }
-    }, 300);
+    const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
+    
+    if (!existingMusic) {
+      const music = new Audio('/audio/inicio.mp3');
+      music.loop = true;
+      music.volume = 0.35;
+      musicRef.current = music;
+      music.play().catch(() => {});
+      (window as unknown as Record<string, unknown>).__legendsMusic = music;
+    } else {
+      musicRef.current = existingMusic;
+    }
   }, []);
 
   // Progress bar con lógica de develop pero más lento
@@ -37,34 +35,28 @@ export function LoadingScreen() {
     const phases = [
       { at: 15, text: 'Cargando modelos 3D...' },
       { at: 30, text: 'Renderizando Purple City...' },
-      { at: 45, text: 'Preparando beats...' },
-      { at: 60, text: 'Conectando con SoundCloud...' },
-      { at: 75, text: 'Configurando el estudio...' },
-      { at: 90, text: 'Afinando instrumentos...' },
-      { at: 98, text: 'Casi listo...' },
+      { at: 50, text: 'Preparando beats...' },
+      { at: 70, text: 'Configurando el estudio...' },
+      { at: 90, text: 'Casi listo...' },
     ];
-    
-    console.log('[LoadingScreen] Starting progress animation');
     
     const iv = setInterval(() => {
       setProgress((p) => {
-        // Incremento más controlado: entre 0.5 y 1.5 por tick
-        const next = p + Math.random() * 1 + 0.5;
+        // Incremento rápido: 2-4 por tick para completar en ~2 segundos
+        const next = p + Math.random() * 2 + 2;
         
-        // Mostrar fondo al 30%
-        if (next >= 30 && !showBg) {
+        // Mostrar fondo al 20%
+        if (next >= 20 && !showBg) {
           setShowBg(true);
         }
         
         if (next >= 100) {
-          console.log('[LoadingScreen] Progress complete, switching to main menu');
           clearInterval(iv);
           setDone(true);
           setTimeout(() => {
-            console.log('[LoadingScreen] Calling setScreen(main_menu)');
-            setLoading(false); // Desactivar el estado de loading
+            setLoading(false);
             setScreen('main_menu');
-          }, 1000);
+          }, 400); // Reduced from 1000ms
           return 100;
         }
         
@@ -72,12 +64,9 @@ export function LoadingScreen() {
         if (ph) setPhase(ph.text);
         return next;
       });
-    }, 80); // 80ms por tick = aproximadamente 5-6 segundos total
+    }, 50); // 50ms per tick = ~2 seconds total
     
-    return () => {
-      console.log('[LoadingScreen] Cleaning up interval');
-      clearInterval(iv);
-    };
+    return () => clearInterval(iv);
   }, [setScreen, setLoading, showBg]);
 
   const pct = Math.floor(progress);

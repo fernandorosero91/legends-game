@@ -108,9 +108,6 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   }, [setPlayerRef, position]);
 
   useEffect(() => {
-    console.log(`[Player] Model: ${modelPath}`);
-    console.log('[Player] Available animations:', animations.map((a) => a.name));
-
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
