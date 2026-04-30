@@ -11,6 +11,8 @@ import type { Dialogue } from '../types/dialogue';
 export type Screen =
   | 'loading'
   | 'main_menu'
+  | 'auth'
+  | 'character_select'
   | 'save_load'
   | 'game'
   | 'pause'
