@@ -5,11 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "build:check": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "insforge:info": "node scripts/show-insforge-info.js",
+    "setup:insforge": "tsx src/services/setupInsForge.ts",
+    "verify:insforge": "tsx src/services/setupInsForge.ts --verify",
+    "drop:insforge": "tsx src/services/setupInsForge.ts --drop"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.2.5",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "@tailwindcss/vite": "^4.2.4",
@@ -23,16 +32,23 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/howler": "^2.2.12",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/ui": "^4.1.5",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "jsdom": "^29.0.2",
+    "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
   }
 }
