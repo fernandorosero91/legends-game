@@ -33,7 +33,12 @@ interface JobRecord {
   moneyEarned: number;
 }
 
+export type CharacterModel = 'player1' | 'player2';
+
 interface PlayerState {
+  // Selección de personaje
+  selectedCharacter: CharacterModel;
+
   // Recursos básicos
   money: number;
   energy: number;
@@ -130,11 +135,13 @@ interface PlayerState {
   setCharacterGender: (gender: 'male' | 'female') => void;
 
   // Acciones - Sistema
+  setSelectedCharacter: (character: CharacterModel) => void;
   resetPlayer: () => void;
   loadPlayer: (savedState: Partial<PlayerState>) => void;
 }
 
 const INITIAL_STATE = {
+  selectedCharacter: 'player2' as CharacterModel,
   money: 5000,
   energy: 100,
   hunger: 100,
@@ -431,6 +438,10 @@ export const usePlayerStore = create<PlayerState>()(
         },
 
         // Sistema
+        setSelectedCharacter: (character: CharacterModel) => {
+          set({ selectedCharacter: character });
+        },
+
         resetPlayer: () => {
           set(INITIAL_STATE);
         },
@@ -442,6 +453,7 @@ export const usePlayerStore = create<PlayerState>()(
       {
         name: 'legends-player-store',
         partialize: (state) => ({
+          selectedCharacter: state.selectedCharacter,
           money: state.money,
           energy: state.energy,
           hunger: state.hunger,

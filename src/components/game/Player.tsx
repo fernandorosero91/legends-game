@@ -2,43 +2,47 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { SkeletonUtils } from 'three-stdlib';
-import { usePlayerStore } from '../../store/playerStore';
+import { usePlayerStore, type CharacterModel } from '../../store/playerStore';
 
-// Animaciones por modelo - player1 (masculino) tiene nombres confirmados
-// player2 (femenino) puede tener nombres diferentes, se usa fallback
-const ANIMS_MALE = {
-  idle: 'idle.001',
-  walk: 'walking',
-  sit: 'sitting',
+// ── Animation name maps per character ───────────────────
+// player1.glb uses "CharacterArmature|AnimName" convention
+// player2.glb uses plain names: "idle", "walking", "running", "sitting", "t_pose"
+const ANIM_MAPS: Record<CharacterModel, Record<string, string>> = {
+  player1: {
+    idle: 'CharacterArmature|Idle_Neutral',
+    walk: 'CharacterArmature|Walk',
+    run: 'CharacterArmature|Run',
+    sit: 'CharacterArmature|Idle_Neutral',
+  },
+  player2: {
+    idle: 'idle',
+    walk: 'walking',
+    run: 'running',
+    sit: 'sitting',
+  },
 };
 
-// Para el modelo femenino: solo tiene 'walking' y 'tpose'
-// Usamos 'walking' como idle (se pausará en frame 0)
-const ANIMS_FEMALE = {
-  idle: 'walking',
-  walk: 'walking',
-  sit: 'walking',
+const MODEL_PATHS: Record<CharacterModel, string> = {
+  player1: '/models/player1.glb',
+  player2: '/models/player2.glb',
 };
 
+const MODEL_SCALES: Record<CharacterModel, number> = {
+  player1: 0.3,
+  player2: 0.85,
+};
+
+const CROSSFADE_DURATION = 0.3;
 const PLAYER_RADIUS = 0.08;
 
-interface PlayerProps {
-  position?: [number, number, number];
-}
-
-export function Player({ position = [0, 0, 0] }: PlayerProps) {
-  const characterGender = usePlayerStore((s) => s.characterGender);
-  const gender = characterGender || 'male';
-  const modelPath = gender === 'female' ? '/models/player2.glb' : '/models/player1.glb';
-  const ANIMS = gender === 'female' ? ANIMS_FEMALE : ANIMS_MALE;
+export function Player({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
+  const selectedCharacter = usePlayerStore((s) => s.selectedCharacter);
+  const modelPath = MODEL_PATHS[selectedCharacter];
+  const animMap = ANIM_MAPS[selectedCharacter];
+  const modelScale = MODEL_SCALES[selectedCharacter];
 
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(modelPath);
-
-  // Clone the scene so the skeleton is properly owned by this group
-  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
-
   const { actions } = useAnimations(animations, group);
   const setPlayerRef = usePlayerStore((s) => s.setPlayerRef);
   const wallBoxes = usePlayerStore((s) => s.wallBoxes);
@@ -47,56 +51,24 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const back = useRef(false);
   const left = useRef(false);
   const right = useRef(false);
+  const shift = useRef(false);
   const currentAction = useRef('');
-  const isMoving = useRef(false);
   const floorY = useRef(position[1]);
-  const sameClip = ANIMS.idle === ANIMS.walk; // true for player2
 
-  // Find the best matching animation name
-  const findAnim = (desired: string): string | null => {
-    if (actions[desired]) return desired;
-    const lower = desired.toLowerCase();
-    const match = Object.keys(actions).find((k) => k.toLowerCase() === lower);
-    if (match) return match;
-    const partial = Object.keys(actions).find((k) => k.toLowerCase().includes(lower.split('.')[0]));
-    return partial || null;
-  };
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
 
-  const playAnim = (name: string) => {
-    const resolved = findAnim(name);
-    if (!resolved) return;
-    const wantMove = name === ANIMS.walk;
+  const playAnim = (key: string) => {
+    const name = animMap[key];
+    if (!name || name === currentAction.current) return;
 
-    // player2: idle and walk share the same clip
-    if (sameClip) {
-      const action = actions[resolved];
-      if (!action) return;
-
-      // First time: start the clip
-      if (currentAction.current !== resolved) {
-        action.reset().play();
-        currentAction.current = resolved;
-      }
-
-      // Toggle freeze based on movement
-      if (wantMove && !isMoving.current) {
-        action.timeScale = 1;
-        isMoving.current = true;
-      } else if (!wantMove && isMoving.current) {
-        action.timeScale = 0;
-        action.time = 0; // snap to frame 0 (standing pose)
-        isMoving.current = false;
-      }
-      return;
-    }
-
-    // player1: different clips for idle and walk
-    if (resolved === currentAction.current) return;
     const prev = actions[currentAction.current];
-    const next = actions[resolved];
-    if (prev) prev.fadeOut(0.15);
-    if (next) next.reset().fadeIn(0.15).play();
-    currentAction.current = resolved;
+    const next = actions[name];
+
+    if (prev) prev.fadeOut(CROSSFADE_DURATION);
+    if (next) {
+      next.reset().fadeIn(CROSSFADE_DURATION).play();
+    }
+    currentAction.current = name;
   };
 
   useEffect(() => {
@@ -108,29 +80,20 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   }, [setPlayerRef, position]);
 
   useEffect(() => {
-    clone.traverse((child) => {
+    clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
 
-    // Play idle animation
-    const idleName = findAnim(ANIMS.idle);
+    const idleName = animMap.idle;
     if (idleName && actions[idleName]) {
       actions[idleName]!.reset().play();
       currentAction.current = idleName;
-      // For player2: freeze at frame 0 on start
-      if (sameClip) {
-        actions[idleName]!.timeScale = 0;
-        actions[idleName]!.time = 0;
-        isMoving.current = false;
-      }
     } else {
-      // Fallback: first available animation
       const firstKey = Object.keys(actions)[0];
       if (firstKey && actions[firstKey]) {
-        console.warn(`[Player] Idle not found, falling back to '${firstKey}'`);
         actions[firstKey]!.reset().play();
         currentAction.current = firstKey;
       }
@@ -142,6 +105,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
         case 'KeyS': case 'ArrowDown': back.current = val; break;
         case 'KeyA': case 'ArrowLeft': left.current = val; break;
         case 'KeyD': case 'ArrowRight': right.current = val; break;
+        case 'ShiftLeft': case 'ShiftRight': shift.current = val; break;
         default: return;
       }
       e.preventDefault();
@@ -156,8 +120,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actions, clone, animations, modelPath]);
+  }, [actions, clonedScene, animMap]);
 
   useFrame((_s, delta) => {
     if (!group.current) return;
@@ -169,19 +132,27 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
     if (right.current) mx = 1;
 
     const moving = mx !== 0 || mz !== 0;
+    const running = moving && shift.current;
 
     if (mx !== 0 && mz !== 0) {
       const l = Math.sqrt(mx * mx + mz * mz);
-      mx /= l; mz /= l;
+      mx /= l;
+      mz /= l;
     }
 
-    playAnim(moving ? ANIMS.walk : ANIMS.idle);
+    if (running) {
+      playAnim('run');
+    } else if (moving) {
+      playAnim('walk');
+    } else {
+      playAnim('idle');
+    }
 
     if (moving) {
       const angle = Math.atan2(mx, mz);
       group.current.rotation.y = angle;
 
-      const speed = 0.8 * delta;
+      const speed = (running ? 1.6 : 0.8) * delta;
       const oldX = group.current.position.x;
       const oldZ = group.current.position.z;
       const newX = oldX + Math.sin(angle) * speed;
@@ -202,12 +173,16 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
 
   return (
     <group ref={group} position={position}>
-      <primitive object={clone} scale={0.3} castShadow />
+      <primitive object={clonedScene} scale={modelScale} castShadow />
     </group>
   );
 }
 
-function hitWall(x: number, z: number, walls: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>): boolean {
+function hitWall(
+  x: number,
+  z: number,
+  walls: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>
+): boolean {
   for (const box of walls) {
     const cx = Math.max(box.min.x, Math.min(x, box.max.x));
     const cz = Math.max(box.min.z, Math.min(z, box.max.z));
@@ -218,5 +193,4 @@ function hitWall(x: number, z: number, walls: Array<{ id: string; min: { x: numb
   return false;
 }
 
-// Only preload player1 (male) by default — player2 loads on demand
-useGLTF.preload('/models/player1.glb');
+useGLTF.preload('/models/player2.glb');
