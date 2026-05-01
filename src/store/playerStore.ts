@@ -141,7 +141,7 @@ interface PlayerState {
 }
 
 const INITIAL_STATE = {
-  selectedCharacter: 'player2' as CharacterModel,
+  selectedCharacter: 'player1' as CharacterModel,
   money: 5000,
   energy: 100,
   hunger: 100,
