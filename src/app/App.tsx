@@ -124,13 +124,13 @@ function GameScene() {
       <div className="w-screen h-screen">
         <Canvas
           shadows={{ type: THREE.PCFShadowMap }}
-          camera={{ fov: 50, near: 0.01, far: 200, position: [0, 3, 3] }}
+          camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
-          <color attach="background" args={['#87CEEB']} />
-          <ambientLight intensity={0.7} />
+          <color attach="background" args={['#8a8a8e']} />
+          <ambientLight intensity={1.8} />
           <directionalLight
-            position={[10, 15, 10]}
-            intensity={1.2}
+            position={[5, 12, 5]}
+            intensity={2}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -140,7 +140,9 @@ function GameScene() {
             shadow-camera-top={15}
             shadow-camera-bottom={-15}
           />
-          <hemisphereLight args={['#b1e1ff', '#b97a20', 0.3]} />
+          <hemisphereLight args={['#e8e0ff', '#b97a20', 0.6]} />
+          {/* Extra fill light from below to brighten the floor */}
+          <pointLight position={[0, 8, 0]} intensity={1.5} distance={25} color="#ffffff" />
           <SceneManager />
         </Canvas>
       </div>
