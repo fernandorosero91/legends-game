@@ -126,7 +126,7 @@ function GameScene() {
           shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
-          <color attach="background" args={['#0a0612']} />
+          <color attach="background" args={['#8a8a8e']} />
           <ambientLight intensity={1.8} />
           <directionalLight
             position={[5, 12, 5]}

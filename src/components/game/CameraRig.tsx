@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { usePlayerStore } from '../../store/playerStore';
 
 // ── Config ──────────────────────────────────────────────
-const DEFAULT_DISTANCE = 14;
+const DEFAULT_DISTANCE = 12;
 const MIN_DISTANCE = 6;
-const MAX_DISTANCE = 25;
+const MAX_DISTANCE = 16;
 const DEFAULT_POLAR = THREE.MathUtils.degToRad(40); // vertical angle
 const MIN_POLAR = THREE.MathUtils.degToRad(15);
 const MAX_POLAR = THREE.MathUtils.degToRad(80);
