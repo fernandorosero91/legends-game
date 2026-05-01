@@ -4,18 +4,18 @@ import * as THREE from 'three';
 import { usePlayerStore } from '../../store/playerStore';
 
 // ── Config ──────────────────────────────────────────────
-const DEFAULT_DISTANCE = 5;
-const MIN_DISTANCE = 2;
-const MAX_DISTANCE = 10;
-const DEFAULT_POLAR = THREE.MathUtils.degToRad(30); // vertical angle
-const MIN_POLAR = THREE.MathUtils.degToRad(10);
+const DEFAULT_DISTANCE = 14;
+const MIN_DISTANCE = 6;
+const MAX_DISTANCE = 25;
+const DEFAULT_POLAR = THREE.MathUtils.degToRad(40); // vertical angle
+const MIN_POLAR = THREE.MathUtils.degToRad(15);
 const MAX_POLAR = THREE.MathUtils.degToRad(80);
 const DEFAULT_AZIMUTH = 0; // horizontal angle
 const ROTATE_SPEED = 0.005;
-const ZOOM_SPEED = 0.5;
-const FOLLOW_LERP = 0.1;
-const LOOK_OFFSET_Y = 1.2; // look above feet, roughly head height
-const PINCH_ZOOM_SPEED = 0.02;
+const ZOOM_SPEED = 1;
+const FOLLOW_LERP = 0.08;
+const LOOK_OFFSET_Y = 2; // look above feet
+const PINCH_ZOOM_SPEED = 0.04;
 
 export function CameraRig() {
   const { camera, gl } = useThree();

@@ -21,7 +21,7 @@ const ANIMS_FEMALE = {
   sit: 'walking',
 };
 
-const PLAYER_RADIUS = 0.08;
+const PLAYER_RADIUS = 0.7;
 
 interface PlayerProps {
   position?: [number, number, number];
@@ -181,7 +181,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       const angle = Math.atan2(mx, mz);
       group.current.rotation.y = angle;
 
-      const speed = 0.8 * delta;
+      const speed = 5 * delta;
       const oldX = group.current.position.x;
       const oldZ = group.current.position.z;
       const newX = oldX + Math.sin(angle) * speed;
@@ -202,7 +202,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
 
   return (
     <group ref={group} position={position}>
-      <primitive object={clone} scale={0.3} castShadow />
+      <primitive object={clone} scale={2.2} castShadow />
     </group>
   );
 }
