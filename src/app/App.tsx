@@ -29,6 +29,7 @@ import { useJobStore } from '../store/jobStore';
 import { ShopSystem } from '../systems/shopSystem';
 import { JobSystem } from '../systems/jobSystem';
 import { motion } from 'framer-motion';
+import { CartShopModal } from '../components/ui/CartShopModal';
 
 // Lazy load de pantallas pesadas para optimización
 const ShopScreen = lazy(() => import('../components/ui/ShopScreen'));
@@ -172,6 +173,9 @@ function GameScene() {
         onOpenFullMap={() => setShowLocationMap(true)}
       />
 
+      {/* Carrito de compras de accesorios musicales */}
+      <CartShopModal />
+      
       {/* Botón flotante para abrir mapa */}
       <motion.button
         initial={{ scale: 0 }}
