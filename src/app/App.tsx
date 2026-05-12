@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { AnimatePresence } from 'framer-motion';
 import { SceneManager } from '../scenes/SceneManager';
 import { 
@@ -16,7 +17,10 @@ import { LocationMap } from '../components/ui/LocationMap';
 import { MiniMap } from '../components/ui/MiniMap';
 import { MapTutorial } from '../components/ui/MapTutorial';
 import { AuthTestScreen } from '../components/ui/AuthTestScreen';
+import { AuthScreen } from '../components/ui/AuthScreen';
+import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { GameInitializer } from '../components/GameInitializer';
+import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -43,6 +47,19 @@ function GameScene() {
   const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Hook de InsForge para guardado
+  const { user, saveGame } = useInsForge();
+
+  // Asegurar que el gamePhase sea 'playing' al entrar a la escena
+  useEffect(() => {
+    const { gamePhase } = useGameStore.getState();
+    if (gamePhase === 'menu') {
+      useGameStore.getState().startNewGame();
+    }
+  }, []);
 
   // Mostrar tutorial la primera vez
   useEffect(() => {
@@ -106,7 +123,7 @@ function GameScene() {
       {/* Escena 3D */}
       <div className="w-screen h-screen">
         <Canvas
-          shadows
+          shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.01, far: 200, position: [0, 3, 3] }}
         >
           <color attach="background" args={['#87CEEB']} />
@@ -222,12 +239,67 @@ function GameScene() {
       <PauseMenu
         isOpen={isPaused}
         onContinue={togglePause}
-        onSave={() => useUIStore.getState().addNotification('success', 'Partida guardada')}
-        onSettings={() => console.log('Configuración')}
+        onSave={async () => {
+          if (!user) {
+            useUIStore.getState().addNotification('warning', 'Inicia sesión para guardar');
+            return;
+          }
+          setIsSaving(true);
+          const result = await saveGame('manual');
+          if (result.success) {
+            useUIStore.getState().addNotification('success', '💾 Partida guardada exitosamente');
+          } else {
+            useUIStore.getState().addNotification('error', `Error al guardar: ${result.error}`);
+          }
+          setIsSaving(false);
+        }}
+        onSettings={() => { togglePause(); setShowSettings(true); }}
         onMainMenu={() => useUIStore.getState().setScreen('main_menu')}
-        isSaving={false}
+        isSaving={isSaving}
       />
+
+      {/* Settings overlay (dentro del juego, no cambia de pantalla) */}
+      {showSettings && (
+        <Suspense fallback={null}>
+          <div className="fixed inset-0 z-[90]">
+            <SettingsScreen onClose={() => setShowSettings(false)} />
+          </div>
+        </Suspense>
+      )}
     </>
+  );
+}
+
+/* Wrapper to load leaderboard data from InsForge */
+function LeaderboardWrapper() {
+  const { topPlayers, refreshLeaderboard, isLoading } = useInsForge();
+  const [filter, setFilter] = useState<'all' | 'winners' | 'week'>('all');
+
+  useEffect(() => { refreshLeaderboard(); }, [refreshLeaderboard]);
+
+  const entries = topPlayers.map((p: any, i: number) => ({
+    id: p.id,
+    username: p.username,
+    finalListeners: p.final_listeners,
+    finalDay: p.final_day,
+    totalSongs: p.total_songs,
+    won: p.won,
+    completedAt: p.completed_at,
+    rank: i + 1,
+  }));
+
+  const filtered = filter === 'all' ? entries
+    : filter === 'winners' ? entries.filter((e: any) => e.won)
+    : entries; // 'week' filter would need date logic
+
+  return (
+    <LeaderboardScreen
+      entries={filtered}
+      isLoading={isLoading}
+      onBack={() => useUIStore.getState().setScreen('main_menu')}
+      filter={filter}
+      onFilterChange={setFilter}
+    />
   );
 }
 
@@ -266,6 +338,12 @@ function App() {
 
       {/* Pantalla del menú principal */}
       {currentScreen === 'main_menu' && !isLoading && <MainMenu />}
+
+      {/* Pantalla de autenticación */}
+      {currentScreen === 'auth' && <AuthScreen />}
+
+      {/* Pantalla de selección de personaje */}
+      {currentScreen === 'character_select' && <CharacterSelectScreen />}
       
       {/* Pantalla del juego */}
       {currentScreen === 'game' && <GameScene />}
@@ -353,10 +431,7 @@ function App() {
         )}
         
         {currentScreen === 'leaderboard' && (
-          <LeaderboardScreen 
-            entries={[]}
-            onBack={() => useUIStore.getState().setScreen('main_menu')}
-          />
+          <LeaderboardWrapper />
         )}
 
         {currentScreen === 'settings' && <SettingsScreen />}

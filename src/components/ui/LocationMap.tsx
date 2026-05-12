@@ -1,19 +1,34 @@
+/**
+ * LEGENDS: LocationMap — Game-style map matching reference design
+ */
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+
+/* ─── SVG Icons (larger, bolder) ─── */
+const IcoHome = () => <svg width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const IcoCoffee = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>;
+const IcoMusic = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
+const IcoShirt = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>;
+const IcoUtensils = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>;
+const IcoHeadphones = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>;
+const IcoGrad = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>;
+const IcoTruck = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
+const IcoMic = () => <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
+const IcoClose = () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IcoNav = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>;
 
 interface Location {
   id: string;
   name: string;
   shortName: string;
   description: string;
-  category: string;
-  icon: string;
-  position: { x: number; y: number };
-  available: boolean;
-  energyCost?: number;
-  workPay?: number;
+  icon: React.ReactNode;
+  /* Position as % of the map container */
+  x: number;
+  y: number;
   color: string;
-  type: 'home' | 'work' | 'shop' | 'entertainment';
+  borderColor: string;
 }
 
 interface LocationMapProps {
@@ -22,416 +37,168 @@ interface LocationMapProps {
   onClose: () => void;
 }
 
+/* Positions tuned to match mapa.png landmarks */
+const LOCATIONS: Location[] = [
+  { id: 'apartment',  shortName: 'Hogar',       name: 'Mi Apartamento',       description: 'Descansa, graba y trabaja online.', icon: <IcoHome />,       x: 48, y: 44, color: '#a5b4fc', borderColor: '#6366f1' },
+  { id: 'city',       shortName: 'Estudio',      name: 'Estudio de Grabación', description: 'Graba tus canciones.',              icon: <IcoMic />,        x: 24, y: 34, color: '#67e8f9', borderColor: '#06b6d4' },
+  { id: 'cafe',       shortName: 'Café',         name: 'Purple Beans Café',    description: 'Trabaja como barista.',              icon: <IcoCoffee />,     x: 34, y: 52, color: '#fcd34d', borderColor: '#d97706' },
+  { id: 'store',      shortName: 'Almacén',      name: 'StreetWear Almacén',   description: 'Trabaja como cajero.',               icon: <IcoShirt />,      x: 10, y: 48, color: '#6ee7b7', borderColor: '#059669' },
+  { id: 'delivery',   shortName: 'Delivery',     name: 'Delivery Express',     description: 'Trabaja como repartidor.',           icon: <IcoTruck />,      x: 22, y: 68, color: '#93c5fd', borderColor: '#2563eb' },
+  { id: 'academy',    shortName: 'Academia',     name: 'Academia SoundWave',   description: 'Trabaja como instructor.',           icon: <IcoGrad />,       x: 66, y: 30, color: '#c4b5fd', borderColor: '#7c3aed' },
+  { id: 'shop',       shortName: 'Tienda',       name: 'Purple Sound Shop',    description: 'Equipamiento musical.',              icon: <IcoMusic />,      x: 88, y: 18, color: '#c4b5fd', borderColor: '#7c3aed' },
+  { id: 'restaurant', shortName: 'Restaurante',  name: 'Restaurante La Esquina', description: 'Trabaja como mesero.',             icon: <IcoUtensils />,   x: 82, y: 50, color: '#fda4af', borderColor: '#e11d48' },
+  { id: 'bar',        shortName: 'Bar',          name: 'Neon Nights Club',     description: 'Trabaja como DJ.',                   icon: <IcoHeadphones />, x: 50, y: 72, color: '#f9a8d4', borderColor: '#db2777' },
+];
+
 export function LocationMap({ currentLocation, onSelectLocation, onClose }: LocationMapProps) {
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [selected, setSelected] = useState<Location | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
-  const locations: Location[] = [
-    {
-      id: 'apartment',
-      name: 'Mi Apartamento',
-      shortName: 'Hogar',
-      description: 'Tu hogar en Purple City. Aquí puedes descansar, grabar música y trabajar online.',
-      category: 'Residencial',
-      icon: '🏠',
-      position: { x: 50, y: 50 },
-      available: true,
-      color: '#6366f1',
-      type: 'home'
-    },
-    {
-      id: 'cafe',
-      name: 'Purple Beans Café',
-      shortName: 'Café',
-      description: 'Café acogedor donde puedes trabajar como barista y ganar dinero.',
-      category: 'Trabajo',
-      icon: '☕',
-      position: { x: 25, y: 25 },
-      available: true,
-      energyCost: 20,
-      workPay: 300,
-      color: '#f59e0b',
-      type: 'work'
-    },
-    {
-      id: 'shop',
-      name: 'Purple Sound Shop',
-      shortName: 'Tienda',
-      description: 'Tienda especializada en equipamiento musical y accesorios para productores.',
-      category: 'Comercio',
-      icon: '🎵',
-      position: { x: 75, y: 25 },
-      available: true,
-      color: '#8b5cf6',
-      type: 'shop'
-    },
-    {
-      id: 'store',
-      name: 'StreetWear Almacén',
-      shortName: 'Almacén',
-      description: 'Tienda de ropa urbana donde puedes trabajar como cajero.',
-      category: 'Trabajo',
-      icon: '🛍️',
-      position: { x: 25, y: 75 },
-      available: true,
-      energyCost: 20,
-      workPay: 350,
-      color: '#10b981',
-      type: 'work'
-    },
-    {
-      id: 'restaurant',
-      name: 'Restaurante La Esquina',
-      shortName: 'Restaurante',
-      description: 'Restaurante familiar donde puedes trabajar como mesero.',
-      category: 'Trabajo',
-      icon: '🍽️',
-      position: { x: 75, y: 75 },
-      available: true,
-      energyCost: 25,
-      workPay: 400,
-      color: '#ef4444',
-      type: 'work'
-    },
-    {
-      id: 'bar',
-      name: 'Neon Nights Club',
-      shortName: 'Bar',
-      description: 'Bar nocturno con ambiente musical donde puedes trabajar como DJ.',
-      category: 'Entretenimiento',
-      icon: '🎧',
-      position: { x: 40, y: 60 },
-      available: true,
-      energyCost: 25,
-      workPay: 600,
-      color: '#ec4899',
-      type: 'entertainment'
-    },
-    {
-      id: 'academy',
-      name: 'Academia SoundWave',
-      shortName: 'Academia',
-      description: 'Instituto de música donde puedes trabajar como instructor.',
-      category: 'Educación',
-      icon: '🎓',
-      position: { x: 65, y: 35 },
-      available: true,
-      energyCost: 20,
-      workPay: 800,
-      color: '#8b5cf6',
-      type: 'work'
-    }
-  ];
-
-  const categories = [
-    { id: 'all', name: 'Todos', color: '#64748b' },
-    { id: 'work', name: 'Trabajo', color: '#10b981' },
-    { id: 'shop', name: 'Comercio', color: '#8b5cf6' },
-    { id: 'home', name: 'Residencial', color: '#6366f1' },
-    { id: 'entertainment', name: 'Ocio', color: '#ec4899' }
-  ];
-
-  const filteredLocations = filterCategory === 'all' 
-    ? locations 
-    : locations.filter(loc => loc.type === filterCategory);
-
-  const handleLocationClick = (location: Location) => {
-    if (location.available) {
-      onSelectLocation(location.id);
-      onClose();
-    }
-  };
-
-  const handleLocationSelect = (location: Location) => {
-    setSelectedLocation(location);
-  };
+  const home = LOCATIONS.find((l) => l.id === 'apartment')!;
+  const travel = (loc: Location) => { onSelectLocation(loc.id); onClose(); };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 to-slate-800"
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
     >
-      {/* Header Limpio y Organizado */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Purple City</h1>
-              <p className="text-sm text-slate-400">Mapa de Ubicaciones</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={onClose}
-            className="w-10 h-10 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      {/* Map container — NOT fullscreen, centered modal with aspect ratio */}
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+        className="relative w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl"
+        style={{ aspectRatio: '16/9', boxShadow: '0 0 60px rgba(34,211,238,0.15), 0 20px 60px rgba(0,0,0,0.6)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Map image */}
+        <img src="/mapa.png" alt="Purple City Map" className="absolute inset-0 w-full h-full object-cover" />
 
-        {/* Filtros Simples */}
-        <div className="px-6 pb-4">
-          <div className="flex gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setFilterCategory(category.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filterCategory === category.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        {/* Close button */}
+        <button onClick={onClose}
+          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-all"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
+          <IcoClose />
+        </button>
 
-      {/* Mapa Principal - Diseño Limpio */}
-      <div className="pt-32 pb-6 px-6 h-full">
-        <div className="relative w-full h-full bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-          
-          {/* Grid Sutil de Fondo */}
-          <div className="absolute inset-0 opacity-20">
-            <svg className="w-full h-full">
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#475569" strokeWidth="1"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-          </div>
-
-          {/* Conexiones Simples */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {filteredLocations.map((location) => {
-              if (location.id === 'apartment') return null;
-              const apartment = locations.find(l => l.id === 'apartment');
-              if (!apartment) return null;
-
-              return (
-                <line
-                  key={`connection-${location.id}`}
-                  x1={`${apartment.position.x}%`}
-                  y1={`${apartment.position.y}%`}
-                  x2={`${location.position.x}%`}
-                  y2={`${location.position.y}%`}
-                  stroke="#64748b"
-                  strokeWidth="2"
-                  strokeDasharray="5,5"
-                  opacity="0.5"
-                />
-              );
-            })}
-          </svg>
-
-          {/* Ubicaciones - Diseño Limpio y Organizado */}
-          {filteredLocations.map((location) => {
-            const isHovered = hoveredLocation === location.id;
-            const isCurrent = currentLocation === location.id;
-            const isSelected = selectedLocation?.id === location.id;
-
+        {/* Connection lines — bright cyan neon */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(34,211,238,0.7)) drop-shadow(0 0 10px rgba(34,211,238,0.4))' }}>
+          {LOCATIONS.map((loc) => {
+            if (loc.id === 'apartment') return null;
+            const active = hovered === loc.id;
             return (
-              <motion.div
-                key={location.id}
-                className="absolute cursor-pointer"
-                style={{
-                  left: `${location.position.x}%`,
-                  top: `${location.position.y}%`,
-                  transform: 'translate(-50%, -50%)'
-                }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                onMouseEnter={() => setHoveredLocation(location.id)}
-                onMouseLeave={() => setHoveredLocation(null)}
-                onClick={() => handleLocationSelect(location)}
-              >
-                {/* Pulso para Ubicación Actual */}
-                {isCurrent && (
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-white"
-                    animate={{
-                      scale: [1, 2, 1],
-                      opacity: [0.8, 0, 0.8]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: 'easeInOut'
-                    }}
-                  />
-                )}
-
-                {/* Círculo Principal - Limpio */}
-                <div
-                  className={`
-                    relative w-16 h-16 rounded-full flex items-center justify-center
-                    border-2 transition-all duration-200 shadow-lg
-                    ${isCurrent 
-                      ? 'border-white bg-white/20' 
-                      : isSelected || isHovered
-                        ? 'border-white bg-white/10 scale-110'
-                        : 'border-slate-500 bg-slate-700'
-                    }
-                  `}
-                  style={{
-                    borderColor: isCurrent ? '#ffffff' : location.color,
-                    backgroundColor: isCurrent ? `${location.color}40` : undefined
-                  }}
-                >
-                  <span className="text-2xl">{location.icon}</span>
-                </div>
-
-                {/* Etiqueta Simple */}
-                <div 
-                  className={`
-                    absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-                    bg-slate-900 border border-slate-600 rounded px-2 py-1 
-                    whitespace-nowrap text-xs font-medium text-white
-                    ${isHovered || isSelected ? 'bg-slate-800 border-slate-500' : ''}
-                  `}
-                >
-                  {location.shortName}
-                </div>
-
-                {/* Badges de Información - Organizados */}
-                {location.workPay && (
-                  <div className="absolute -top-2 -right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    ${location.workPay}
-                  </div>
-                )}
-                
-                {location.energyCost && (
-                  <div className="absolute -top-2 -left-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    -{location.energyCost}⚡
-                  </div>
-                )}
-
-                {/* Indicador de Ubicación Actual */}
-                {isCurrent && (
-                  <div className="absolute -bottom-14 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    ACTUAL
-                  </div>
-                )}
-              </motion.div>
+              <motion.line key={`l-${loc.id}`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: active ? 1 : 0.6 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                x1={`${home.x}%`} y1={`${home.y}%`}
+                x2={`${loc.x}%`} y2={`${loc.y}%`}
+                stroke="#22d3ee"
+                strokeWidth={active ? 2.5 : 1.8}
+                style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }}
+              />
             );
           })}
-        </div>
-      </div>
+        </svg>
 
-      {/* Panel de Información - Diseño Limpio */}
-      <AnimatePresence>
-        {selectedLocation && (
-          <motion.div
-            initial={{ x: 300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 300, opacity: 0 }}
-            className="absolute top-32 right-6 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-30"
-          >
-            {/* Header del Panel */}
-            <div className="p-4 border-b border-slate-700">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-12 h-12 rounded-lg flex items-center justify-center border-2"
-                  style={{ 
-                    backgroundColor: `${selectedLocation.color}20`,
-                    borderColor: selectedLocation.color
-                  }}
-                >
-                  <span className="text-xl">{selectedLocation.icon}</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">{selectedLocation.name}</h3>
-                  <p className="text-sm text-slate-400">{selectedLocation.category}</p>
-                </div>
-              </div>
-            </div>
+        {/* Location nodes */}
+        {LOCATIONS.map((loc, i) => {
+          const isCurrent = currentLocation === loc.id;
+          const isHov = hovered === loc.id;
+          const isSel = selected?.id === loc.id;
+          const active = isHov || isSel;
 
-            {/* Contenido del Panel */}
-            <div className="p-4">
-              <p className="text-sm text-slate-300 mb-4">
-                {selectedLocation.description}
-              </p>
-
-              {/* Información de Trabajo */}
-              {selectedLocation.workPay && (
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-green-600/20 rounded-lg p-3 border border-green-600/30">
-                    <div className="text-xs text-green-400 font-bold mb-1">SALARIO</div>
-                    <div className="text-xl font-bold text-green-300">${selectedLocation.workPay}</div>
-                  </div>
-                  <div className="bg-orange-600/20 rounded-lg p-3 border border-orange-600/30">
-                    <div className="text-xs text-orange-400 font-bold mb-1">ENERGÍA</div>
-                    <div className="text-xl font-bold text-orange-300">-{selectedLocation.energyCost}</div>
-                  </div>
-                </div>
+          return (
+            <motion.div key={loc.id}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.04 * i, type: 'spring', stiffness: 350, damping: 22 }}
+              className="absolute z-20 cursor-pointer flex flex-col items-center"
+              style={{ left: `${loc.x}%`, top: `${loc.y}%`, transform: 'translate(-50%, -50%)' }}
+              onMouseEnter={() => setHovered(loc.id)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => setSelected(selected?.id === loc.id ? null : loc)}
+              onDoubleClick={() => travel(loc)}
+            >
+              {/* Pulse for current */}
+              {isCurrent && (
+                <motion.div className="absolute rounded-2xl"
+                  style={{ inset: '-6px', border: `2px solid ${loc.borderColor}` }}
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
+                  transition={{ duration: 2, repeat: Infinity }} />
               )}
 
-              {/* Botones de Acción */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleLocationClick(selectedLocation)}
-                  className={`
-                    w-full py-3 px-4 rounded-lg font-bold text-white transition-colors
-                    ${selectedLocation.id === currentLocation
-                      ? 'bg-slate-600 cursor-not-allowed opacity-50'
-                      : 'bg-indigo-600 hover:bg-indigo-700'
-                    }
-                  `}
-                  disabled={selectedLocation.id === currentLocation}
-                >
-                  {selectedLocation.id === currentLocation ? 'UBICACIÓN ACTUAL' : 'VIAJAR AQUÍ'}
-                </button>
+              {/* Node box */}
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all duration-150"
+                style={{
+                  background: active || isCurrent
+                    ? `linear-gradient(145deg, ${loc.borderColor}50, ${loc.borderColor}25)`
+                    : 'rgba(15,12,30,0.88)',
+                  border: `2.5px solid ${active || isCurrent ? loc.borderColor : 'rgba(80,80,120,0.4)'}`,
+                  boxShadow: active
+                    ? `0 0 18px ${loc.borderColor}50, 0 4px 12px rgba(0,0,0,0.5)`
+                    : isCurrent
+                      ? `0 0 14px ${loc.borderColor}35, 0 4px 12px rgba(0,0,0,0.5)`
+                      : '0 4px 12px rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(6px)',
+                  transform: active ? 'scale(1.12)' : 'scale(1)',
+                }}>
+                <span style={{ color: active || isCurrent ? loc.color : '#8090a8' }}>{loc.icon}</span>
+              </div>
 
-                <button
-                  onClick={() => setSelectedLocation(null)}
-                  className="w-full py-2 px-4 rounded-lg font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
-                >
-                  Cerrar
+              {/* Label */}
+              <span className="mt-1 px-2 py-0.5 rounded text-[10px] md:text-[11px] font-bold tracking-wide whitespace-nowrap"
+                style={{
+                  background: 'rgba(8,6,18,0.8)',
+                  backdropFilter: 'blur(4px)',
+                  color: active || isCurrent ? '#fff' : '#c0c8d8',
+                  textShadow: '0 1px 4px rgba(0,0,0,1)',
+                }}>
+                {loc.shortName}
+              </span>
+
+              {/* ACTUAL badge */}
+              {isCurrent && (
+                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-[0.12em]"
+                  style={{ background: loc.borderColor, color: '#fff', boxShadow: `0 0 10px ${loc.borderColor}60` }}>
+                  ACTUAL
+                </span>
+              )}
+            </motion.div>
+          );
+        })}
+
+        {/* Detail panel */}
+        <AnimatePresence>
+          {selected && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 w-72 rounded-xl overflow-hidden"
+              style={{ background: 'rgba(12,8,25,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+              <div className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${selected.borderColor}20`, border: `1.5px solid ${selected.borderColor}40`, color: selected.color }}>
+                  {selected.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xs font-bold text-white truncate">{selected.name}</h3>
+                  <p className="text-[10px] text-gray-400">{selected.description}</p>
+                </div>
+                <button onClick={() => travel(selected)} disabled={selected.id === currentLocation}
+                  className="px-3 py-2 rounded-lg text-[10px] font-bold tracking-wider text-white flex items-center gap-1.5 flex-shrink-0 disabled:opacity-30 transition-all"
+                  style={{
+                    background: selected.id === currentLocation ? 'rgba(255,255,255,0.05)' : `linear-gradient(135deg, ${selected.borderColor}, ${selected.borderColor}cc)`,
+                    boxShadow: selected.id === currentLocation ? 'none' : `0 2px 10px ${selected.borderColor}40`,
+                  }}>
+                  <IcoNav /> {selected.id === currentLocation ? 'AQUÍ' : 'IR'}
                 </button>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Footer Simple */}
-      <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-600 rounded-full" />
-              <span className="text-slate-300">Salario</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-600 rounded-full" />
-              <span className="text-slate-300">Energía</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-white rounded-full" />
-              <span className="text-slate-300">Tu ubicación</span>
-            </div>
-          </div>
-          
-          <div className="text-sm text-slate-400">
-            Haz clic en una ubicación para más información
-          </div>
-        </div>
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </motion.div>
   );
 }
