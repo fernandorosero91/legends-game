@@ -20,6 +20,7 @@ import { AuthTestScreen } from '../components/ui/AuthTestScreen';
 import { AuthScreen } from '../components/ui/AuthScreen';
 import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { GameInitializer } from '../components/GameInitializer';
+import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -42,7 +43,7 @@ const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
 
 function GameScene() {
   // Estados del juego
-  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene } = useGameStore();
+  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
   const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
@@ -268,6 +269,11 @@ function GameScene() {
           </div>
         </Suspense>
       )}
+
+      {/* Rhythm Game — Minijuego de grabación */}
+      <AnimatePresence>
+        {gamePhase === 'rhythm_game' && <RhythmGame />}
+      </AnimatePresence>
     </>
   );
 }

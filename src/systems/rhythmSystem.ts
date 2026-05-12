@@ -131,8 +131,8 @@ export class RhythmSystem {
       throw new Error(`Beat not found: ${beatId}`);
     }
 
-    // Duración del beat (por ahora fija, podría venir del beat)
-    const duration = 60000; // 60 segundos
+    // Duración del beat (30 segundos de gameplay activo)
+    const duration = 30000;
 
     this.gameState = {
       beatId,
