@@ -1,10 +1,10 @@
 /**
- * 🎮 LEGENDS: Rhythm Drop — Guitar Hero Style Minigame
- * Notas caen por 4 carriles, presiona A/S/D/F al ritmo
- * Diseño ultra-profesional con efectos visuales y audio feedback
+ * 🎮 LEGENDS: Rhythm Drop — Guitar Hero Style (Performance Optimized)
+ * NO Framer Motion on notes — pure CSS for 60fps.
+ * Notes fall smoothly using top% calculated each frame.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Howl } from 'howler';
 import type { Beat } from '../../data/songs';
@@ -25,390 +25,248 @@ interface GameNote {
   missed: boolean;
 }
 
-const LANE_KEYS = ['a', 's', 'd', 'f'];
-const LANE_COLORS = ['#ff4757', '#3742fa', '#2ed573', '#ffa502'];
-const LANE_GLOW = ['rgba(255,71,87,0.4)', 'rgba(55,66,250,0.4)', 'rgba(46,213,115,0.4)', 'rgba(255,165,2,0.4)'];
-const GAME_DURATION = 30000;
-const VISIBLE_WINDOW = 2500;
+const KEYS = ['a', 's', 'd', 'f'];
+const COLORS = ['#ff2d55', '#5856d6', '#30d158', '#ff9f0a'];
+const GLOWS = ['rgba(255,45,85,0.5)', 'rgba(88,86,214,0.5)', 'rgba(48,209,88,0.5)', 'rgba(255,159,10,0.5)'];
+const DURATION = 30000;
+const FALL_TIME = 2200;
 
-// Audio feedback (sintetizado con Web Audio)
-let audioCtx: AudioContext | null = null;
-function playHitSound(accuracy: 'perfect' | 'good' | 'ok') {
-  if (!audioCtx) audioCtx = new AudioContext();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  
-  const freqs = { perfect: 880, good: 660, ok: 440 };
-  osc.frequency.value = freqs[accuracy];
-  osc.type = 'sine';
-  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.15);
-}
-
-function playMissSound() {
-  if (!audioCtx) audioCtx = new AudioContext();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.frequency.value = 150;
-  osc.type = 'sawtooth';
-  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.1);
+let ctx: AudioContext | null = null;
+function beep(freq: number, dur = 0.08, vol = 0.15, wave: OscillatorType = 'sine') {
+  if (!ctx) ctx = new AudioContext();
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.value = freq; o.type = wave;
+  g.gain.setValueAtTime(vol, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+  o.start(); o.stop(ctx.currentTime + dur);
 }
 
 export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProps) {
-  const [notes, setNotes] = useState<GameNote[]>([]);
+  const [phase, setPhase] = useState<'countdown' | 'playing'>('countdown');
+  const [countdown, setCountdown] = useState(3);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [stats, setStats] = useState({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
   const [elapsed, setElapsed] = useState(0);
-  const [countdown, setCountdown] = useState(3);
-  const [started, setStarted] = useState(false);
-  const [feedback, setFeedback] = useState<{ lane: number; type: string } | null>(null);
-  const [laneFlash, setLaneFlash] = useState<number[]>([]);
+  const [flash, setFlash] = useState([false, false, false, false]);
+  const [fb, setFb] = useState<{ text: string; color: string; id: number } | null>(null);
 
-  const startTimeRef = useRef(0);
-  const animRef = useRef(0);
-  const notesRef = useRef<GameNote[]>([]);
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
-  const bgMusic = useRef<Howl | null>(null);
+  const t0 = useRef(0);
+  const raf = useRef(0);
+  const notes = useRef<GameNote[]>([]);
+  const st = useRef({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
+  const sc = useRef(0);
+  const co = useRef(0);
+  const mx = useRef(0);
+  const music = useRef<Howl | null>(null);
 
-  // Generate notes based on difficulty
+  // Generate notes
   useEffect(() => {
-    const difficulty = getRhythmDifficulty(level);
-    if (!difficulty) return;
-
-    const generated: GameNote[] = [];
-    const interval = 600 / difficulty.noteSpeed;
-    const totalNotes = Math.floor(GAME_DURATION / (interval * 1000) * difficulty.notesPerBeat * 2);
-
-    for (let i = 0; i < totalNotes; i++) {
-      const time = 1000 + (i * interval * 500 / difficulty.notesPerBeat);
-      if (time > GAME_DURATION - 500) break;
-      generated.push({
-        id: `n-${i}`,
-        lane: Math.floor(Math.random() * 4),
-        targetTime: time,
-        hit: false,
-        missed: false,
-      });
+    const diff = getRhythmDifficulty(level);
+    if (!diff) return;
+    const bpm = beat.tempo || 120;
+    // Generate fewer notes — one per beat, scaled by difficulty
+    const beatInterval = 60000 / bpm;
+    const noteInterval = beatInterval / Math.max(1, diff.notesPerBeat * 0.7); // Reduce density
+    const arr: GameNote[] = [];
+    let time = 1500, id = 0;
+    while (time < DURATION - 800) {
+      arr.push({ id: `n${id++}`, lane: Math.floor(Math.random() * 4), targetTime: time, hit: false, missed: false });
+      time += noteInterval;
     }
-
-    notesRef.current = generated;
-    setNotes(generated);
-  }, [level]);
+    notes.current = arr;
+  }, [level, beat.tempo]);
 
   // Countdown
   useEffect(() => {
+    if (phase !== 'countdown') return;
     if (countdown <= 0) {
-      setStarted(true);
-      startTimeRef.current = performance.now();
-      // Start background music
-      bgMusic.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.3, loop: true });
-      bgMusic.current.play();
+      setPhase('playing');
+      t0.current = performance.now();
+      music.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.3, loop: true });
+      music.current.play();
       return;
     }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    const t = setTimeout(() => setCountdown(c => c - 1), 800);
     return () => clearTimeout(t);
-  }, [countdown]);
+  }, [phase, countdown]);
 
-  // Game loop
+  // Game loop — lightweight, no state updates for notes
   useEffect(() => {
-    if (!started) return;
+    if (phase !== 'playing') return;
 
     const loop = () => {
-      const now = performance.now();
-      const el = now - startTimeRef.current;
+      const el = performance.now() - t0.current;
+
+      // Mark missed (mutate directly, no state update)
+      for (const n of notes.current) {
+        if (!n.hit && !n.missed && n.targetTime < el - 280) { n.missed = true; st.current.misses++; co.current = 0; }
+      }
+
+      // Update elapsed and force re-render (single state update)
       setElapsed(el);
 
-      // Check missed notes
-      const updated = notesRef.current.map(note => {
-        if (!note.hit && !note.missed && note.targetTime < el - 200) {
-          return { ...note, missed: true };
-        }
-        return note;
-      });
-
-      const newMisses = updated.filter(n => n.missed && !notesRef.current.find(on => on.id === n.id && on.missed));
-      if (newMisses.length > 0) {
-        setCombo(0);
-        setStats(s => ({ ...s, misses: s.misses + newMisses.length }));
-        playMissSound();
-      }
-
-      notesRef.current = updated;
-      setNotes([...updated]);
-
-      if (el >= GAME_DURATION) {
-        bgMusic.current?.stop();
-        const finalStats = { ...stats, misses: stats.misses + newMisses.length };
-        onComplete(score, maxCombo, finalStats);
-        return;
-      }
-
-      animRef.current = requestAnimationFrame(loop);
+      if (el >= DURATION) { music.current?.stop(); onComplete(sc.current, mx.current, st.current); return; }
+      raf.current = requestAnimationFrame(loop);
     };
+    raf.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf.current);
+  }, [phase, onComplete]);
 
-    animRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [started]);
-
-  // Keyboard input
+  // Keyboard — optimized: only update display state, not every ref
   useEffect(() => {
-    if (!started) return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      const lane = LANE_KEYS.indexOf(e.key.toLowerCase());
+    if (phase !== 'playing') return;
+    const handle = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const lane = KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
 
-      const currentTime = performance.now() - startTimeRef.current;
-      const difficulty = getRhythmDifficulty(level);
-      if (!difficulty) return;
+      // Flash (direct DOM manipulation for zero-cost visual feedback)
+      setFlash(p => { const n = [...p]; n[lane] = true; return n; });
+      setTimeout(() => setFlash(p => { const n = [...p]; n[lane] = false; return n; }), 100);
 
-      // Find closest unhit note in this lane
-      const note = notesRef.current.find(
-        n => n.lane === lane && !n.hit && !n.missed && Math.abs(n.targetTime - currentTime) <= difficulty.okWindow
-      );
+      const now = performance.now() - t0.current;
+      const diff = getRhythmDifficulty(level);
+      if (!diff) return;
 
-      // Flash the lane
-      setLaneFlash(prev => [...prev, lane]);
-      setTimeout(() => setLaneFlash(prev => prev.filter(l => l !== lane)), 150);
-
-      if (!note) {
-        setCombo(0);
-        setStats(s => ({ ...s, misses: s.misses + 1 }));
-        setFeedback({ lane, type: 'miss' });
-        playMissSound();
-      } else {
-        const diff = Math.abs(note.targetTime - currentTime);
-        let accuracy: 'perfect' | 'good' | 'ok';
-        let points: number;
-
-        if (diff <= difficulty.perfectWindow) {
-          accuracy = 'perfect'; points = 100;
-          setStats(s => ({ ...s, perfectHits: s.perfectHits + 1 }));
-        } else if (diff <= difficulty.goodWindow) {
-          accuracy = 'good'; points = 75;
-          setStats(s => ({ ...s, goodHits: s.goodHits + 1 }));
-        } else {
-          accuracy = 'ok'; points = 50;
-          setStats(s => ({ ...s, okHits: s.okHits + 1 }));
-        }
-
-        const newCombo = combo + 1;
-        const multiplier = 1 + Math.floor(newCombo / 10) * 0.1;
-        const finalPoints = Math.floor(points * multiplier);
-
-        note.hit = true;
-        setCombo(newCombo);
-        if (newCombo > maxCombo) setMaxCombo(newCombo);
-        setScore(s => s + finalPoints);
-        setFeedback({ lane, type: accuracy });
-        playHitSound(accuracy);
+      let best: GameNote | null = null, bestD = Infinity;
+      for (const n of notes.current) {
+        if (n.lane !== lane || n.hit || n.missed) continue;
+        const d = Math.abs(n.targetTime - now);
+        if (d < bestD && d <= diff.okWindow) { best = n; bestD = d; }
       }
 
-      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-      feedbackTimer.current = setTimeout(() => setFeedback(null), 400);
+      if (!best) {
+        co.current = 0; st.current.misses++;
+        setFb({ text: 'MISS', color: '#ff3b30', id: Date.now() }); beep(100, 0.1, 0.08, 'sawtooth');
+      } else {
+        best.hit = true;
+        let pts: number, txt: string, col: string;
+        if (bestD <= diff.perfectWindow) { pts = 100; txt = '✦ PERFECT'; col = '#ffd60a'; st.current.perfectHits++; beep(1200); }
+        else if (bestD <= diff.goodWindow) { pts = 75; txt = 'GREAT'; col = '#30d158'; st.current.goodHits++; beep(800); }
+        else { pts = 50; txt = 'OK'; col = '#64d2ff'; st.current.okHits++; beep(500); }
+
+        co.current++;
+        if (co.current > mx.current) mx.current = co.current;
+        const mult = 1 + Math.floor(co.current / 10) * 0.1;
+        sc.current += Math.floor(pts * mult);
+        setFb({ text: txt, color: col, id: Date.now() });
+      }
+
+      // Batch UI update
+      setScore(sc.current); setCombo(co.current); setMaxCombo(mx.current); setStats({ ...st.current });
+      setTimeout(() => setFb(null), 300);
     };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [phase, level]);
 
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [started, combo, maxCombo, level, score, stats]);
+  useEffect(() => () => { music.current?.stop(); cancelAnimationFrame(raf.current); }, []);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      bgMusic.current?.stop();
-      cancelAnimationFrame(animRef.current);
-    };
-  }, []);
+  const progress = elapsed / DURATION;
 
-  const progress = elapsed / GAME_DURATION;
-  const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
-  const totalAttempts = totalHits + stats.misses;
-  const accuracy = totalAttempts > 0 ? Math.round((totalHits / totalAttempts) * 100) : 100;
-
-  // Countdown screen
-  if (!started) {
+  if (phase === 'countdown') {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="relative z-10 text-center"
-      >
-        <motion.div
-          key={countdown}
-          initial={{ scale: 3, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-8xl font-black text-white drop-shadow-2xl"
-          style={{ textShadow: '0 0 40px rgba(168,85,247,0.8)' }}
-        >
-          {countdown}
-        </motion.div>
-        <p className="text-purple-300 text-lg mt-4 font-medium">{beat.name}</p>
-        <p className="text-white/40 text-sm mt-1">Prepárate... usa A, S, D, F</p>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 text-center">
+        <motion.div key={countdown} initial={{ scale: 2.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4 }}
+          className="text-9xl font-black text-white" style={{ textShadow: '0 0 60px #a855f7' }}>{countdown}</motion.div>
+        <p className="text-purple-200 text-xl mt-6 font-semibold">{beat.name}</p>
+        <p className="text-white/50 mt-2">Presiona <b className="text-white">A S D F</b> al ritmo</p>
       </motion.div>
     );
   }
 
+  // Visible notes (no framer motion — pure divs)
+  const visibleNotes = notes.current.filter(n => !n.hit && !n.missed && n.targetTime > elapsed - 200 && n.targetTime < elapsed + FALL_TIME + 100);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="relative z-10 w-full h-full flex flex-col"
-    >
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-black/40 backdrop-blur-sm border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <span className="text-white font-bold">🎹 {beat.name}</span>
-          <span className="text-white/40 text-xs">{beat.style.toUpperCase()} • {beat.tempo} BPM</span>
-        </div>
-
-        {/* Progress */}
-        <div className="flex items-center gap-3 flex-1 max-w-xs mx-8">
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full"
-              style={{ width: `${progress * 100}%` }}
-            />
-          </div>
-          <span className="text-white/60 text-xs font-mono w-8">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-white/40 text-[10px] uppercase tracking-wider">Score</div>
-            <div className="text-white font-black text-lg tabular-nums">{score.toLocaleString()}</div>
-          </div>
-          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="text-red-400/80 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg border border-red-500/20 hover:border-red-400/40 transition-all">
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Combo & Accuracy */}
-      <div className="flex items-center justify-between px-6 py-2">
+    <div className="relative z-10 w-full h-full flex flex-col bg-gradient-to-b from-[#1a0533] via-[#0d001a] to-black">
+      {/* HUD */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black/60 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className={`px-3 py-1 rounded-lg border ${combo >= 20 ? 'border-orange-400/40 bg-orange-500/10' : combo > 0 ? 'border-purple-500/30 bg-purple-500/5' : 'border-white/5 bg-white/[0.02]'}`}>
-            <span className="text-white/40 text-[10px] uppercase">Combo</span>
-            <span className={`ml-2 font-black text-lg ${combo >= 20 ? 'text-orange-300' : combo > 0 ? 'text-white' : 'text-white/30'}`}>
-              {combo}x
-            </span>
-            {combo >= 10 && <span className="ml-1 text-xs text-cyan-400">×{(1 + Math.floor(combo / 10) * 0.1).toFixed(1)}</span>}
-          </div>
-          {combo >= 20 && <span className="text-xl animate-bounce">🔥</span>}
+          <span className="text-white font-bold text-sm">🎹 {beat.name}</span>
+          <span className="text-white/30 text-xs">{beat.tempo} BPM</span>
         </div>
-
-        <div className="flex items-center gap-4 text-xs">
-          <span className="text-yellow-300">★{stats.perfectHits}</span>
-          <span className="text-green-300">●{stats.goodHits}</span>
-          <span className="text-blue-300">○{stats.okHits}</span>
-          <span className="text-red-300">✕{stats.misses}</span>
-          <div className={`px-2 py-0.5 rounded font-bold ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : accuracy >= 70 ? 'text-green-300 bg-green-500/10' : 'text-white/60 bg-white/5'}`}>
-            {accuracy}%
+        <div className="flex items-center gap-2 flex-1 max-w-[180px] mx-4">
+          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full" style={{ width: `${progress * 100}%` }} />
           </div>
+          <span className="text-white/50 text-[10px] font-mono">{Math.ceil((DURATION - elapsed) / 1000)}s</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {combo > 0 && <span className={`font-black text-sm ${combo >= 20 ? 'text-orange-300' : 'text-purple-300'}`}>{combo}x{combo >= 20 ? '🔥' : ''}</span>}
+          <span className="text-white font-black tabular-nums">{score.toLocaleString()}</span>
+          <button onClick={() => { music.current?.stop(); onCancel(); }} className="text-red-400 text-xs px-2 py-1 rounded border border-red-500/30 hover:bg-red-500/10">✕</button>
         </div>
       </div>
 
-      {/* Game area — 4 lanes */}
-      <div className="flex-1 flex items-stretch justify-center gap-2 px-4 sm:px-16 py-2 relative">
+      {/* LANES */}
+      <div className="flex-1 flex justify-center gap-1 px-2 sm:px-12 py-1 relative overflow-hidden">
         {[0, 1, 2, 3].map(lane => (
-          <div key={lane} className="relative flex-1 max-w-24 rounded-xl overflow-hidden" style={{ background: `linear-gradient(to bottom, ${LANE_COLORS[lane]}05, ${LANE_COLORS[lane]}02, ${LANE_COLORS[lane]}08)`, border: `1px solid ${LANE_COLORS[lane]}15` }}>
+          <div key={lane} className="relative flex-1 max-w-24 rounded-xl overflow-hidden"
+            style={{ background: `linear-gradient(180deg, ${COLORS[lane]}08, ${COLORS[lane]}04, ${COLORS[lane]}12)`, border: `1px solid ${COLORS[lane]}20` }}>
             
-            {/* Lane lines */}
-            <div className="absolute inset-0 opacity-5">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px" style={{ background: LANE_COLORS[lane] }} />
-            </div>
-
             {/* Hit zone */}
-            <div
-              className="absolute bottom-0 left-0 right-0 h-14 transition-all duration-75"
-              style={{
-                background: laneFlash.includes(lane)
-                  ? `linear-gradient(to top, ${LANE_COLORS[lane]}40, transparent)`
-                  : `linear-gradient(to top, ${LANE_COLORS[lane]}15, transparent)`,
-                borderTop: `2px solid ${laneFlash.includes(lane) ? LANE_COLORS[lane] : LANE_COLORS[lane] + '30'}`,
-                boxShadow: laneFlash.includes(lane) ? `0 0 30px ${LANE_GLOW[lane]}` : 'none',
-              }}
-            />
+            <div className="absolute bottom-0 left-0 right-0 h-14 transition-all duration-[60ms]" style={{
+              background: flash[lane] ? `linear-gradient(to top, ${COLORS[lane]}50, transparent)` : `linear-gradient(to top, ${COLORS[lane]}18, transparent)`,
+              borderTop: `3px solid ${flash[lane] ? COLORS[lane] : COLORS[lane] + '40'}`,
+              boxShadow: flash[lane] ? `0 0 30px ${GLOWS[lane]}` : 'none',
+            }} />
 
-            {/* Notes */}
-            {notes.filter(n => n.lane === lane && !n.hit && !n.missed).map(note => {
-              const timeUntil = note.targetTime - elapsed;
-              const pct = 1 - (timeUntil / VISIBLE_WINDOW);
-              if (pct < -0.1 || pct > 1.1) return null;
-              const top = pct * 85;
-
+            {/* Notes — pure CSS, no framer */}
+            {visibleNotes.filter(n => n.lane === lane).map(note => {
+              const pct = (1 - (note.targetTime - elapsed) / FALL_TIME) * 88;
+              if (pct < -5 || pct > 100) return null;
               return (
-                <motion.div
-                  key={note.id}
-                  className="absolute left-1/2 -translate-x-1/2 w-12 h-5 rounded-lg flex items-center justify-center"
+                <div key={note.id} className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
                   style={{
-                    top: `${top}%`,
-                    background: `linear-gradient(135deg, ${LANE_COLORS[lane]}, ${LANE_COLORS[lane]}aa)`,
-                    boxShadow: `0 0 15px ${LANE_GLOW[lane]}, inset 0 1px 0 rgba(255,255,255,0.3)`,
-                  }}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full bg-white/80" style={{ boxShadow: `0 0 8px white` }} />
-                </motion.div>
+                    top: `${pct}%`, width: '78%', height: '22px', borderRadius: '8px',
+                    background: `linear-gradient(135deg, ${COLORS[lane]}, ${COLORS[lane]}bb)`,
+                    boxShadow: `0 0 10px ${GLOWS[lane]}, inset 0 1px 0 rgba(255,255,255,0.35)`,
+                    border: `1px solid ${COLORS[lane]}`,
+                    willChange: 'top',
+                  }}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-white/90" />
+                </div>
               );
             })}
-
-            {/* Hit feedback */}
-            <AnimatePresence>
-              {feedback?.lane === lane && (
-                <motion.div
-                  key={`fb-${Date.now()}`}
-                  initial={{ opacity: 1, scale: 0.5, y: 0 }}
-                  animate={{ opacity: 0, scale: 1.5, y: -30 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-none"
-                >
-                  <span className={`text-xs font-black ${
-                    feedback.type === 'perfect' ? 'text-yellow-300' :
-                    feedback.type === 'good' ? 'text-green-300' :
-                    feedback.type === 'ok' ? 'text-blue-300' : 'text-red-400'
-                  }`}>
-                    {feedback.type === 'perfect' ? '★ PERFECT' : feedback.type === 'good' ? '● GOOD' : feedback.type === 'ok' ? '○ OK' : '✕ MISS'}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         ))}
+
+        {/* Feedback */}
+        <AnimatePresence>
+          {fb && (
+            <motion.div key={fb.id} initial={{ opacity: 1, scale: 0.8 }} animate={{ opacity: 0, scale: 1.3, y: -30 }} transition={{ duration: 0.35 }}
+              className="absolute top-1/3 left-1/2 -translate-x-1/2 pointer-events-none z-50">
+              <span className="text-2xl font-black" style={{ color: fb.color, textShadow: `0 0 15px ${fb.color}` }}>{fb.text}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Key indicators */}
-      <div className="flex justify-center gap-2 px-4 pb-4">
-        {LANE_KEYS.map((key, i) => (
-          <div
-            key={key}
-            className="w-16 h-12 rounded-xl flex items-center justify-center text-lg font-black transition-all duration-75"
+      {/* Keys */}
+      <div className="flex justify-center gap-2 py-3 bg-black/40 shrink-0">
+        {KEYS.map((k, i) => (
+          <div key={k} className="w-14 h-10 rounded-xl flex items-center justify-center text-base font-black transition-all duration-[60ms]"
             style={{
-              background: laneFlash.includes(i) ? `${LANE_COLORS[i]}30` : 'rgba(255,255,255,0.03)',
-              border: `2px solid ${laneFlash.includes(i) ? LANE_COLORS[i] : 'rgba(255,255,255,0.08)'}`,
-              boxShadow: laneFlash.includes(i) ? `0 0 20px ${LANE_GLOW[i]}` : 'none',
-              color: laneFlash.includes(i) ? LANE_COLORS[i] : 'rgba(255,255,255,0.5)',
-            }}
-          >
-            {key.toUpperCase()}
-          </div>
+              background: flash[i] ? `${COLORS[i]}35` : 'rgba(255,255,255,0.04)',
+              border: `2px solid ${flash[i] ? COLORS[i] : 'rgba(255,255,255,0.1)'}`,
+              color: flash[i] ? COLORS[i] : 'rgba(255,255,255,0.5)',
+              boxShadow: flash[i] ? `0 0 15px ${GLOWS[i]}` : 'none',
+              transform: flash[i] ? 'scale(0.92)' : 'scale(1)',
+            }}>{k.toUpperCase()}</div>
         ))}
       </div>
-    </motion.div>
+
+      {/* Stats bar */}
+      <div className="flex justify-center gap-4 py-1.5 bg-black/50 text-xs font-bold shrink-0">
+        <span className="text-yellow-300">★{stats.perfectHits}</span>
+        <span className="text-green-300">●{stats.goodHits}</span>
+        <span className="text-cyan-300">○{stats.okHits}</span>
+        <span className="text-red-400">✕{stats.misses}</span>
+      </div>
+    </div>
   );
 }

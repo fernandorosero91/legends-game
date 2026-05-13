@@ -9,6 +9,7 @@ import { insforge, type GameSave, type LeaderboardEntry } from '../services/insf
 import { saveService } from '../services/saveService';
 import { useAuthStore, type AuthUser } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
+import { useGameStore } from '../store/gameStore';
 
 export type { AuthUser } from '../store/authStore';
 
@@ -125,6 +126,22 @@ export function useInsForge() {
 
       // Sync character gender to playerStore
       usePlayerStore.getState().setCharacterGender((userRecord.character_gender || 'male') as 'male' | 'female');
+
+      // Try to load the user's latest save if stores are in initial state
+      const currentMoney = usePlayerStore.getState().money;
+      const currentDay = useGameStore.getState().currentDay;
+      if (currentMoney === 5000 && currentDay === 1) {
+        // Stores are at initial values — try loading saved game
+        try {
+          const userSaves = await saveService.getUserSaves(userRecord.id);
+          if (userSaves.length > 0) {
+            await saveService.loadGame(userSaves[0].id);
+            console.log('[useInsForge] ✅ Auto-loaded save for returning user:', userRecord.username);
+          }
+        } catch {
+          // No save found, that's fine
+        }
+      }
     } catch {
       setUser(null);
     }
@@ -248,10 +265,33 @@ export function useInsForge() {
         .from('users').select('*').eq('id', data.user.id).single();
       if (userError || !userData) return { success: false, error: 'Error al obtener datos del usuario' };
 
+      // Reset stores before loading new user data
+      usePlayerStore.getState().resetPlayer();
+      useGameStore.getState().resetGame();
+      localStorage.removeItem('legends-player-store');
+      localStorage.removeItem('legends-game-store');
+
       setUser({
         id: userData.id, email: userData.email, username: userData.username,
         emailVerified: true, characterGender: userData.character_gender || 'male',
       });
+
+      // Sync character gender
+      usePlayerStore.getState().setCharacterGender((userData.character_gender || 'male') as 'male' | 'female');
+
+      // Try to load the user's latest save automatically
+      try {
+        const userSaves = await saveService.getUserSaves(userData.id);
+        if (userSaves.length > 0) {
+          // Load the most recent save
+          const latestSave = userSaves[0]; // Already ordered by updated_at desc
+          await saveService.loadGame(latestSave.id);
+          console.log('[useInsForge] ✅ Loaded latest save for user:', userData.username);
+        }
+      } catch (loadError) {
+        console.log('[useInsForge] No saved game found, starting fresh');
+      }
+
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Error al iniciar sesión' };
@@ -267,6 +307,15 @@ export function useInsForge() {
       setSaves([]);
       // Reset session check so it re-checks on next login
       setSessionChecked(false);
+      
+      // ⚠️ CRITICAL: Reset all game stores to initial state
+      // This prevents stale data from previous user showing up
+      usePlayerStore.getState().resetPlayer();
+      useGameStore.getState().resetGame();
+      
+      // Clear persisted localStorage for game stores
+      localStorage.removeItem('legends-player-store');
+      localStorage.removeItem('legends-game-store');
     } catch (error) {
       console.error('[useInsForge] Error logging out:', error);
     }

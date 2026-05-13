@@ -58,6 +58,11 @@ function GameScene() {
   useEffect(() => {
     const { gamePhase } = useGameStore.getState();
     if (gamePhase === 'menu') {
+      // Reset player state for a fresh game (unless a save was loaded)
+      const playerState = usePlayerStore.getState();
+      if (playerState.monthlyListeners === 0 && playerState.songs.length === 0) {
+        playerState.resetPlayer();
+      }
       useGameStore.getState().startNewGame();
     }
   }, []);

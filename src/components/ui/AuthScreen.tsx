@@ -54,7 +54,7 @@ export function AuthScreen() {
       if (!email.trim()) { setError('Ingresa tu email'); return; }
       if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
       const result = await register({ email: email.trim(), password, username: username.trim(), characterGender });
-      if (result.success) { setStoreGender(characterGender); setSuccess('Cuenta creada'); setTimeout(() => setScreen('game'), 1000); }
+      if (result.success) { setStoreGender(characterGender); setSuccess('¡Cuenta creada! Entrando al juego...'); setTimeout(() => setScreen('game'), 500); }
       else if ((result as any).requiresVerification) {
         // Si el userId está vacío, es un 409 (usuario ya existe) — intentar login automático
         if (!(result as any).userId) {
@@ -112,7 +112,7 @@ export function AuthScreen() {
     e.preventDefault(); setError(''); setSuccess('');
     if (verificationCode.length !== 6) { setError('El código debe tener 6 dígitos'); return; }
     const result = await verifyEmail({ email: email.trim(), otp: verificationCode, username: username.trim() || email.trim().split('@')[0], characterGender, userId: pendingUserId });
-    if (result.success) { setStoreGender(characterGender); setSuccess('Email verificado'); setTimeout(() => setScreen('game'), 1000); }
+    if (result.success) { setStoreGender(characterGender); setSuccess('¡Email verificado! Entrando...'); setTimeout(() => setScreen('game'), 500); }
     else setError(result.error || 'Código inválido');
   }, [verificationCode, email, username, characterGender, pendingUserId, verifyEmail, setScreen, setStoreGender]);
 

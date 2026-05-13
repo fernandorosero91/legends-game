@@ -18,32 +18,27 @@ export const ApartmentScene = () => {
   const addEnergy = usePlayerStore((s) => s.addEnergy);
   const addNotification = useUIStore((s) => s.addNotification);
   const advanceTime = useGameStore((s) => s.advanceTime);
-  const timeOfDay = useGameStore((s) => s.timeOfDay);
   const setGamePhase = useGameStore((s) => s.setGamePhase);
 
   // Dormir en la cama (litera, abajo-izquierda)
   const handleSleep = () => {
-    if (timeOfDay !== 'night') {
-      addNotification('warning', '🌙 Solo puedes dormir por la noche');
-      return;
-    }
-    if (energy >= 90) {
-      addNotification('info', '😊 No estás cansado todavía');
+    if (energy >= 100) {
+      addNotification('info', '😊 Ya tienes energía al máximo');
       return;
     }
     addEnergy(50);
     advanceTime();
-    addNotification('success', '😴 Descansaste bien. +50 energía');
+    addNotification('success', '😴 Descansaste bien. +50 energía. Avanzó el turno.');
   };
 
   // Descansar en el sofá (abajo-derecha)
   const handleRest = () => {
-    if (energy >= 95) {
-      addNotification('info', '😊 Ya tienes suficiente energía');
+    if (energy >= 100) {
+      addNotification('info', '😊 Ya tienes energía al máximo');
       return;
     }
-    addEnergy(20);
-    addNotification('info', '🛋️ Descansaste un poco. +20 energía');
+    addEnergy(40);
+    addNotification('success', '🛋️ Descansaste un rato. +40 energía');
   };
 
   // Grabar en el escritorio/computador (zona central-trasera)
@@ -52,6 +47,9 @@ export const ApartmentScene = () => {
       addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
+    // Set player to sitting position near the desk chair
+    usePlayerStore.getState().setPosition({ x: 1.5, y: 0, z: -3.5 });
+    usePlayerStore.getState().setPlayerSitting(true);
     setGamePhase('rhythm_game');
   };
 

@@ -1,10 +1,10 @@
 /**
  * 🎮 LEGENDS: Flow Mixer — Arrow Sequence Minigame
- * Secuencias de flechas aparecen y debes presionar ←↑↓→ al ritmo.
- * Estilo DDR / rhythm flow con visuales de DJ mixing.
+ * Flechas grandes aparecen en secuencia. Presiona la dirección correcta al ritmo.
+ * Estilo DDR con visuales de neon y feedback intenso.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Howl } from 'howler';
 import type { Beat } from '../../data/songs';
@@ -23,22 +23,20 @@ interface ArrowNote {
   targetTime: number;
   hit: boolean;
   missed: boolean;
-  accuracy?: string;
 }
 
 const DIRECTIONS = ['left', 'up', 'down', 'right'] as const;
 const DIR_KEYS: Record<string, typeof DIRECTIONS[number]> = {
   arrowleft: 'left', arrowup: 'up', arrowdown: 'down', arrowright: 'right',
-  a: 'left', w: 'up', s: 'down', d: 'right',
 };
 const DIR_SYMBOLS: Record<string, string> = { left: '←', up: '↑', down: '↓', right: '→' };
-const DIR_COLORS: Record<string, string> = { left: '#ff4757', up: '#2ed573', down: '#3742fa', right: '#ffa502' };
-const DIR_GLOW: Record<string, string> = { left: 'rgba(255,71,87,0.5)', up: 'rgba(46,213,115,0.5)', down: 'rgba(55,66,250,0.5)', right: 'rgba(255,165,2,0.5)' };
+const DIR_COLORS: Record<string, string> = { left: '#ff2d55', up: '#30d158', down: '#5856d6', right: '#ff9f0a' };
+const DIR_GLOW: Record<string, string> = { left: '0 0 40px #ff2d55', up: '0 0 40px #30d158', down: '0 0 40px #5856d6', right: '0 0 40px #ff9f0a' };
 
 const GAME_DURATION = 30000;
 
 let audioCtx: AudioContext | null = null;
-function playTone(freq: number, type: OscillatorType = 'square') {
+function playTone(freq: number, type: OscillatorType = 'sine') {
   if (!audioCtx) audioCtx = new AudioContext();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -46,14 +44,13 @@ function playTone(freq: number, type: OscillatorType = 'square') {
   gain.connect(audioCtx.destination);
   osc.frequency.value = freq;
   osc.type = type;
-  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.12);
+  osc.stop(audioCtx.currentTime + 0.1);
 }
 
 export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps) {
-  const [arrows, setArrows] = useState<ArrowNote[]>([]);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -62,38 +59,42 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   const [countdown, setCountdown] = useState(3);
   const [started, setStarted] = useState(false);
   const [activeDir, setActiveDir] = useState<string | null>(null);
-  const [lastFeedback, setLastFeedback] = useState<{ dir: string; type: string } | null>(null);
+  const [feedbackText, setFeedbackText] = useState<{ text: string; color: string; key: number } | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const startTimeRef = useRef(0);
   const animRef = useRef(0);
   const arrowsRef = useRef<ArrowNote[]>([]);
+  const statsRef = useRef({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
+  const scoreRef = useRef(0);
+  const comboRef = useRef(0);
+  const maxComboRef = useRef(0);
   const bgMusic = useRef<Howl | null>(null);
 
   // Generate arrows
   useEffect(() => {
+    const bpm = beat.tempo || 120;
     const difficulty = getRhythmDifficulty(level);
-    if (!difficulty) return;
+    const interval = (60000 / bpm) / (difficulty?.notesPerBeat || 1);
 
     const generated: ArrowNote[] = [];
-    const interval = 800 / difficulty.noteSpeed;
-    const count = Math.floor(GAME_DURATION / interval);
+    let time = 2000;
+    let id = 0;
 
-    for (let i = 0; i < count; i++) {
-      const time = 2000 + i * interval;
-      if (time > GAME_DURATION - 500) break;
-
+    while (time < GAME_DURATION - 1000) {
       generated.push({
-        id: `a-${i}`,
+        id: `a${id++}`,
         direction: DIRECTIONS[Math.floor(Math.random() * 4)],
         targetTime: time,
         hit: false,
         missed: false,
       });
+      time += interval;
     }
 
+    console.log(`[FlowMixer] Generated ${generated.length} arrows`);
     arrowsRef.current = generated;
-    setArrows(generated);
-  }, [level]);
+  }, [level, beat.tempo]);
 
   // Countdown
   useEffect(() => {
@@ -111,197 +112,180 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   // Game loop
   useEffect(() => {
     if (!started) return;
-
     const loop = () => {
       const el = performance.now() - startTimeRef.current;
       setElapsed(el);
 
-      // Check missed
+      // Check missed arrows
       let missCount = 0;
-      arrowsRef.current = arrowsRef.current.map(a => {
-        if (!a.hit && !a.missed && a.targetTime < el - 250) {
+      for (const a of arrowsRef.current) {
+        if (!a.hit && !a.missed && a.targetTime < el - 300) {
+          a.missed = true;
           missCount++;
-          return { ...a, missed: true };
         }
-        return a;
-      });
-
+      }
       if (missCount > 0) {
+        comboRef.current = 0;
         setCombo(0);
-        setStats(s => ({ ...s, misses: s.misses + missCount }));
+        statsRef.current.misses += missCount;
+        setStats({ ...statsRef.current });
       }
 
-      setArrows([...arrowsRef.current]);
+      // Update current index (first unhit/unmissed)
+      const idx = arrowsRef.current.findIndex(a => !a.hit && !a.missed);
+      setCurrentIndex(idx >= 0 ? idx : arrowsRef.current.length);
 
       if (el >= GAME_DURATION) {
         bgMusic.current?.stop();
-        onComplete(score, maxCombo, stats);
+        onComplete(scoreRef.current, maxComboRef.current, statsRef.current);
         return;
       }
-
       animRef.current = requestAnimationFrame(loop);
     };
-
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, [started]);
+  }, [started, onComplete]);
 
   // Keyboard
   useEffect(() => {
     if (!started) return;
-
     const handleKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
       const dir = DIR_KEYS[e.key.toLowerCase()];
       if (!dir) return;
 
       setActiveDir(dir);
-      setTimeout(() => setActiveDir(null), 150);
+      setTimeout(() => setActiveDir(null), 120);
 
       const currentTime = performance.now() - startTimeRef.current;
       const difficulty = getRhythmDifficulty(level);
       if (!difficulty) return;
 
+      // Find the current arrow to hit
       const arrow = arrowsRef.current.find(
         a => a.direction === dir && !a.hit && !a.missed && Math.abs(a.targetTime - currentTime) <= difficulty.okWindow
       );
 
       if (!arrow) {
+        comboRef.current = 0;
         setCombo(0);
-        setStats(s => ({ ...s, misses: s.misses + 1 }));
-        setLastFeedback({ dir, type: 'miss' });
+        statsRef.current.misses++;
+        setStats({ ...statsRef.current });
+        setFeedbackText({ text: 'MISS', color: '#ff3b30', key: Date.now() });
         playTone(100, 'sawtooth');
-        setTimeout(() => setLastFeedback(null), 400);
         return;
       }
 
+      arrow.hit = true;
       const diff = Math.abs(arrow.targetTime - currentTime);
-      let accuracy: 'perfect' | 'good' | 'ok';
       let points: number;
+      let text: string;
+      let color: string;
 
       if (diff <= difficulty.perfectWindow) {
-        accuracy = 'perfect'; points = 100;
-        setStats(s => ({ ...s, perfectHits: s.perfectHits + 1 }));
-        playTone(880, 'sine');
+        points = 100; text = '✦ PERFECT'; color = '#ffd60a';
+        statsRef.current.perfectHits++;
+        playTone(1200);
       } else if (diff <= difficulty.goodWindow) {
-        accuracy = 'good'; points = 75;
-        setStats(s => ({ ...s, goodHits: s.goodHits + 1 }));
-        playTone(660, 'sine');
+        points = 75; text = 'GREAT'; color = '#30d158';
+        statsRef.current.goodHits++;
+        playTone(800);
       } else {
-        accuracy = 'ok'; points = 50;
-        setStats(s => ({ ...s, okHits: s.okHits + 1 }));
-        playTone(440, 'sine');
+        points = 50; text = 'OK'; color = '#64d2ff';
+        statsRef.current.okHits++;
+        playTone(500);
       }
 
-      arrow.hit = true;
-      arrow.accuracy = accuracy;
+      comboRef.current++;
+      if (comboRef.current > maxComboRef.current) maxComboRef.current = comboRef.current;
+      const multiplier = 1 + Math.floor(comboRef.current / 10) * 0.1;
+      scoreRef.current += Math.floor(points * multiplier);
 
-      const newCombo = combo + 1;
-      const multiplier = 1 + Math.floor(newCombo / 10) * 0.1;
-      setCombo(newCombo);
-      if (newCombo > maxCombo) setMaxCombo(newCombo);
-      setScore(s => s + Math.floor(points * multiplier));
-      setLastFeedback({ dir, type: accuracy });
-      setTimeout(() => setLastFeedback(null), 400);
+      setScore(scoreRef.current);
+      setCombo(comboRef.current);
+      setMaxCombo(maxComboRef.current);
+      setStats({ ...statsRef.current });
+      setFeedbackText({ text, color, key: Date.now() });
     };
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [started, combo, maxCombo, level, score, stats]);
+  }, [started, level]);
 
-  useEffect(() => {
-    return () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); };
-  }, []);
+  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); }, []);
 
   const progress = elapsed / GAME_DURATION;
   const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
-  const totalAttempts = totalHits + stats.misses;
-  const accuracy = totalAttempts > 0 ? Math.round((totalHits / totalAttempts) * 100) : 100;
-
-  // Get upcoming arrows (next 6)
-  const upcomingArrows = arrows.filter(a => !a.hit && !a.missed && a.targetTime > elapsed - 100).slice(0, 8);
-  const currentArrow = upcomingArrows[0];
+  const accuracy = (totalHits + stats.misses) > 0 ? Math.round((totalHits / (totalHits + stats.misses)) * 100) : 100;
 
   if (!started) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 text-center">
-        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }}
-          className="text-8xl font-black text-white" style={{ textShadow: '0 0 40px rgba(46,213,115,0.8)' }}>
+        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}
+          className="text-9xl font-black text-white" style={{ textShadow: '0 0 60px #30d158, 0 0 120px #059669' }}>
           {countdown}
         </motion.div>
-        <p className="text-green-300 text-lg mt-4 font-medium">{beat.name}</p>
-        <p className="text-white/40 text-sm mt-1">Usa las flechas ←↑↓→ o A/W/S/D</p>
+        <p className="text-green-200 text-xl mt-6 font-semibold">{beat.name}</p>
+        <p className="text-white/50 text-sm mt-2">Presiona las <span className="text-white font-bold">flechas ←↑↓→</span> al ritmo</p>
       </motion.div>
     );
   }
 
+  // Get upcoming arrows for display
+  const upcoming = arrowsRef.current.filter(a => !a.hit && !a.missed).slice(0, 7);
+  const currentArrow = upcoming[0];
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-black/40 backdrop-blur-sm border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <span className="text-white font-bold">🎛️ {beat.name}</span>
-          <span className="text-white/40 text-xs">{beat.style.toUpperCase()} • {beat.tempo} BPM</span>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col bg-gradient-to-b from-[#001a0d] via-[#000d06] to-[#000]">
+      
+      {/* Top HUD */}
+      <div className="flex items-center justify-between px-5 py-2.5 bg-black/50 backdrop-blur border-b border-green-500/10">
+        <div className="flex items-center gap-3">
+          <span className="text-white font-bold text-sm">🎛️ {beat.name}</span>
+          <span className="text-white/30 text-xs">{beat.tempo} BPM</span>
         </div>
-        <div className="flex items-center gap-3 flex-1 max-w-xs mx-8">
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full" style={{ width: `${progress * 100}%` }} />
+        <div className="flex items-center gap-2 flex-1 max-w-[200px] mx-6">
+          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400" style={{ width: `${progress * 100}%` }} />
           </div>
-          <span className="text-white/60 text-xs font-mono w-8">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
+          <span className="text-white/50 text-xs font-mono">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className={`font-bold ${combo >= 10 ? 'text-orange-300' : 'text-white/60'}`}>{combo}x</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-bold ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : 'text-white/60 bg-white/5'}`}>{accuracy}%</span>
-          <span className="text-white font-black text-lg tabular-nums">{score.toLocaleString()}</span>
-          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="text-red-400/80 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg border border-red-500/20">✕</button>
+          {combo > 0 && <span className={`font-black text-sm ${combo >= 20 ? 'text-orange-300' : 'text-green-300'}`}>{combo}x</span>}
+          <span className="text-white font-black tabular-nums">{score.toLocaleString()}</span>
+          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xs">✕</button>
         </div>
       </div>
 
       {/* Main game area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-8">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 relative">
         
-        {/* Upcoming sequence */}
-        <div className="flex items-center gap-3">
-          {upcomingArrows.map((arrow, i) => {
-            const isCurrent = i === 0;
-            const timeDiff = arrow.targetTime - elapsed;
-            const urgency = Math.max(0, 1 - timeDiff / 1500);
-
-            return (
-              <motion.div
-                key={arrow.id}
-                initial={{ opacity: 0, scale: 0.5, x: 30 }}
-                animate={{ opacity: isCurrent ? 1 : 0.3 + (1 - i * 0.1), scale: isCurrent ? 1.3 : 1 - i * 0.05, x: 0 }}
-                className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black transition-all ${
-                  isCurrent ? 'border-2 shadow-xl' : 'border border-white/10'
-                }`}
-                style={{
-                  borderColor: isCurrent ? DIR_COLORS[arrow.direction] : undefined,
-                  background: isCurrent ? `${DIR_COLORS[arrow.direction]}20` : 'rgba(255,255,255,0.02)',
-                  boxShadow: isCurrent ? `0 0 30px ${DIR_GLOW[arrow.direction]}` : undefined,
-                  color: DIR_COLORS[arrow.direction],
-                }}
-              >
-                {DIR_SYMBOLS[arrow.direction]}
-              </motion.div>
-            );
-          })}
+        {/* Upcoming sequence — horizontal strip */}
+        <div className="flex items-center gap-2">
+          {upcoming.slice(1, 7).map((arrow, i) => (
+            <motion.div key={arrow.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 0.3 + (0.7 / (i + 2)), x: 0 }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-black border"
+              style={{ borderColor: `${DIR_COLORS[arrow.direction]}40`, color: DIR_COLORS[arrow.direction], opacity: 0.3 + (0.5 / (i + 1)) }}>
+              {DIR_SYMBOLS[arrow.direction]}
+            </motion.div>
+          ))}
         </div>
 
-        {/* Current arrow — big display */}
+        {/* Current arrow — BIG */}
         <AnimatePresence mode="popLayout">
           {currentArrow && (
             <motion.div
               key={currentArrow.id}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="w-32 h-32 rounded-3xl flex items-center justify-center text-6xl font-black border-2"
+              initial={{ scale: 0.3, opacity: 0, rotate: -20 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 1.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              className="w-36 h-36 rounded-3xl flex items-center justify-center text-7xl font-black border-3"
               style={{
                 borderColor: DIR_COLORS[currentArrow.direction],
-                background: `radial-gradient(circle, ${DIR_COLORS[currentArrow.direction]}25, transparent)`,
-                boxShadow: `0 0 60px ${DIR_GLOW[currentArrow.direction]}, inset 0 0 30px ${DIR_GLOW[currentArrow.direction]}`,
                 color: DIR_COLORS[currentArrow.direction],
+                background: `radial-gradient(circle, ${DIR_COLORS[currentArrow.direction]}20, transparent)`,
+                boxShadow: DIR_GLOW[currentArrow.direction],
               }}
             >
               {DIR_SYMBOLS[currentArrow.direction]}
@@ -309,66 +293,57 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
           )}
         </AnimatePresence>
 
+        {/* Timing indicator — circular progress */}
+        {currentArrow && (() => {
+          const timeDiff = currentArrow.targetTime - elapsed;
+          const ringProgress = Math.max(0, Math.min(1, 1 - timeDiff / 1200));
+          return (
+            <svg width="200" height="200" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+              <circle cx="100" cy="100" r="90" fill="none"
+                stroke={DIR_COLORS[currentArrow.direction]} strokeWidth="4"
+                strokeDasharray={`${ringProgress * 565} 565`}
+                strokeLinecap="round" transform="rotate(-90 100 100)" opacity={0.7} />
+            </svg>
+          );
+        })()}
+
         {/* Feedback */}
         <AnimatePresence>
-          {lastFeedback && (
-            <motion.div
-              key={`fb-${Date.now()}`}
-              initial={{ opacity: 1, y: 0, scale: 1 }}
-              animate={{ opacity: 0, y: -20, scale: 1.2 }}
-              exit={{ opacity: 0 }}
-              className="absolute top-1/2 mt-24"
-            >
-              <span className={`text-lg font-black ${
-                lastFeedback.type === 'perfect' ? 'text-yellow-300' :
-                lastFeedback.type === 'good' ? 'text-green-300' :
-                lastFeedback.type === 'ok' ? 'text-blue-300' : 'text-red-400'
-              }`}>
-                {lastFeedback.type === 'perfect' ? '★ PERFECT!' : lastFeedback.type === 'good' ? '● GOOD!' : lastFeedback.type === 'ok' ? '○ OK' : '✕ MISS'}
+          {feedbackText && (
+            <motion.div key={feedbackText.key} initial={{ opacity: 1, y: 0, scale: 1 }} animate={{ opacity: 0, y: -30, scale: 1.3 }} transition={{ duration: 0.5 }}
+              className="absolute top-1/2 mt-28 pointer-events-none">
+              <span className="text-xl font-black" style={{ color: feedbackText.color, textShadow: `0 0 15px ${feedbackText.color}` }}>
+                {feedbackText.text}
               </span>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Timing ring around current arrow */}
-        {currentArrow && (() => {
-          const timeDiff = currentArrow.targetTime - elapsed;
-          const ringProgress = Math.max(0, 1 - timeDiff / 1500);
-          return (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <svg width="180" height="180" className="absolute -top-[90px] -left-[90px]">
-                <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-                <circle
-                  cx="90" cy="90" r="80" fill="none"
-                  stroke={DIR_COLORS[currentArrow.direction]}
-                  strokeWidth="3"
-                  strokeDasharray={`${ringProgress * 502} 502`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 90 90)"
-                  opacity={0.6}
-                />
-              </svg>
-            </div>
-          );
-        })()}
       </div>
 
       {/* Arrow key indicators */}
-      <div className="flex justify-center gap-3 pb-6">
+      <div className="flex justify-center gap-3 py-4 bg-black/30 border-t border-white/5">
         {DIRECTIONS.map(dir => (
-          <div
-            key={dir}
-            className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black transition-all duration-75"
+          <div key={dir} className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black transition-all duration-75"
             style={{
-              background: activeDir === dir ? `${DIR_COLORS[dir]}30` : 'rgba(255,255,255,0.03)',
-              border: `2px solid ${activeDir === dir ? DIR_COLORS[dir] : 'rgba(255,255,255,0.08)'}`,
-              boxShadow: activeDir === dir ? `0 0 20px ${DIR_GLOW[dir]}` : 'none',
+              background: activeDir === dir ? `${DIR_COLORS[dir]}30` : 'rgba(255,255,255,0.04)',
+              border: `2px solid ${activeDir === dir ? DIR_COLORS[dir] : 'rgba(255,255,255,0.1)'}`,
               color: activeDir === dir ? DIR_COLORS[dir] : 'rgba(255,255,255,0.4)',
-            }}
-          >
+              boxShadow: activeDir === dir ? DIR_GLOW[dir] : 'none',
+              transform: activeDir === dir ? 'scale(0.9)' : 'scale(1)',
+            }}>
             {DIR_SYMBOLS[dir]}
           </div>
         ))}
+      </div>
+
+      {/* Bottom stats */}
+      <div className="flex items-center justify-center gap-6 px-5 py-2 bg-black/40 text-xs font-bold">
+        <span className="text-yellow-300">★ {stats.perfectHits}</span>
+        <span className="text-green-300">● {stats.goodHits}</span>
+        <span className="text-cyan-300">○ {stats.okHits}</span>
+        <span className="text-red-400">✕ {stats.misses}</span>
+        <span className={`px-2 py-0.5 rounded ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : 'text-white/50 bg-white/5'}`}>{accuracy}%</span>
       </div>
     </motion.div>
   );

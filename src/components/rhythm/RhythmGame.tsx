@@ -17,9 +17,10 @@ import { RhythmDrop } from './RhythmDrop';
 import { BeatCatcher } from './BeatCatcher';
 import { FlowMixer } from './FlowMixer';
 import { RecordingResults } from './RecordingResults';
+import { InstructionsModal } from './InstructionsModal';
 import { RhythmSystem } from '../../systems/rhythmSystem';
 
-type RhythmPhase = 'select_beat' | 'playing' | 'results';
+type RhythmPhase = 'select_beat' | 'instructions' | 'playing' | 'results';
 export type MiniGameType = 'rhythm_drop' | 'beat_catcher' | 'flow_mixer';
 
 // Mapeo de estilo de beat a minijuego
@@ -52,10 +53,16 @@ export function RhythmGame() {
     setSelectedBeat(beat);
     const type = selectedGameType || STYLE_TO_GAME[beat.style] || 'rhythm_drop';
     setGameType(type);
+    setPhase('instructions');
+  }, []);
+
+  // Iniciar juego después de instrucciones
+  const handleStartGame = useCallback(() => {
+    if (!selectedBeat) return;
     consumeEnergy(30);
-    RhythmSystem.startRecording(beat.id);
+    RhythmSystem.startRecording(selectedBeat.id);
     setPhase('playing');
-  }, [consumeEnergy]);
+  }, [selectedBeat, consumeEnergy]);
 
   // Cuando el minijuego termina, recibe el score
   const handleGameComplete = useCallback((score: number, maxCombo: number, stats: {
@@ -139,6 +146,16 @@ export function RhythmGame() {
             onSelect={handleSelectBeat}
             onCancel={handleCancel}
             currentLevel={currentLevel}
+          />
+        )}
+
+        {phase === 'instructions' && selectedBeat && (
+          <InstructionsModal
+            key="instructions"
+            gameType={gameType}
+            beatName={selectedBeat.name}
+            onStart={handleStartGame}
+            onBack={() => setPhase('select_beat')}
           />
         )}
 

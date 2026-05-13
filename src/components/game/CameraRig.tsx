@@ -13,7 +13,7 @@ const MAX_POLAR = THREE.MathUtils.degToRad(80);
 const DEFAULT_AZIMUTH = 0; // horizontal angle
 const ROTATE_SPEED = 0.005;
 const ZOOM_SPEED = 1;
-const FOLLOW_LERP = 0.08;
+const FOLLOW_LERP = 0.12;
 const LOOK_OFFSET_Y = 2; // look above feet
 const PINCH_ZOOM_SPEED = 0.04;
 
