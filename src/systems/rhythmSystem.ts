@@ -8,7 +8,7 @@ import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
 import { getQualityFromScore, getBaseListenersFromQuality, getBeatById } from '../data/songs';
-import { getRhythmDifficulty } from '../data/levels';
+import { getRhythmDifficulty, getLevelById } from '../data/levels';
 import type { SongQuality } from '../types/game';
 
 export interface Note {
@@ -281,11 +281,11 @@ export class RhythmSystem {
     const quality = getQualityFromScore(rhythmScore);
 
     // Calcular oyentes PROPORCIONALES al rendimiento real
-    // Base: cada perfect = 8 oyentes, good = 5, ok = 2, miss = 0
+    // Base: cada perfect = 3 oyentes, good = 2, ok = 1, miss = 0
     const directListeners = 
-      this.gameState.perfectHits * 8 +
-      this.gameState.goodHits * 5 +
-      this.gameState.okHits * 2;
+      this.gameState.perfectHits * 3 +
+      this.gameState.goodHits * 2 +
+      this.gameState.okHits * 1;
 
     // Aplicar multiplicadores
     const currentLevel = useGameStore.getState().currentLevel;
@@ -342,6 +342,25 @@ export class RhythmSystem {
     // Limpiar estado
     this.gameState.isComplete = true;
     this.gameState.isPlaying = false;
+
+    // Check level progression after gaining listeners
+    setTimeout(() => {
+      const { currentLevel } = useGameStore.getState();
+      const { monthlyListeners } = usePlayerStore.getState();
+      const level = getLevelById(currentLevel);
+      if (level && monthlyListeners >= level.listenerGoal[1] && currentLevel < 6) {
+        // Level up!
+        const nextLevel = currentLevel + 1;
+        useGameStore.getState().setLevel(nextLevel);
+        const nextLevelData = getLevelById(nextLevel);
+        if (nextLevelData) {
+          nextLevelData.unlocks.forEach((feature: string) => {
+            useGameStore.getState().unlockFeature(feature);
+          });
+        }
+        useUIStore.getState().addNotification('success', `🎉 ¡NIVEL ${nextLevel} DESBLOQUEADO! — ${nextLevelData?.name || ''}`, 6000);
+      }
+    }, 500);
 
     console.log('[Rhythm] Recording finished:', {
       quality, rhythmScore, listenersGenerated, songTitle,

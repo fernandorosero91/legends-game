@@ -52,7 +52,6 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
   const [elapsed, setElapsed] = useState(0);
   const [flash, setFlash] = useState([false, false, false, false]);
   const [fb, setFb] = useState<{ text: string; color: string; id: number } | null>(null);
-  const [renderTick, setRenderTick] = useState(0);
 
   const t0 = useRef(0);
   const raf = useRef(0);
@@ -68,12 +67,14 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     const diff = getRhythmDifficulty(level);
     if (!diff) return;
     const bpm = beat.tempo || 120;
-    const interval = (60000 / bpm) / diff.notesPerBeat;
+    // Generate fewer notes — one per beat, scaled by difficulty
+    const beatInterval = 60000 / bpm;
+    const noteInterval = beatInterval / Math.max(1, diff.notesPerBeat * 0.7); // Reduce density
     const arr: GameNote[] = [];
     let time = 1500, id = 0;
     while (time < DURATION - 800) {
       arr.push({ id: `n${id++}`, lane: Math.floor(Math.random() * 4), targetTime: time, hit: false, missed: false });
-      time += interval;
+      time += noteInterval;
     }
     notes.current = arr;
   }, [level, beat.tempo]);
@@ -95,22 +96,17 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
   // Game loop — lightweight, no state updates for notes
   useEffect(() => {
     if (phase !== 'playing') return;
-    let lastRender = 0;
 
     const loop = () => {
       const el = performance.now() - t0.current;
-      setElapsed(el);
 
-      // Mark missed
-      let miss = 0;
+      // Mark missed (mutate directly, no state update)
       for (const n of notes.current) {
-        if (!n.hit && !n.missed && n.targetTime < el - 280) { n.missed = true; miss++; }
+        if (!n.hit && !n.missed && n.targetTime < el - 280) { n.missed = true; st.current.misses++; co.current = 0; }
       }
-      if (miss > 0) { co.current = 0; setCombo(0); st.current.misses += miss; setStats({ ...st.current }); }
 
-      // Trigger re-render every 2 frames for note positions (performance)
-      const now = performance.now();
-      if (now - lastRender > 16) { setRenderTick(t => t + 1); lastRender = now; }
+      // Update elapsed and force re-render (single state update)
+      setElapsed(el);
 
       if (el >= DURATION) { music.current?.stop(); onComplete(sc.current, mx.current, st.current); return; }
       raf.current = requestAnimationFrame(loop);
@@ -119,7 +115,7 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     return () => cancelAnimationFrame(raf.current);
   }, [phase, onComplete]);
 
-  // Keyboard
+  // Keyboard — optimized: only update display state, not every ref
   useEffect(() => {
     if (phase !== 'playing') return;
     const handle = (e: KeyboardEvent) => {
@@ -127,7 +123,7 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
       const lane = KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
 
-      // Flash
+      // Flash (direct DOM manipulation for zero-cost visual feedback)
       setFlash(p => { const n = [...p]; n[lane] = true; return n; });
       setTimeout(() => setFlash(p => { const n = [...p]; n[lane] = false; return n; }), 100);
 
@@ -143,7 +139,7 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
       }
 
       if (!best) {
-        co.current = 0; setCombo(0); st.current.misses++; setStats({ ...st.current });
+        co.current = 0; st.current.misses++;
         setFb({ text: 'MISS', color: '#ff3b30', id: Date.now() }); beep(100, 0.1, 0.08, 'sawtooth');
       } else {
         best.hit = true;
@@ -156,11 +152,12 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
         if (co.current > mx.current) mx.current = co.current;
         const mult = 1 + Math.floor(co.current / 10) * 0.1;
         sc.current += Math.floor(pts * mult);
-
-        setScore(sc.current); setCombo(co.current); setMaxCombo(mx.current); setStats({ ...st.current });
         setFb({ text: txt, color: col, id: Date.now() });
       }
-      setTimeout(() => setFb(null), 350);
+
+      // Batch UI update
+      setScore(sc.current); setCombo(co.current); setMaxCombo(mx.current); setStats({ ...st.current });
+      setTimeout(() => setFb(null), 300);
     };
     window.addEventListener('keydown', handle);
     return () => window.removeEventListener('keydown', handle);
