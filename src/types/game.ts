@@ -7,10 +7,12 @@ export type GamePhase =
   | 'playing' 
   | 'paused' 
   | 'dialogue' 
-  | 'minigame' 
+  | 'minigame'
+  | 'rhythm_game'
   | 'working' 
   | 'shopping' 
   | 'gameover' 
+  | 'game_over'
   | 'victory';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
