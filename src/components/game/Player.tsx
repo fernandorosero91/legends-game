@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { usePlayerStore } from '../../store/playerStore';
+import { useGameStore } from '../../store/gameStore';
 
 // Animaciones por modelo - player1 (masculino) tiene nombres confirmados
 // player2 (femenino) puede tener nombres diferentes, se usa fallback
@@ -137,6 +138,15 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
     }
 
     const setKey = (e: KeyboardEvent, val: boolean) => {
+      // Don't move player during minigames or other non-playing phases
+      const { gamePhase } = useGameStore.getState();
+      if (gamePhase !== 'playing') {
+        forward.current = false;
+        back.current = false;
+        left.current = false;
+        right.current = false;
+        return;
+      }
       switch (e.code) {
         case 'KeyW': case 'ArrowUp': forward.current = val; break;
         case 'KeyS': case 'ArrowDown': back.current = val; break;
@@ -161,6 +171,19 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
 
   useFrame((_s, delta) => {
     if (!group.current) return;
+
+    // Don't process movement during minigames
+    const { gamePhase } = useGameStore.getState();
+    if (gamePhase !== 'playing') {
+      // Reset movement keys to prevent stuck movement
+      forward.current = false;
+      back.current = false;
+      left.current = false;
+      right.current = false;
+      playAnim(ANIMS.idle);
+      group.current.position.y = floorY.current;
+      return;
+    }
 
     let mx = 0, mz = 0;
     if (forward.current) mz = -1;

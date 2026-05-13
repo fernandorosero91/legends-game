@@ -1,7 +1,7 @@
 /**
  * 🎮 LEGENDS: Beat Catcher — Osu! Style Minigame
- * Círculos aparecen en pantalla con un anillo que se contrae.
- * Haz clic cuando el anillo coincida con el círculo.
+ * Círculos brillantes aparecen con un anillo que se contrae.
+ * Haz clic cuando el anillo coincida con el círculo interior.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -19,31 +19,32 @@ interface BeatCatcherProps {
 
 interface CircleNote {
   id: string;
-  x: number; // 0-100 percentage
-  y: number; // 0-100 percentage
+  x: number;
+  y: number;
   spawnTime: number;
-  hitWindow: number; // ms to shrink
+  duration: number; // How long the ring takes to shrink
   hit: boolean;
   missed: boolean;
   accuracy?: string;
+  color: string;
 }
 
 const GAME_DURATION = 30000;
-const COLORS = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#a55eea', '#ff6b81', '#70a1ff', '#7bed9f'];
+const CIRCLE_COLORS = ['#ff2d55', '#5856d6', '#30d158', '#ff9f0a', '#bf5af2', '#ff6482', '#64d2ff', '#ffd60a'];
 
 let audioCtx: AudioContext | null = null;
-function playNote(freq: number) {
+function playNote(freq: number, type: OscillatorType = 'sine') {
   if (!audioCtx) audioCtx = new AudioContext();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.connect(gain);
   gain.connect(audioCtx.destination);
   osc.frequency.value = freq;
-  osc.type = 'triangle';
-  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+  osc.type = type;
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.2);
+  osc.stop(audioCtx.currentTime + 0.15);
 }
 
 export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherProps) {
@@ -55,40 +56,47 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [started, setStarted] = useState(false);
-  const [ripples, setRipples] = useState<{ id: string; x: number; y: number; color: string }[]>([]);
+  const [explosions, setExplosions] = useState<{ id: string; x: number; y: number; color: string }[]>([]);
 
   const startTimeRef = useRef(0);
   const animRef = useRef(0);
   const circlesRef = useRef<CircleNote[]>([]);
+  const statsRef = useRef({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
+  const scoreRef = useRef(0);
+  const comboRef = useRef(0);
+  const maxComboRef = useRef(0);
   const bgMusic = useRef<Howl | null>(null);
 
-  // Generate circles
+  // Generate circles based on BPM
   useEffect(() => {
+    const bpm = beat.tempo || 120;
     const difficulty = getRhythmDifficulty(level);
-    if (!difficulty) return;
+    const interval = (60000 / bpm) / (difficulty?.notesPerBeat || 1);
+    const shrinkDuration = 1200; // Ring shrinks over 1.2s
 
     const generated: CircleNote[] = [];
-    const baseInterval = 1200 / difficulty.noteSpeed;
-    const count = Math.floor(GAME_DURATION / baseInterval);
+    let time = 2000;
+    let id = 0;
 
-    for (let i = 0; i < count; i++) {
-      const time = 1500 + i * baseInterval;
-      if (time > GAME_DURATION - 1000) break;
-
+    while (time < GAME_DURATION - 1500) {
       generated.push({
-        id: `c-${i}`,
-        x: 15 + Math.random() * 70,
-        y: 15 + Math.random() * 60,
-        spawnTime: time - 1500, // Spawn 1.5s before hit time
-        hitWindow: 1500,
+        id: `c${id}`,
+        x: 12 + Math.random() * 76,
+        y: 10 + Math.random() * 70,
+        spawnTime: time - shrinkDuration,
+        duration: shrinkDuration,
         hit: false,
         missed: false,
+        color: CIRCLE_COLORS[id % CIRCLE_COLORS.length],
       });
+      time += interval;
+      id++;
     }
 
+    console.log(`[BeatCatcher] Generated ${generated.length} circles`);
     circlesRef.current = generated;
     setCircles(generated);
-  }, [level]);
+  }, [level, beat.tempo]);
 
   // Countdown
   useEffect(() => {
@@ -106,217 +114,184 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   // Game loop
   useEffect(() => {
     if (!started) return;
-
     const loop = () => {
       const el = performance.now() - startTimeRef.current;
       setElapsed(el);
 
-      // Check missed circles
+      // Check missed
       let missCount = 0;
-      circlesRef.current = circlesRef.current.map(c => {
-        if (!c.hit && !c.missed && el > c.spawnTime + c.hitWindow + 300) {
+      for (const c of circlesRef.current) {
+        if (!c.hit && !c.missed && el > c.spawnTime + c.duration + 300) {
+          c.missed = true;
           missCount++;
-          return { ...c, missed: true };
         }
-        return c;
-      });
-
+      }
       if (missCount > 0) {
+        comboRef.current = 0;
         setCombo(0);
-        setStats(s => ({ ...s, misses: s.misses + missCount }));
+        statsRef.current.misses += missCount;
+        setStats({ ...statsRef.current });
       }
 
       setCircles([...circlesRef.current]);
 
       if (el >= GAME_DURATION) {
         bgMusic.current?.stop();
-        onComplete(score, maxCombo, stats);
+        onComplete(scoreRef.current, maxComboRef.current, statsRef.current);
         return;
       }
-
       animRef.current = requestAnimationFrame(loop);
     };
-
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, [started]);
+  }, [started, onComplete]);
 
   // Click handler
-  const handleCircleClick = useCallback((circleId: string) => {
+  const handleClick = useCallback((circleId: string) => {
     const circle = circlesRef.current.find(c => c.id === circleId);
     if (!circle || circle.hit || circle.missed) return;
 
     const currentTime = performance.now() - startTimeRef.current;
-    const hitTime = circle.spawnTime + circle.hitWindow;
+    const hitTime = circle.spawnTime + circle.duration;
     const diff = Math.abs(currentTime - hitTime);
-
     const difficulty = getRhythmDifficulty(level);
     if (!difficulty) return;
 
-    let accuracy: 'perfect' | 'good' | 'ok' | 'miss';
     let points: number;
+    let text: string;
 
     if (diff <= difficulty.perfectWindow * 1.5) {
-      accuracy = 'perfect'; points = 100;
-      setStats(s => ({ ...s, perfectHits: s.perfectHits + 1 }));
-      playNote(880);
+      circle.accuracy = 'perfect'; points = 100;
+      statsRef.current.perfectHits++;
+      playNote(1200);
     } else if (diff <= difficulty.goodWindow * 1.5) {
-      accuracy = 'good'; points = 75;
-      setStats(s => ({ ...s, goodHits: s.goodHits + 1 }));
-      playNote(660);
+      circle.accuracy = 'good'; points = 75;
+      statsRef.current.goodHits++;
+      playNote(800);
     } else if (diff <= difficulty.okWindow * 1.5) {
-      accuracy = 'ok'; points = 50;
-      setStats(s => ({ ...s, okHits: s.okHits + 1 }));
-      playNote(440);
+      circle.accuracy = 'ok'; points = 50;
+      statsRef.current.okHits++;
+      playNote(500);
     } else {
-      accuracy = 'miss'; points = 0;
-      setStats(s => ({ ...s, misses: s.misses + 1 }));
+      statsRef.current.misses++;
+      comboRef.current = 0;
       setCombo(0);
+      setStats({ ...statsRef.current });
+      playNote(120, 'sawtooth');
       return;
     }
 
     circle.hit = true;
-    circle.accuracy = accuracy;
+    comboRef.current++;
+    if (comboRef.current > maxComboRef.current) maxComboRef.current = comboRef.current;
+    const multiplier = 1 + Math.floor(comboRef.current / 10) * 0.1;
+    scoreRef.current += Math.floor(points * multiplier);
 
-    const newCombo = combo + 1;
-    const multiplier = 1 + Math.floor(newCombo / 10) * 0.1;
-    setCombo(newCombo);
-    if (newCombo > maxCombo) setMaxCombo(newCombo);
-    setScore(s => s + Math.floor(points * multiplier));
+    setScore(scoreRef.current);
+    setCombo(comboRef.current);
+    setMaxCombo(maxComboRef.current);
+    setStats({ ...statsRef.current });
 
-    // Ripple effect
-    setRipples(prev => [...prev, { id: `r-${Date.now()}`, x: circle.x, y: circle.y, color: COLORS[Math.floor(Math.random() * COLORS.length)] }]);
-    setTimeout(() => setRipples(prev => prev.slice(1)), 600);
-  }, [combo, maxCombo, level, score, stats]);
+    // Explosion
+    setExplosions(prev => [...prev, { id: `e-${Date.now()}`, x: circle.x, y: circle.y, color: circle.color }]);
+    setTimeout(() => setExplosions(prev => prev.slice(1)), 500);
+  }, [level]);
 
-  // Cleanup
-  useEffect(() => {
-    return () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); };
-  }, []);
+  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); }, []);
 
   const progress = elapsed / GAME_DURATION;
   const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
-  const totalAttempts = totalHits + stats.misses;
-  const accuracy = totalAttempts > 0 ? Math.round((totalHits / totalAttempts) * 100) : 100;
+  const accuracy = (totalHits + stats.misses) > 0 ? Math.round((totalHits / (totalHits + stats.misses)) * 100) : 100;
 
   if (!started) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 text-center">
-        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }}
-          className="text-8xl font-black text-white" style={{ textShadow: '0 0 40px rgba(34,211,238,0.8)' }}>
+        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}
+          className="text-9xl font-black text-white" style={{ textShadow: '0 0 60px #22d3ee, 0 0 120px #0891b2' }}>
           {countdown}
         </motion.div>
-        <p className="text-cyan-300 text-lg mt-4 font-medium">{beat.name}</p>
-        <p className="text-white/40 text-sm mt-1">Haz clic en los círculos cuando el anillo se cierre</p>
+        <p className="text-cyan-200 text-xl mt-6 font-semibold">{beat.name}</p>
+        <p className="text-white/50 text-sm mt-2">Haz <span className="text-white font-bold">clic</span> en los círculos cuando el anillo se cierre</p>
       </motion.div>
     );
   }
 
+  // Visible circles
+  const activeCircles = circles.filter(c => !c.hit && !c.missed && elapsed >= c.spawnTime && elapsed < c.spawnTime + c.duration + 400);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-black/40 backdrop-blur-sm border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <span className="text-white font-bold">🎯 {beat.name}</span>
-          <span className="text-white/40 text-xs">{beat.style.toUpperCase()} • {beat.tempo} BPM</span>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col bg-gradient-to-b from-[#001a33] via-[#000d1a] to-[#000]">
+      
+      {/* Top HUD */}
+      <div className="flex items-center justify-between px-5 py-2.5 bg-black/50 backdrop-blur border-b border-cyan-500/10">
+        <div className="flex items-center gap-3">
+          <span className="text-white font-bold text-sm">🎯 {beat.name}</span>
+          <span className="text-white/30 text-xs">{beat.tempo} BPM</span>
         </div>
-        <div className="flex items-center gap-3 flex-1 max-w-xs mx-8">
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full" style={{ width: `${progress * 100}%` }} />
+        <div className="flex items-center gap-2 flex-1 max-w-[200px] mx-6">
+          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-400" style={{ width: `${progress * 100}%` }} />
           </div>
-          <span className="text-white/60 text-xs font-mono w-8">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
+          <span className="text-white/50 text-xs font-mono">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 text-xs">
-            <span className={`font-bold ${combo >= 10 ? 'text-orange-300' : 'text-white/60'}`}>{combo}x</span>
-            <span className={`px-2 py-0.5 rounded font-bold ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : 'text-white/60 bg-white/5'}`}>{accuracy}%</span>
-          </div>
-          <div className="text-white font-black text-lg tabular-nums">{score.toLocaleString()}</div>
-          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="text-red-400/80 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg border border-red-500/20">✕</button>
+          {combo > 0 && <span className={`font-black text-sm ${combo >= 20 ? 'text-orange-300' : 'text-cyan-300'}`}>{combo}x</span>}
+          <span className="text-white font-black tabular-nums">{score.toLocaleString()}</span>
+          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xs">✕</button>
         </div>
       </div>
 
       {/* Game area */}
-      <div className="flex-1 relative overflow-hidden cursor-crosshair">
-        {/* Ripple effects */}
+      <div className="flex-1 relative overflow-hidden cursor-pointer select-none">
+        {/* Explosions */}
         <AnimatePresence>
-          {ripples.map(r => (
-            <motion.div
-              key={r.id}
-              initial={{ scale: 0, opacity: 0.8 }}
-              animate={{ scale: 3, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute w-16 h-16 rounded-full pointer-events-none"
-              style={{ left: `${r.x}%`, top: `${r.y}%`, transform: 'translate(-50%, -50%)', border: `3px solid ${r.color}` }}
-            />
+          {explosions.map(e => (
+            <motion.div key={e.id} initial={{ scale: 0, opacity: 1 }} animate={{ scale: 3, opacity: 0 }} transition={{ duration: 0.4 }}
+              className="absolute w-16 h-16 rounded-full pointer-events-none" style={{ left: `${e.x}%`, top: `${e.y}%`, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${e.color}60, transparent)`, border: `2px solid ${e.color}` }} />
           ))}
         </AnimatePresence>
 
-        {/* Circles */}
-        {circles.filter(c => !c.hit && !c.missed && elapsed >= c.spawnTime && elapsed < c.spawnTime + c.hitWindow + 300).map((circle, i) => {
+        {/* Active circles */}
+        {activeCircles.map(circle => {
           const age = elapsed - circle.spawnTime;
-          const shrinkProgress = Math.min(age / circle.hitWindow, 1);
-          const ringSize = 3 - shrinkProgress * 2; // 3x to 1x
-          const opacity = shrinkProgress > 0.9 ? 1 - (shrinkProgress - 0.9) * 10 : 1;
-          const color = COLORS[i % COLORS.length];
+          const shrinkProgress = Math.min(age / circle.duration, 1);
+          const ringScale = 2.5 - shrinkProgress * 1.5; // 2.5x → 1x
+          const opacity = shrinkProgress > 0.95 ? Math.max(0, 1 - (shrinkProgress - 0.95) * 20) : Math.min(1, age / 200);
 
           return (
-            <motion.div
+            <div
               key={circle.id}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity }}
               className="absolute cursor-pointer"
-              style={{ left: `${circle.x}%`, top: `${circle.y}%`, transform: 'translate(-50%, -50%)' }}
-              onClick={() => handleCircleClick(circle.id)}
+              style={{ left: `${circle.x}%`, top: `${circle.y}%`, transform: 'translate(-50%,-50%)', opacity }}
+              onClick={() => handleClick(circle.id)}
             >
               {/* Shrinking ring */}
-              <div
-                className="absolute rounded-full border-[3px] pointer-events-none"
-                style={{
-                  width: `${ringSize * 48}px`,
-                  height: `${ringSize * 48}px`,
-                  borderColor: color,
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  opacity: 0.7,
-                }}
-              />
-              {/* Core circle */}
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-                style={{
-                  background: `radial-gradient(circle, ${color}dd, ${color}88)`,
-                  boxShadow: `0 0 20px ${color}60, inset 0 2px 4px rgba(255,255,255,0.3)`,
-                }}
-              >
-                <div className="w-3 h-3 rounded-full bg-white/80" />
+              <div className="absolute rounded-full pointer-events-none" style={{
+                width: `${ringScale * 56}px`, height: `${ringScale * 56}px`,
+                border: `3px solid ${circle.color}`,
+                left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+                opacity: 0.8,
+              }} />
+              {/* Core */}
+              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{
+                background: `radial-gradient(circle at 30% 30%, ${circle.color}ee, ${circle.color}88)`,
+                boxShadow: `0 0 20px ${circle.color}80, inset 0 2px 4px rgba(255,255,255,0.4)`,
+                border: `2px solid ${circle.color}`,
+              }}>
+                <div className="w-4 h-4 rounded-full bg-white/90" style={{ boxShadow: '0 0 8px white' }} />
               </div>
-            </motion.div>
+            </div>
           );
         })}
+      </div>
 
-        {/* Hit feedback text */}
-        <AnimatePresence>
-          {circles.filter(c => c.hit && c.accuracy).slice(-3).map(c => (
-            <motion.div
-              key={`hit-${c.id}`}
-              initial={{ opacity: 1, y: 0, scale: 1 }}
-              animate={{ opacity: 0, y: -30, scale: 1.3 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="absolute pointer-events-none text-center"
-              style={{ left: `${c.x}%`, top: `${c.y}%`, transform: 'translate(-50%, -50%)' }}
-            >
-              <span className={`text-sm font-black ${
-                c.accuracy === 'perfect' ? 'text-yellow-300' : c.accuracy === 'good' ? 'text-green-300' : 'text-blue-300'
-              }`}>
-                {c.accuracy === 'perfect' ? '★ PERFECT' : c.accuracy === 'good' ? '● GOOD' : '○ OK'}
-              </span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* Bottom stats */}
+      <div className="flex items-center justify-center gap-6 px-5 py-2.5 bg-black/40 border-t border-white/5 text-xs font-bold">
+        <span className="text-yellow-300">★ {stats.perfectHits}</span>
+        <span className="text-green-300">● {stats.goodHits}</span>
+        <span className="text-cyan-300">○ {stats.okHits}</span>
+        <span className="text-red-400">✕ {stats.misses}</span>
+        <span className={`px-2 py-0.5 rounded ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : accuracy >= 70 ? 'text-green-300 bg-green-500/10' : 'text-white/50 bg-white/5'}`}>{accuracy}%</span>
       </div>
     </motion.div>
   );

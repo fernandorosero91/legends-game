@@ -34,7 +34,11 @@ export const usePlayerMovement = () => {
 
   // Manejar input de teclado
   useEffect(() => {
-    if (gamePhase !== 'playing') return;
+    if (gamePhase !== 'playing') {
+      // Reset movement state when not playing (prevents stuck keys from minigames)
+      movementState.current = { forward: false, backward: false, left: false, right: false, run: false };
+      return;
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key.toLowerCase()) {
@@ -106,8 +110,8 @@ export const usePlayerMovement = () => {
     if (movementState.current.left) newX -= speed;
     if (movementState.current.right) newX += speed;
 
-    // Límites del apartamento (ajustar según el modelo)
-    const BOUNDS = { minX: -5, maxX: 5, minZ: -5, maxZ: 5 };
+    // Límites del apartamento (basado en room_level1 walls)
+    const BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6, maxZ: 6 };
     newX = Math.max(BOUNDS.minX, Math.min(BOUNDS.maxX, newX));
     newZ = Math.max(BOUNDS.minZ, Math.min(BOUNDS.maxZ, newZ));
 
