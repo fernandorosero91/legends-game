@@ -263,36 +263,51 @@ export class RhythmSystem {
       throw new Error('No active rhythm game');
     }
 
-    const totalNotes = this.gameState.notes.length;
+    // Usar los stats inyectados por el minijuego (perfectHits, goodHits, okHits, misses)
+    const totalNotes = this.gameState.perfectHits + this.gameState.goodHits + this.gameState.okHits + this.gameState.misses;
     const hitNotes = this.gameState.perfectHits + this.gameState.goodHits + this.gameState.okHits;
 
-    // Calcular score final (0-100)
-    const rhythmScore = totalNotes > 0 ? Math.floor((hitNotes / totalNotes) * 100) : 0;
+    // Calcular score ponderado (perfect vale más que good, good más que ok)
+    // Perfect = 100%, Good = 75%, OK = 50%, Miss = 0%
+    const weightedScore = totalNotes > 0
+      ? Math.floor(
+          ((this.gameState.perfectHits * 100 + this.gameState.goodHits * 75 + this.gameState.okHits * 50) / (totalNotes * 100)) * 100
+        )
+      : 0;
+
+    const rhythmScore = weightedScore;
 
     // Determinar calidad
     const quality = getQualityFromScore(rhythmScore);
 
-    // Calcular oyentes base
-    const baseListeners = getBaseListenersFromQuality(quality);
+    // Calcular oyentes PROPORCIONALES al rendimiento real
+    // Base: cada perfect = 8 oyentes, good = 5, ok = 2, miss = 0
+    const directListeners = 
+      this.gameState.perfectHits * 8 +
+      this.gameState.goodHits * 5 +
+      this.gameState.okHits * 2;
 
     // Aplicar multiplicadores
     const currentLevel = useGameStore.getState().currentLevel;
     const { reputation, inventory } = usePlayerStore.getState();
 
-    // Multiplicador de nivel (de levels.ts)
+    // Multiplicador de nivel
     const levelMultipliers = [1.0, 1.2, 1.5, 1.8, 2.2, 2.5];
     const levelMultiplier = levelMultipliers[currentLevel - 1] || 1.0;
 
     // Multiplicador de reputación (1 + reputación/100)
     const reputationMultiplier = 1 + reputation / 100;
 
-    // Bonus de equipamiento (calculado desde el inventario)
+    // Bonus de equipamiento
     const equipmentBonus = this.calculateEquipmentBonus(inventory);
 
+    // Bonus por combo máximo (cada 10 combo = +5% oyentes)
+    const comboBonus = 1 + Math.floor(this.gameState.maxCombo / 10) * 0.05;
+
     // Calcular oyentes finales
-    const listenersGenerated = Math.floor(
-      baseListeners * levelMultiplier * reputationMultiplier * (1 + equipmentBonus / 100)
-    );
+    const listenersGenerated = Math.max(1, Math.floor(
+      directListeners * levelMultiplier * reputationMultiplier * comboBonus * (1 + equipmentBonus / 100)
+    ));
 
     // Crear la canción
     const { currentDay } = useGameStore.getState();
@@ -321,7 +336,7 @@ export class RhythmSystem {
     // Notificación
     useUIStore.getState().addNotification(
       'success',
-      `🎵 Canción grabada: "${songTitle}" (${quality}) - +${listenersGenerated} oyentes`
+      `🎵 "${songTitle}" (${quality}) — +${listenersGenerated} oyentes`
     );
 
     // Limpiar estado
@@ -329,10 +344,8 @@ export class RhythmSystem {
     this.gameState.isPlaying = false;
 
     console.log('[Rhythm] Recording finished:', {
-      quality,
-      rhythmScore,
-      listenersGenerated,
-      songTitle,
+      quality, rhythmScore, listenersGenerated, songTitle,
+      stats: { perfect: this.gameState.perfectHits, good: this.gameState.goodHits, ok: this.gameState.okHits, miss: this.gameState.misses },
     });
 
     return { quality, rhythmScore, listenersGenerated, songId };

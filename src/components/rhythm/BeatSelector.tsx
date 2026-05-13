@@ -23,10 +23,10 @@ const STYLE_ICONS: Record<string, string> = {
   boom_bap: '🥁',
 };
 
-const GAME_MODES: { id: MiniGameType; name: string; icon: string; description: string; color: string }[] = [
-  { id: 'rhythm_drop', name: 'Rhythm Drop', icon: '🎹', description: 'Notas caen por 4 carriles — presiona A, S, D, F', color: 'from-red-500 to-purple-600' },
-  { id: 'beat_catcher', name: 'Beat Catcher', icon: '🎯', description: 'Círculos aparecen en pantalla — haz clic a tiempo', color: 'from-cyan-500 to-blue-600' },
-  { id: 'flow_mixer', name: 'Flow Mixer', icon: '🎛️', description: 'Secuencias de flechas — sigue el ritmo con ←↑↓→', color: 'from-green-500 to-emerald-600' },
+const GAME_MODES: { id: MiniGameType; name: string; icon: string; description: string; color: string; instructions: string }[] = [
+  { id: 'rhythm_drop', name: 'Rhythm Drop', icon: '🎹', description: 'Notas caen por 4 carriles — presiona A, S, D, F', color: 'from-red-500 to-purple-600', instructions: 'Las notas caen desde arriba. Presiona la tecla correcta (A, S, D, F) cuando la nota llegue a la zona inferior. ¡Más precisión = más oyentes!' },
+  { id: 'beat_catcher', name: 'Beat Catcher', icon: '🎯', description: 'Círculos aparecen en pantalla — haz clic a tiempo', color: 'from-cyan-500 to-blue-600', instructions: 'Círculos aparecen con un anillo que se contrae. Haz clic cuando el anillo coincida con el círculo. ¡Timing perfecto = máximos oyentes!' },
+  { id: 'flow_mixer', name: 'Flow Mixer', icon: '🎛️', description: 'Secuencias de flechas — sigue el ritmo con ←↑↓→', color: 'from-green-500 to-emerald-600', instructions: 'Flechas aparecen en secuencia. Presiona la flecha correcta (←↑↓→) al ritmo. ¡Combos largos multiplican tus oyentes!' },
 ];
 
 const STYLE_TO_DEFAULT_GAME: Record<string, MiniGameType> = {
@@ -226,6 +226,28 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
                 <p className="text-center text-white/30 text-xs mt-4">
                   💡 Recomendado para {selectedBeat.style}: <span className="text-purple-400">{GAME_MODES.find(m => m.id === STYLE_TO_DEFAULT_GAME[selectedBeat.style])?.name}</span>
                 </p>
+              )}
+
+              {/* Instructions for selected mode */}
+              {selectedMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-white/5"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg">📖</span>
+                    <div>
+                      <h4 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Cómo jugar</h4>
+                      <p className="text-white/50 text-xs leading-relaxed">
+                        {GAME_MODES.find(m => m.id === selectedMode)?.instructions}
+                      </p>
+                      <p className="text-purple-400/70 text-[10px] mt-2 font-medium">
+                        🎧 Cada acierto = oyentes • Perfect = 8 • Good = 5 • OK = 2 • Miss = 0
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </motion.div>
           )}

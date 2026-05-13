@@ -47,6 +47,9 @@ export const ApartmentScene = () => {
       addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
+    // Set player to sitting position near the desk chair
+    usePlayerStore.getState().setPosition({ x: 1.5, y: 0, z: -3.5 });
+    usePlayerStore.getState().setPlayerSitting(true);
     setGamePhase('rhythm_game');
   };
 
