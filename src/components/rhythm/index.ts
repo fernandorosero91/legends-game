@@ -1,12 +1,15 @@
 /**
  * 🎮 LEGENDS: Rhythm Components Export
- * Componentes del minijuego rítmico de grabación
+ * Sistema de minijuegos de grabación con 3 modos distintos
  */
 
 export { RhythmGame } from './RhythmGame';
-export { BeatLane } from './BeatLane';
-export { Note } from './Note';
+export { BeatSelector } from './BeatSelector';
+export { RhythmDrop } from './RhythmDrop';
+export { BeatCatcher } from './BeatCatcher';
+export { FlowMixer } from './FlowMixer';
+export { RecordingResults } from './RecordingResults';
 export { ComboMeter } from './ComboMeter';
 export { ScoreBoard } from './ScoreBoard';
-export { BeatSelector } from './BeatSelector';
-export { RecordingResults } from './RecordingResults';
+export { BeatLane } from './BeatLane';
+export { Note } from './Note';
