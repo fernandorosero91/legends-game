@@ -49,6 +49,12 @@ export class LevelSystem {
     // Actualizar nivel
     useGameStore.getState().setLevel(nextLevel);
 
+    // Actualizar el nivel máximo desbloqueado para el menú de selección
+    const { highestUnlockedLevel } = useGameStore.getState();
+    if (nextLevel > highestUnlockedLevel) {
+      useGameStore.setState({ highestUnlockedLevel: nextLevel });
+    }
+
     // Desbloquear features del nuevo nivel
     level.unlocks.forEach((feature) => {
       useGameStore.getState().unlockFeature(feature);
@@ -186,19 +192,36 @@ export class LevelSystem {
   }
 
   /**
-   * Sincroniza el nivel con el día actual
+   * Sincroniza el nivel con el día actual.
+   * El nivel solo avanza si el jugador está en un día del siguiente nivel
+   * Y ya completó la meta de oyentes del nivel anterior.
+   * Esto previene que un jugador esté en nivel 3 sin haber alcanzado 1000 oyentes.
    */
   static syncLevelWithDay(): void {
     const { currentDay, currentLevel } = useGameStore.getState();
+    const { monthlyListeners } = usePlayerStore.getState();
     const expectedLevel = this.calculateLevelByDay(currentDay);
 
-    if (expectedLevel !== currentLevel) {
-      console.log('[Level] Syncing level with day:', {
-        day: currentDay,
-        currentLevel,
-        expectedLevel,
-      });
-      useGameStore.getState().setLevel(expectedLevel);
+    if (expectedLevel > currentLevel) {
+      // Solo avanzar si completó la meta del nivel actual
+      const currentLevelData = getLevelById(currentLevel);
+      if (currentLevelData) {
+        const [, targetListeners] = currentLevelData.listenerGoal;
+        if (monthlyListeners >= targetListeners) {
+          console.log('[Level] Advancing level (goal met):', {
+            day: currentDay,
+            currentLevel,
+            expectedLevel,
+            listeners: monthlyListeners,
+            target: targetListeners,
+          });
+          useGameStore.getState().setLevel(expectedLevel);
+        } else {
+          console.log('[Level] Day suggests level', expectedLevel, 'but listeners goal not met:', monthlyListeners, '/', targetListeners);
+        }
+      }
+    } else if (expectedLevel < currentLevel) {
+      // No retroceder niveles
     }
   }
 

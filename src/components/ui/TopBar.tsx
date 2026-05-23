@@ -5,6 +5,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useUIStore } from '@/store/uiStore';
 
 interface TopBarProps {
   currentDay: number;
@@ -88,12 +89,15 @@ export function TopBar({
     >
       <div className="px-4 py-2">
         <div className="flex items-center justify-between gap-4">
-          {/* Izquierda: Información del Día - más compacta */}
-          <motion.div
-            className="flex items-center gap-3 bg-gradient-to-r from-gray-900/60 to-gray-800/60 rounded-lg px-3 py-1.5 border border-gray-600/30"
+          {/* Izquierda: Información del Día - clickeable para ir a niveles */}
+          <motion.button
+            className="flex items-center gap-3 bg-gradient-to-r from-gray-900/60 to-gray-800/60 rounded-lg px-3 py-1.5 border border-gray-600/30 cursor-pointer hover:border-cyan-400/30 hover:from-gray-900/80 hover:to-gray-800/80 transition-colors"
             onMouseEnter={() => setHoveredSection('day')}
             onMouseLeave={() => setHoveredSection(null)}
             whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => useUIStore.getState().setScreen('level_select')}
+            title="Seleccionar nivel"
           >
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-purple-500/20 rounded flex items-center justify-center">
@@ -105,8 +109,8 @@ export function TopBar({
                 </div>
                 <div className="text-xs text-white font-medium">
                   {hoveredSection === 'day' ? (
-                    <span className="text-gray-300">
-                      {daysRemaining} días • Meta: {levelInfo.goal}
+                    <span className="text-cyan-300">
+                      Clic para cambiar nivel
                     </span>
                   ) : (
                     <span>
@@ -116,7 +120,7 @@ export function TopBar({
                 </div>
               </div>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Centro: Información del Turno - más compacta */}
           <motion.div

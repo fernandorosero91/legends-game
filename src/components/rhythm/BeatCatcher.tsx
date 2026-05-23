@@ -205,13 +205,18 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
 
   if (!started) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 text-center">
-        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}
-          className="text-9xl font-black text-white" style={{ textShadow: '0 0 60px #22d3ee, 0 0 120px #0891b2' }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, type: 'spring' }}
+          className="text-[120px] font-black text-white leading-none" style={{ textShadow: '0 0 80px rgba(34,211,238,0.8), 0 0 40px rgba(34,211,238,0.4)' }}>
           {countdown}
         </motion.div>
-        <p className="text-cyan-200 text-xl mt-6 font-semibold">{beat.name}</p>
-        <p className="text-white/50 text-sm mt-2">Haz <span className="text-white font-bold">clic</span> en los círculos cuando el anillo se cierre</p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 text-center">
+          <p className="text-2xl font-bold text-white">{beat.name}</p>
+          <p className="text-cyan-300/60 mt-2 text-sm">{beat.tempo} BPM • Nivel {level}</p>
+          <div className="mt-5 px-5 py-3 rounded-xl bg-cyan-400/10 border border-cyan-400/20">
+            <p className="text-cyan-200 text-sm font-medium">🎯 Haz <span className="text-white font-bold">clic</span> en los círculos cuando el anillo se cierre</p>
+          </div>
+        </motion.div>
       </motion.div>
     );
   }
@@ -220,29 +225,42 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   const activeCircles = circles.filter(c => !c.hit && !c.missed && elapsed >= c.spawnTime && elapsed < c.spawnTime + c.duration + 400);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col bg-gradient-to-b from-[#001a33] via-[#000d1a] to-[#000]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col">
       
       {/* Top HUD */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-black/50 backdrop-blur border-b border-cyan-500/10">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-black/70 border-b border-white/[0.08] shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-white font-bold text-sm">🎯 {beat.name}</span>
-          <span className="text-white/30 text-xs">{beat.tempo} BPM</span>
-        </div>
-        <div className="flex items-center gap-2 flex-1 max-w-[200px] mx-6">
-          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-400" style={{ width: `${progress * 100}%` }} />
+          <div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+            <span className="text-sm">🎯</span>
           </div>
-          <span className="text-white/50 text-xs font-mono">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
+          <div>
+            <h3 className="text-white font-bold text-sm leading-none">{beat.name}</h3>
+            <p className="text-cyan-300/50 text-[10px] mt-0.5">{beat.tempo} BPM • Nivel {level}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-1 max-w-[220px] mx-6">
+          <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-100" style={{ width: `${progress * 100}%` }} />
+          </div>
+          <span className="text-white font-bold text-sm tabular-nums min-w-[30px] text-right">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
         </div>
         <div className="flex items-center gap-4">
-          {combo > 0 && <span className={`font-black text-sm ${combo >= 20 ? 'text-orange-300' : 'text-cyan-300'}`}>{combo}x</span>}
-          <span className="text-white font-black tabular-nums">{score.toLocaleString()}</span>
-          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xs">✕</button>
+          {combo > 4 && (
+            <div className="text-center">
+              <div className={`text-lg font-black leading-none ${combo >= 20 ? 'text-orange-300' : 'text-cyan-300'}`}>{combo}x</div>
+              <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Combo</div>
+            </div>
+          )}
+          <div className="text-center">
+            <div className="text-lg font-black text-white leading-none tabular-nums">{score.toLocaleString()}</div>
+            <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Score</div>
+          </div>
+          <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xs hover:bg-red-500/20 transition">✕</button>
         </div>
       </div>
 
       {/* Game area */}
-      <div className="flex-1 relative overflow-hidden cursor-pointer select-none">
+      <div className="flex-1 relative overflow-hidden cursor-pointer select-none bg-black/40">
         {/* Explosions */}
         <AnimatePresence>
           {explosions.map(e => (
@@ -286,12 +304,29 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
       </div>
 
       {/* Bottom stats */}
-      <div className="flex items-center justify-center gap-6 px-5 py-2.5 bg-black/40 border-t border-white/5 text-xs font-bold">
-        <span className="text-yellow-300">★ {stats.perfectHits}</span>
-        <span className="text-green-300">● {stats.goodHits}</span>
-        <span className="text-cyan-300">○ {stats.okHits}</span>
-        <span className="text-red-400">✕ {stats.misses}</span>
-        <span className={`px-2 py-0.5 rounded ${accuracy >= 90 ? 'text-yellow-300 bg-yellow-500/10' : accuracy >= 70 ? 'text-green-300 bg-green-500/10' : 'text-white/50 bg-white/5'}`}>{accuracy}%</span>
+      <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/70 border-t border-white/[0.08] text-xs shrink-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-yellow-400">★</span>
+          <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>
+          <span className="text-white/25">Perfect</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-emerald-400">●</span>
+          <span className="text-emerald-300 font-bold">{stats.goodHits}</span>
+          <span className="text-white/25">Great</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-cyan-400">○</span>
+          <span className="text-cyan-300 font-bold">{stats.okHits}</span>
+          <span className="text-white/25">OK</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-red-400">✕</span>
+          <span className="text-red-300 font-bold">{stats.misses}</span>
+          <span className="text-white/25">Miss</span>
+        </div>
+        <div className="h-3 w-px bg-white/10" />
+        <span className={`font-bold ${accuracy >= 90 ? 'text-yellow-300' : accuracy >= 70 ? 'text-emerald-300' : 'text-white/50'}`}>{accuracy}%</span>
       </div>
     </motion.div>
   );

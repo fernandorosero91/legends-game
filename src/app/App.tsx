@@ -19,8 +19,10 @@ import { MapTutorial } from '../components/ui/MapTutorial';
 import { AuthTestScreen } from '../components/ui/AuthTestScreen';
 import { AuthScreen } from '../components/ui/AuthScreen';
 import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
+import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { CartShopModal } from '../components/ui/CartShopModal';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -40,6 +42,7 @@ const LeaderboardScreen = lazy(() => import('../components/ui/LeaderboardScreen'
 const SaveLoadScreen = lazy(() => import('../components/ui/SaveLoadScreen'));
 const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
 const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
+const LevelSelectScreen = lazy(() => import('../components/ui/LevelSelectScreen'));
 
 function GameScene() {
   // Estados del juego
@@ -50,6 +53,7 @@ function GameScene() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
 
   // Hook de InsForge para guardado
   const { user, saveGame } = useInsForge();
@@ -64,6 +68,9 @@ function GameScene() {
         playerState.resetPlayer();
       }
       useGameStore.getState().startNewGame();
+    } else if (gamePhase !== 'playing') {
+      // Force back to playing if stuck in an invalid state
+      useGameStore.getState().setGamePhase('playing');
     }
   }, []);
 
@@ -103,11 +110,18 @@ function GameScene() {
   const handleCloseTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('legends-map-tutorial', 'seen');
+    // Tras el tutorial, mostrar el menú de selección de niveles
+    useUIStore.getState().setScreen('level_select');
   };
 
   const handleLocationSelect = (locationId: string) => {
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
+    
+    // Si selecciona la tienda, abrir el modal de compras
+    if (locationId === 'shop') {
+      setShopOpen(true);
+    }
     
     // Mostrar notificación
     const locationNames: Record<string, string> = {
@@ -172,10 +186,19 @@ function GameScene() {
         showReputation={currentLevel >= 3}
       />
 
+      {/* Selector de habitación (desbloqueado en Nivel 3) */}
+      <RoomSelector />
+
       {/* Mini-mapa */}
       <MiniMap
         currentLocation={currentScene}
         onOpenFullMap={() => setShowLocationMap(true)}
+      />
+
+      {/* Tienda — CartShopModal */}
+      <CartShopModal 
+        forceOpen={shopOpen} 
+        onClose={() => setShopOpen(false)} 
       />
 
       {/* Botón flotante para abrir mapa */}
@@ -357,6 +380,13 @@ function App() {
 
       {/* Pantalla de selección de personaje */}
       {currentScreen === 'character_select' && <CharacterSelectScreen />}
+
+      {/* Pantalla de selección de nivel */}
+      {currentScreen === 'level_select' && (
+        <Suspense fallback={<LoadingScreen />}>
+          <LevelSelectScreen />
+        </Suspense>
+      )}
       
       {/* Pantalla del juego */}
       {currentScreen === 'game' && <GameScene />}

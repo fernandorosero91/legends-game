@@ -1,7 +1,6 @@
 /**
  * 🎮 LEGENDS: Instructions Modal
- * Pantalla grande y elegante con instrucciones del minijuego seleccionado.
- * Se muestra antes de empezar a jugar.
+ * Paleta: purple-navy + cyan acentos
  */
 
 import { motion } from 'framer-motion';
@@ -18,7 +17,6 @@ const GAME_INFO: Record<MiniGameType, {
   title: string;
   icon: string;
   color: string;
-  glow: string;
   controls: string;
   steps: string[];
   scoring: { label: string; value: string; color: string }[];
@@ -27,20 +25,19 @@ const GAME_INFO: Record<MiniGameType, {
   rhythm_drop: {
     title: 'RHYTHM DROP',
     icon: '🎹',
-    color: '#a855f7',
-    glow: '0 0 80px rgba(168,85,247,0.3)',
+    color: '#ff4d6a',
     controls: 'A  S  D  F',
     steps: [
       'Las notas caen por 4 carriles de colores',
-      'Presiona la tecla correspondiente cuando la nota llegue a la zona inferior',
-      'Cuanto más preciso seas, más oyentes ganas',
-      'Mantén combos largos para multiplicar tu puntuación',
+      'Presiona la tecla cuando la nota llegue abajo',
+      'Cuanto más preciso, más oyentes ganas',
+      'Combos largos multiplican tu puntuación',
     ],
     scoring: [
-      { label: 'PERFECT', value: '+8 oyentes', color: '#ffd60a' },
-      { label: 'GREAT', value: '+5 oyentes', color: '#30d158' },
-      { label: 'OK', value: '+2 oyentes', color: '#64d2ff' },
-      { label: 'MISS', value: '+0 oyentes', color: '#ff3b30' },
+      { label: 'PERFECT', value: '+8', color: '#fbbf24' },
+      { label: 'GREAT', value: '+5', color: '#34d399' },
+      { label: 'OK', value: '+2', color: '#22d3ee' },
+      { label: 'MISS', value: '0', color: '#ff4d6a' },
     ],
     tip: '¡Los combos de 10+ multiplican tus oyentes! Mantén la racha.',
   },
@@ -48,39 +45,37 @@ const GAME_INFO: Record<MiniGameType, {
     title: 'BEAT CATCHER',
     icon: '🎯',
     color: '#22d3ee',
-    glow: '0 0 80px rgba(34,211,238,0.3)',
     controls: 'CLICK',
     steps: [
-      'Círculos de colores aparecen en la pantalla',
-      'Cada círculo tiene un anillo que se contrae',
-      'Haz clic cuando el anillo coincida con el círculo',
+      'Círculos aparecen en la pantalla',
+      'Cada uno tiene un anillo que se contrae',
+      'Haz clic cuando el anillo coincida',
       'Timing perfecto = máximos oyentes',
     ],
     scoring: [
-      { label: 'PERFECT', value: '+8 oyentes', color: '#ffd60a' },
-      { label: 'GREAT', value: '+5 oyentes', color: '#30d158' },
-      { label: 'OK', value: '+2 oyentes', color: '#64d2ff' },
-      { label: 'MISS', value: '+0 oyentes', color: '#ff3b30' },
+      { label: 'PERFECT', value: '+8', color: '#fbbf24' },
+      { label: 'GREAT', value: '+5', color: '#34d399' },
+      { label: 'OK', value: '+2', color: '#22d3ee' },
+      { label: 'MISS', value: '0', color: '#ff4d6a' },
     ],
-    tip: 'No hagas clic demasiado pronto ni demasiado tarde. ¡Espera al momento justo!',
+    tip: 'No hagas clic demasiado pronto ni tarde. ¡Espera al momento justo!',
   },
   flow_mixer: {
     title: 'FLOW MIXER',
     icon: '🎛️',
-    color: '#30d158',
-    glow: '0 0 80px rgba(48,209,88,0.3)',
+    color: '#fbbf24',
     controls: '← ↑ ↓ →',
     steps: [
-      'Flechas aparecen en secuencia en el centro',
+      'Flechas aparecen en secuencia',
       'Presiona la flecha correcta cuando el anillo se llene',
-      'Usa las flechas del teclado o A/W/S/D',
-      'Sigue el ritmo para mantener combos altos',
+      'Usa flechas del teclado o A/W/S/D',
+      'Sigue el ritmo para mantener combos',
     ],
     scoring: [
-      { label: 'PERFECT', value: '+8 oyentes', color: '#ffd60a' },
-      { label: 'GREAT', value: '+5 oyentes', color: '#30d158' },
-      { label: 'OK', value: '+2 oyentes', color: '#64d2ff' },
-      { label: 'MISS', value: '+0 oyentes', color: '#ff3b30' },
+      { label: 'PERFECT', value: '+8', color: '#fbbf24' },
+      { label: 'GREAT', value: '+5', color: '#34d399' },
+      { label: 'OK', value: '+2', color: '#22d3ee' },
+      { label: 'MISS', value: '0', color: '#ff4d6a' },
     ],
     tip: 'Mira la secuencia completa para anticipar la siguiente flecha.',
   },
@@ -91,51 +86,62 @@ export function InstructionsModal({ gameType, beatName, onStart, onBack }: Instr
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="relative z-10 w-full max-w-lg mx-auto px-4"
     >
-      <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(to bottom, rgba(15,5,30,0.98), rgba(5,0,15,0.99))', boxShadow: info.glow, border: `1px solid ${info.color}30` }}>
+      <div className="bg-[#1a1a28]/92 rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
         
-        {/* Header con gradiente */}
-        <div className="relative px-8 pt-8 pb-6 text-center" style={{ background: `linear-gradient(to bottom, ${info.color}15, transparent)` }}>
+        {/* Header */}
+        <div className="relative px-7 pt-7 pb-5 text-center border-b border-white/[0.06]">
+          <div 
+            className="absolute inset-0 opacity-[0.08] pointer-events-none"
+            style={{ background: `radial-gradient(circle at 50% 30%, ${info.color}, transparent 70%)` }}
+          />
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="text-6xl mb-3"
+            transition={{ delay: 0.15, type: 'spring' }}
+            className="text-5xl mb-2"
           >
             {info.icon}
           </motion.div>
-          <h2 className="text-3xl font-black tracking-wider" style={{ color: info.color, textShadow: `0 0 30px ${info.color}60` }}>
+          <h2 className="text-2xl font-black tracking-wider" style={{ color: info.color }}>
             {info.title}
           </h2>
-          <p className="text-white/50 text-sm mt-2">Beat: <span className="text-white/80 font-medium">{beatName}</span></p>
+          <p className="text-cyan-100/50 text-xs mt-1.5">
+            Beat: <span className="text-white font-medium">{beatName}</span>
+          </p>
         </div>
 
         {/* Controles */}
-        <div className="px-8 pb-4">
-          <div className="flex items-center justify-center gap-3 py-3 rounded-xl" style={{ background: `${info.color}10`, border: `1px solid ${info.color}20` }}>
-            <span className="text-white/50 text-xs uppercase tracking-wider">Controles:</span>
-            <span className="text-xl font-black tracking-[0.3em]" style={{ color: info.color }}>{info.controls}</span>
+        <div className="px-7 pt-5 pb-3">
+          <div 
+            className="flex items-center justify-center gap-3 py-3 rounded-xl bg-cyan-400/5 border border-cyan-400/15"
+          >
+            <span className="text-cyan-200/60 text-xs uppercase tracking-wider font-medium">Controles:</span>
+            <span className="text-xl font-black tracking-[0.3em] text-white">{info.controls}</span>
           </div>
         </div>
 
         {/* Pasos */}
-        <div className="px-8 pb-4">
-          <h3 className="text-white/40 text-xs uppercase tracking-widest mb-3 font-bold">Cómo jugar</h3>
+        <div className="px-7 pb-4">
+          <h3 className="text-cyan-300/60 text-[10px] uppercase tracking-[0.2em] mb-3 font-bold">Cómo jugar</h3>
           <div className="space-y-2.5">
             {info.steps.map((step, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + i * 0.1 }}
+                transition={{ delay: 0.25 + i * 0.08 }}
                 className="flex items-start gap-3"
               >
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5" style={{ background: `${info.color}20`, color: info.color, border: `1px solid ${info.color}40` }}>
+                <div 
+                  className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 border"
+                  style={{ backgroundColor: `${info.color}15`, color: info.color, borderColor: `${info.color}30` }}
+                >
                   {i + 1}
                 </div>
                 <p className="text-white/80 text-sm leading-relaxed">{step}</p>
@@ -145,33 +151,32 @@ export function InstructionsModal({ gameType, beatName, onStart, onBack }: Instr
         </div>
 
         {/* Puntuación */}
-        <div className="px-8 pb-4">
-          <h3 className="text-white/40 text-xs uppercase tracking-widest mb-3 font-bold">Puntuación</h3>
+        <div className="px-7 pb-4">
+          <h3 className="text-cyan-300/60 text-[10px] uppercase tracking-[0.2em] mb-2.5 font-bold">Oyentes por acierto</h3>
           <div className="grid grid-cols-4 gap-2">
             {info.scoring.map((s) => (
-              <div key={s.label} className="text-center py-2 rounded-lg" style={{ background: `${s.color}10`, border: `1px solid ${s.color}20` }}>
+              <div key={s.label} className="text-center py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                 <div className="text-[10px] font-black" style={{ color: s.color }}>{s.label}</div>
-                <div className="text-white/70 text-[10px] mt-0.5">{s.value}</div>
+                <div className="text-white/70 text-[11px] mt-0.5 font-semibold">{s.value}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Tip */}
-        <div className="px-8 pb-6">
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10">
-            <span className="text-lg">💡</span>
-            <p className="text-yellow-200/80 text-xs leading-relaxed">{info.tip}</p>
+        <div className="px-7 pb-5">
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-400/5 border border-amber-400/10">
+            <span className="text-sm mt-0.5">💡</span>
+            <p className="text-amber-200/70 text-xs leading-relaxed">{info.tip}</p>
           </div>
         </div>
 
         {/* Botones */}
-        <div className="flex items-center gap-3 px-8 pb-8">
-          <button onClick={onBack} className="flex-1 py-3.5 rounded-xl text-white/60 font-medium border border-white/10 hover:bg-white/5 transition text-sm">
+        <div className="flex items-center gap-3 px-7 py-5 border-t border-white/[0.08] bg-[#222230]/80">
+          <button onClick={onBack} className="flex-1 py-3 rounded-xl text-cyan-200/50 font-medium border border-cyan-400/10 hover:bg-cyan-400/5 hover:text-cyan-200 transition text-sm">
             ← Volver
           </button>
-          <button onClick={onStart} className="flex-[2] py-3.5 rounded-xl font-bold text-white text-base transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg, ${info.color}, ${info.color}cc)`, boxShadow: `0 4px 20px ${info.color}40` }}>
+          <button onClick={onStart} className="flex-[2] py-3 rounded-xl font-bold text-[#0a0318] text-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-cyan-400 to-cyan-500 shadow-[0_4px_15px_rgba(34,211,238,0.35)] hover:from-cyan-300 hover:to-cyan-400">
             🎤 ¡GRABAR!
           </button>
         </div>

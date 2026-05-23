@@ -1,8 +1,4 @@
-/**
- * 🎮 LEGENDS: Game Store
- * Estado global del juego (día, nivel, fase, pausa)
- * Autor: Felipe (Systems Developer)
- */
+
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
@@ -10,6 +6,7 @@ import { devtools, persist } from 'zustand/middleware';
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'dialogue' | 'rhythm_game' | 'working' | 'shopping' | 'game_over' | 'victory';
 export type GameScene = 'apartment' | 'cafe' | 'store' | 'shop' | 'restaurant' | 'delivery' | 'bar' | 'academy' | 'city';
+export type ApartmentRoom = 'room_level1' | 'studio_level_3' | 'studio_music';
 
 interface GameState {
   // Estado del juego
@@ -18,6 +15,7 @@ interface GameState {
   timeOfDay: TimeOfDay;
   gamePhase: GamePhase;
   currentScene: GameScene;
+  currentRoom: ApartmentRoom;
   isPaused: boolean;
   isLoading: boolean;
 
@@ -29,13 +27,20 @@ interface GameState {
   // Flags de desbloqueo
   unlockedFeatures: string[];
 
+  // Progreso de niveles (menú de selección)
+  highestUnlockedLevel: number;        // Nivel máximo desbloqueado
+  levelStars: Record<number, number>;  // Estrellas obtenidas por nivel (0-3)
+
   // Acciones
   startNewGame: () => void;
+  startLevel: (level: number) => void;
+  setLevelStars: (level: number, stars: number) => void;
   advanceTime: () => void;
   advanceDay: () => void;
   setLevel: (level: number) => void;
   setGamePhase: (phase: GamePhase) => void;
   setCurrentScene: (scene: GameScene) => void;
+  setCurrentRoom: (room: ApartmentRoom) => void;
   togglePause: () => void;
   unlockFeature: (feature: string) => void;
   isFeatureUnlocked: (feature: string) => boolean;
@@ -49,12 +54,15 @@ const INITIAL_STATE = {
   timeOfDay: 'morning' as TimeOfDay,
   gamePhase: 'menu' as GamePhase,
   currentScene: 'apartment' as GameScene,
+  currentRoom: 'room_level1' as ApartmentRoom,
   isPaused: false,
   isLoading: false,
   totalDaysPlayed: 0,
   gameStartTime: null,
   lastSaveTime: null,
   unlockedFeatures: ['rhythm_game', 'basic_recording'],
+  highestUnlockedLevel: 1,
+  levelStars: {} as Record<number, number>,
 };
 
 export const useGameStore = create<GameState>()(
@@ -64,11 +72,47 @@ export const useGameStore = create<GameState>()(
         ...INITIAL_STATE,
 
         startNewGame: () => {
+          const { currentRoom } = get();
           set({
             ...INITIAL_STATE,
             gamePhase: 'playing',
             gameStartTime: Date.now(),
+            currentRoom, // preserve room selection
             unlockedFeatures: ['rhythm_game', 'basic_recording'],
+            // Conservar el progreso del menú de niveles
+            highestUnlockedLevel,
+            levelStars,
+          });
+        },
+
+        // Iniciar un nivel específico desde el menú de selección
+        startLevel: (level: number) => {
+          // Día inicial de cada nivel según la narrativa (levels.ts)
+          const levelStartDay: Record<number, number> = {
+            1: 1, 2: 6, 3: 13, 4: 21, 5: 31, 6: 41,
+          };
+          const { highestUnlockedLevel, levelStars, currentLevel } = get();
+          // Nunca bajar el nivel desbloqueado más alto
+          const newHighest = Math.max(highestUnlockedLevel, currentLevel, level);
+          set({
+            ...INITIAL_STATE,
+            currentLevel: level,
+            currentDay: levelStartDay[level] ?? 1,
+            gamePhase: 'playing',
+            gameStartTime: Date.now(),
+            unlockedFeatures: ['rhythm_game', 'basic_recording'],
+            highestUnlockedLevel: newHighest,
+            levelStars,
+          });
+        },
+
+        // Guardar estrellas y desbloquear el siguiente nivel
+        setLevelStars: (level: number, stars: number) => {
+          const { levelStars, highestUnlockedLevel } = get();
+          const prev = levelStars[level] ?? 0;
+          set({
+            levelStars: { ...levelStars, [level]: Math.max(prev, stars) },
+            highestUnlockedLevel: Math.max(highestUnlockedLevel, level + 1),
           });
         },
 
@@ -132,6 +176,15 @@ export const useGameStore = create<GameState>()(
           set({ currentScene: scene });
         },
 
+        setCurrentRoom: (room: ApartmentRoom) => {
+          set({ currentRoom: room });
+          // Ensure game is in playing state after room switch
+          const { gamePhase, isPaused } = get();
+          if (gamePhase !== 'playing' && gamePhase !== 'rhythm_game') {
+            set({ gamePhase: 'playing', isPaused: false });
+          }
+        },
+
         togglePause: () => {
           const { isPaused, gamePhase } = get();
           if (gamePhase === 'playing' || gamePhase === 'paused') {
@@ -176,10 +229,13 @@ export const useGameStore = create<GameState>()(
           currentLevel: state.currentLevel,
           timeOfDay: state.timeOfDay,
           currentScene: state.currentScene,
+          currentRoom: state.currentRoom,
           totalDaysPlayed: state.totalDaysPlayed,
           gameStartTime: state.gameStartTime,
           lastSaveTime: state.lastSaveTime,
           unlockedFeatures: state.unlockedFeatures,
+          highestUnlockedLevel: state.highestUnlockedLevel,
+          levelStars: state.levelStars,
         }),
       }
     ),
