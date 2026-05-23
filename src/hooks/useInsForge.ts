@@ -325,15 +325,28 @@ export function useInsForge() {
     if (!user) return { success: false, error: 'Debes iniciar sesión para guardar' };
     setIsSaving(true);
     try {
+      // Refresh session before saving to avoid expired token (401)
+      const { data: refreshedUser } = await insforge.auth.getCurrentUser();
+      if (!refreshedUser) {
+        setUser(null);
+        return { success: false, error: 'Sesión expirada. Inicia sesión de nuevo.' };
+      }
+
       await saveService.saveGame(user.id, slotName);
       setLastSaveTime(Date.now());
       return { success: true };
     } catch (error: any) {
+      // If token is invalid, clear session
+      if (error.message?.includes('Invalid token') || error.message?.includes('401')) {
+        setUser(null);
+        setSessionChecked(false);
+        return { success: false, error: 'Sesión expirada. Inicia sesión de nuevo.' };
+      }
       return { success: false, error: error.message || 'Error al guardar' };
     } finally {
       setIsSaving(false);
     }
-  }, [user]);
+  }, [user, setUser, setSessionChecked]);
 
   const loadGame = useCallback(async (saveId: string) => {
     setIsLoading(true);
