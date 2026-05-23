@@ -141,8 +141,9 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen">
+      <div className="w-screen h-screen" style={{ display: gamePhase === 'rhythm_game' ? 'none' : 'block' }}>
         <Canvas
+          frameloop={gamePhase === 'rhythm_game' ? 'never' : 'always'}
           shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
@@ -167,52 +168,57 @@ function GameScene() {
         </Canvas>
       </div>
 
-      {/* TopBar - Información del día y nivel */}
-      <TopBar
-        currentDay={currentDay}
-        maxDays={45}
-        currentLevel={currentLevel}
-        levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
-        timeOfDay={timeOfDay}
-      />
+      {/* HUD elements — hidden during rhythm game for performance */}
+      {gamePhase !== 'rhythm_game' && (
+        <>
+          {/* TopBar - Información del día y nivel */}
+          <TopBar
+            currentDay={currentDay}
+            maxDays={45}
+            currentLevel={currentLevel}
+            levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
+            timeOfDay={timeOfDay}
+          />
 
-      {/* HUD - Recursos del jugador */}
-      <HUD
-        money={money}
-        energy={energy}
-        hunger={hunger}
-        listeners={monthlyListeners}
-        reputation={reputation}
-        showReputation={currentLevel >= 3}
-      />
+          {/* HUD - Recursos del jugador */}
+          <HUD
+            money={money}
+            energy={energy}
+            hunger={hunger}
+            listeners={monthlyListeners}
+            reputation={reputation}
+            showReputation={currentLevel >= 3}
+          />
 
-      {/* Selector de habitación (desbloqueado en Nivel 3) */}
-      <RoomSelector />
+          {/* Selector de habitación (desbloqueado en Nivel 3) */}
+          <RoomSelector />
 
-      {/* Mini-mapa */}
-      <MiniMap
-        currentLocation={currentScene}
-        onOpenFullMap={() => setShowLocationMap(true)}
-      />
+          {/* Mini-mapa */}
+          <MiniMap
+            currentLocation={currentScene}
+            onOpenFullMap={() => setShowLocationMap(true)}
+          />
 
-      {/* Tienda — CartShopModal */}
-      <CartShopModal 
-        forceOpen={shopOpen} 
-        onClose={() => setShopOpen(false)} 
-      />
+          {/* Tienda — CartShopModal */}
+          <CartShopModal 
+            forceOpen={shopOpen} 
+            onClose={() => setShopOpen(false)} 
+          />
 
-      {/* Botón flotante para abrir mapa */}
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setShowLocationMap(true)}
-        className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
-        title="Abrir mapa (M)"
-      >
-        🗺️
-      </motion.button>
+          {/* Botón flotante para abrir mapa */}
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowLocationMap(true)}
+            className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
+            title="Abrir mapa (M)"
+          >
+            🗺️
+          </motion.button>
+        </>
+      )}
 
       {/* Indicador de ubicación actual */}
       <div className="fixed bottom-8 left-8 z-40 bg-black/70 backdrop-blur-md border-2 border-purple-500 rounded-xl px-4 py-2">
