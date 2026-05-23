@@ -37,12 +37,35 @@ if (!document.getElementById(STYLE_ID)) {
   const s = document.createElement('style');
   s.id = STYLE_ID;
   s.textContent = `
-    @keyframes rd-fb{0%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-40px) scale(1.4)}}
-    @keyframes rd-pt{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.3) rotate(var(--r))}}
-    .rd-note{position:absolute;left:50%;transform:translateX(-50%);width:72%;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;will-change:top}
-    .rd-note::after{content:'';width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.9)}
-    .rd-fb{position:absolute;left:50%;top:28%;pointer-events:none;z-index:50;font-size:28px;font-weight:900;letter-spacing:1px;animation:rd-fb .4s ease-out forwards;white-space:nowrap}
-    .rd-pt{position:absolute;pointer-events:none;z-index:40;font-weight:bold;animation:rd-pt .65s ease-out forwards}
+    @keyframes rd-fb{
+      0%{opacity:1;transform:translate(-50%,0) scale(0.6);filter:blur(0)}
+      30%{transform:translate(-50%,-10px) scale(1.3);filter:blur(0)}
+      100%{opacity:0;transform:translate(-50%,-60px) scale(1.6);filter:blur(2px)}
+    }
+    @keyframes rd-pt{
+      0%{opacity:1;transform:translate(0,0) scale(1.3)}
+      100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.2) rotate(var(--r))}
+    }
+    @keyframes rd-ring{
+      0%{opacity:0.8;transform:translate(-50%,-50%) scale(0.3);border-width:4px}
+      100%{opacity:0;transform:translate(-50%,-50%) scale(2.5);border-width:1px}
+    }
+    @keyframes rd-streak{
+      0%{opacity:0.6;transform:translateY(0) scaleY(1)}
+      100%{opacity:0;transform:translateY(-40px) scaleY(2)}
+    }
+    @keyframes rd-glow-pulse{
+      0%,100%{opacity:0.3}
+      50%{opacity:0.7}
+    }
+    .rd-note{position:absolute;left:50%;transform:translateX(-50%);width:72%;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;will-change:top;transition:opacity 0.05s}
+    .rd-note::after{content:'';width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.95);box-shadow:0 0 6px rgba(255,255,255,0.8)}
+    .rd-fb{position:absolute;left:50%;top:25%;pointer-events:none;z-index:50;font-size:36px;font-weight:900;letter-spacing:2px;animation:rd-fb .55s cubic-bezier(0.22,1,0.36,1) forwards;white-space:nowrap}
+    .rd-pt{position:absolute;pointer-events:none;z-index:40;font-weight:bold;animation:rd-pt .8s cubic-bezier(0.25,0.46,0.45,0.94) forwards}
+    .rd-ring{position:absolute;pointer-events:none;z-index:45;width:80px;height:80px;border-radius:50%;border:4px solid;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.3);animation:rd-ring .5s ease-out forwards}
+    .rd-streak{position:absolute;pointer-events:none;z-index:35;width:3px;border-radius:2px;animation:rd-streak .4s ease-out forwards}
+    @keyframes rd-eq{0%{height:30%}100%{height:80%}}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   `;
   document.head.appendChild(s);
 }
@@ -196,15 +219,17 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
       const lane = KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
 
-      // Flash lane
+      // Flash lane — intense glow
       const laneEl = lanesRef.current[lane];
       if (laneEl) {
         laneEl.style.borderColor = LANE_COLORS[lane];
-        laneEl.style.boxShadow = `inset 0 0 25px ${LANE_COLORS[lane]}40, 0 0 12px ${LANE_COLORS[lane]}40`;
+        laneEl.style.boxShadow = `inset 0 0 40px ${LANE_COLORS[lane]}50, 0 0 20px ${LANE_COLORS[lane]}40, 0 0 40px ${LANE_COLORS[lane]}20`;
+        laneEl.style.background = `linear-gradient(180deg, ${LANE_COLORS[lane]}15, rgba(0,0,0,0.3), ${LANE_COLORS[lane]}20)`;
         setTimeout(() => {
           laneEl.style.borderColor = `${LANE_COLORS[lane]}25`;
           laneEl.style.boxShadow = '';
-        }, 90);
+          laneEl.style.background = `linear-gradient(180deg, ${LANE_COLORS[lane]}06, rgba(0,0,0,0.4), ${LANE_COLORS[lane]}0a)`;
+        }, 100);
       }
 
       const now = performance.now() - t0.current;
@@ -241,39 +266,75 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     };
     window.addEventListener('keydown', handleKey);
 
-    // Feedback text
+    // Feedback text + shockwave ring on perfect
     function showFb(text: string, color: string) {
       const c = containerRef.current;
       if (!c) return;
+      // Text
       const el = document.createElement('div');
       el.className = 'rd-fb';
       el.style.color = color;
-      el.style.textShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+      el.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}50`;
       el.textContent = text;
       c.appendChild(el);
-      setTimeout(() => el.remove(), 450);
+      setTimeout(() => el.remove(), 600);
     }
 
-    // Particles
+    // Particles + shockwave + streaks
     function spawnPt(lane: number, color: string, pts: number) {
       const c = containerRef.current;
       if (!c) return;
-      const syms = ['♪', '♫', '✦', '★'];
-      const count = pts >= 100 ? 3 : pts >= 75 ? 2 : 1;
+      const laneEl = lanesRef.current[lane];
+      if (!laneEl) return;
+      const laneRect = laneEl.getBoundingClientRect();
+      const containerRect = c.getBoundingClientRect();
+      const cx = laneRect.left - containerRect.left + laneRect.width / 2;
+      const cy = laneRect.bottom - containerRect.top - 50;
+
+      // Musical note particles
+      const syms = ['♪', '♫', '✦', '★', '♬', '🎵'];
+      const count = pts >= 100 ? 6 : pts >= 75 ? 4 : 2;
       for (let i = 0; i < count; i++) {
         const el = document.createElement('div');
         el.className = 'rd-pt';
         el.textContent = syms[Math.floor(Math.random() * syms.length)];
-        el.style.left = `${20 + lane * 20}%`;
-        el.style.bottom = '50px';
+        el.style.left = `${cx + (Math.random() - 0.5) * 30}px`;
+        el.style.top = `${cy}px`;
         el.style.color = color;
-        el.style.fontSize = `${20 + Math.random() * 8}px`;
-        el.style.textShadow = `0 0 8px ${color}`;
-        el.style.setProperty('--dx', `${(Math.random() - 0.5) * 80}px`);
-        el.style.setProperty('--dy', `${-50 - Math.random() * 60}px`);
-        el.style.setProperty('--r', `${(Math.random() - 0.5) * 200}deg`);
+        el.style.fontSize = `${22 + Math.random() * 14}px`;
+        el.style.textShadow = `0 0 12px ${color}, 0 0 24px ${color}`;
+        el.style.setProperty('--dx', `${(Math.random() - 0.5) * 140}px`);
+        el.style.setProperty('--dy', `${-80 - Math.random() * 100}px`);
+        el.style.setProperty('--r', `${(Math.random() - 0.5) * 360}deg`);
         c.appendChild(el);
-        setTimeout(() => el.remove(), 700);
+        setTimeout(() => el.remove(), 850);
+      }
+
+      // Shockwave ring on PERFECT
+      if (pts >= 100) {
+        const ring = document.createElement('div');
+        ring.className = 'rd-ring';
+        ring.style.borderColor = color;
+        ring.style.left = `${cx}px`;
+        ring.style.top = `${cy}px`;
+        ring.style.boxShadow = `0 0 15px ${color}, inset 0 0 15px ${color}50`;
+        c.appendChild(ring);
+        setTimeout(() => ring.remove(), 550);
+      }
+
+      // Streak lines shooting up
+      if (pts >= 75) {
+        const streakCount = pts >= 100 ? 4 : 2;
+        for (let i = 0; i < streakCount; i++) {
+          const streak = document.createElement('div');
+          streak.className = 'rd-streak';
+          streak.style.left = `${cx + (Math.random() - 0.5) * 40}px`;
+          streak.style.top = `${cy - 10}px`;
+          streak.style.height = `${20 + Math.random() * 30}px`;
+          streak.style.background = `linear-gradient(to top, ${color}, transparent)`;
+          c.appendChild(streak);
+          setTimeout(() => streak.remove(), 450);
+        }
       }
     }
 
@@ -314,6 +375,111 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
   // PLAYING — static shell, all movement is DOM-direct
   return (
     <div className="relative z-10 w-full h-full flex flex-col bg-[#0a0a15]">
+      
+      {/* Background decorations — immersive studio ambiance */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        
+        {/* Gradient ambient background — more colorful */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 85%, rgba(99,102,241,0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 30%, rgba(255,45,85,0.08) 0%, transparent 35%), radial-gradient(ellipse at 85% 30%, rgba(34,211,238,0.08) 0%, transparent 35%), radial-gradient(ellipse at 50% 10%, rgba(167,139,250,0.06) 0%, transparent 40%)' }} />
+
+        {/* LEFT PANEL — full height, wider */}
+        <div className="absolute left-0 top-8 bottom-8 w-24 flex flex-col items-center justify-between py-6 gap-4">
+          {/* Large EQ bars */}
+          <div className="flex items-end gap-[3px] h-40 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${25 + Math.sin(i * 0.7) * 25 + 25}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[i % 4]}, ${LANE_COLORS[i % 4]}30)`,
+                animation: `rd-eq ${0.5 + i * 0.08}s ease-in-out infinite alternate`,
+                animationDelay: `${i * 0.06}s`,
+              }} />
+            ))}
+          </div>
+          
+          {/* Spinning vinyl */}
+          <div className="w-16 h-16 rounded-full border-[3px] border-purple-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]" style={{ animation: 'spin 3s linear infinite' }}>
+            <div className="w-10 h-10 rounded-full border-2 border-purple-300/20 flex items-center justify-center">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-400/60 to-pink-400/60" />
+            </div>
+          </div>
+
+          {/* Music icons — larger, more visible */}
+          <div className="flex flex-col items-center gap-4 text-2xl">
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(168,85,247,0.5)]">🎵</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(34,211,238,0.5)]">🎧</span>
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(255,45,85,0.5)]">🎤</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">♫</span>
+          </div>
+
+          {/* Bottom large EQ */}
+          <div className="flex items-end gap-[3px] h-32 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${20 + Math.cos(i * 0.9) * 20 + 20}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 2) % 4]}, ${LANE_COLORS[(i + 2) % 4]}25)`,
+                animation: `rd-eq ${0.6 + i * 0.09}s ease-in-out infinite alternate-reverse`,
+                animationDelay: `${i * 0.07}s`,
+              }} />
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT PANEL — full height, wider */}
+        <div className="absolute right-0 top-8 bottom-8 w-24 flex flex-col items-center justify-between py-6 gap-4">
+          {/* Large EQ bars */}
+          <div className="flex items-end gap-[3px] h-40 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${30 + Math.cos(i * 0.6) * 20 + 20}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 1) % 4]}, ${LANE_COLORS[(i + 1) % 4]}30)`,
+                animation: `rd-eq ${0.55 + i * 0.09}s ease-in-out infinite alternate-reverse`,
+                animationDelay: `${i * 0.05}s`,
+              }} />
+            ))}
+          </div>
+          
+          {/* Waveform circle — larger */}
+          <div className="w-16 h-16 rounded-full border-[3px] border-cyan-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+            <svg width="36" height="36" viewBox="0 0 36 36" className="opacity-50">
+              <path d="M2,18 Q6,6 10,18 Q14,30 18,18 Q22,6 26,18 Q30,30 34,18" fill="none" stroke="#22d3ee" strokeWidth="2"/>
+            </svg>
+          </div>
+
+          {/* Music icons — larger */}
+          <div className="flex flex-col items-center gap-4 text-2xl">
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">🎹</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(48,209,88,0.5)]">🎶</span>
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(167,139,250,0.5)]">🎙️</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(255,159,10,0.5)]">♬</span>
+          </div>
+
+          {/* Bottom EQ */}
+          <div className="flex items-end gap-[3px] h-32 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${22 + Math.sin(i * 1.1) * 22 + 18}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 3) % 4]}, ${LANE_COLORS[(i + 3) % 4]}25)`,
+                animation: `rd-eq ${0.65 + i * 0.1}s ease-in-out infinite alternate`,
+                animationDelay: `${i * 0.08}s`,
+              }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Horizontal waveforms — wider, more visible */}
+        <svg className="absolute left-24 right-24 top-[12%] h-6 opacity-25" preserveAspectRatio="none" viewBox="0 0 500 24">
+          <path d="M0,12 Q20,3 40,12 Q60,21 80,12 Q100,3 120,12 Q140,21 160,12 Q180,3 200,12 Q220,21 240,12 Q260,3 280,12 Q300,21 320,12 Q340,3 360,12 Q380,21 400,12 Q420,3 440,12 Q460,21 480,12 Q500,6 500,12" fill="none" stroke="url(#waveGrad1)" strokeWidth="1.5"/>
+          <defs><linearGradient id="waveGrad1"><stop offset="0%" stopColor="#ff2d55"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#22d3ee"/></linearGradient></defs>
+        </svg>
+        <svg className="absolute left-24 right-24 bottom-[15%] h-6 opacity-20" preserveAspectRatio="none" viewBox="0 0 500 24">
+          <path d="M0,12 Q25,4 50,12 Q75,20 100,12 Q125,4 150,12 Q175,20 200,12 Q225,4 250,12 Q275,20 300,12 Q325,4 350,12 Q375,20 400,12 Q425,4 450,12 Q475,20 500,12" fill="none" stroke="url(#waveGrad2)" strokeWidth="1.5"/>
+          <defs><linearGradient id="waveGrad2"><stop offset="0%" stopColor="#22d3ee"/><stop offset="50%" stopColor="#fbbf24"/><stop offset="100%" stopColor="#ff2d55"/></linearGradient></defs>
+        </svg>
+
+        {/* Neon vertical separators */}
+        <div className="absolute left-[96px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(168,85,247,0.3) 30%, rgba(255,45,85,0.3) 50%, rgba(34,211,238,0.3) 70%, transparent 90%)' }} />
+        <div className="absolute right-[96px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(34,211,238,0.3) 30%, rgba(251,191,36,0.3) 50%, rgba(167,139,250,0.3) 70%, transparent 90%)' }} />
+      </div>
       {/* HUD — static, updated via refs */}
       <div className="shrink-0 px-5 py-2 bg-[#0d0d18] border-b border-white/[0.08]">
         <div className="flex items-center justify-between">

@@ -210,6 +210,37 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       setMaxCombo(maxComboRef.current);
       setStats({ ...statsRef.current });
       setFeedbackText({ text, color, key: Date.now() });
+
+      // DOM particles — musical notes flying out
+      const syms = ['♪', '♫', '✦', '★', '♬', '🎵'];
+      const count = points >= 100 ? 5 : points >= 75 ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.textContent = syms[Math.floor(Math.random() * syms.length)];
+        const size = 24 + Math.random() * 14;
+        const dx = (Math.random() - 0.5) * 200;
+        const dy = -60 - Math.random() * 120;
+        el.style.cssText = `position:fixed;left:50%;top:40%;color:${color};font-size:${size}px;font-weight:bold;pointer-events:none;z-index:200;text-shadow:0 0 15px ${color}, 0 0 30px ${color};opacity:1;transition:all 0.75s cubic-bezier(0.25,0.46,0.45,0.94);transform:translate(-50%,-50%) scale(1.2)`;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => {
+          el.style.opacity = '0';
+          el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.2) rotate(${(Math.random()-0.5)*300}deg)`;
+        });
+        setTimeout(() => el.remove(), 800);
+      }
+
+      // Shockwave ring on PERFECT
+      if (points >= 100) {
+        const ring = document.createElement('div');
+        ring.style.cssText = `position:fixed;left:50%;top:42%;width:60px;height:60px;border-radius:50%;border:3px solid ${color};pointer-events:none;z-index:199;transform:translate(-50%,-50%) scale(0.5);opacity:0.8;transition:all 0.4s ease-out;box-shadow:0 0 20px ${color}, inset 0 0 20px ${color}50`;
+        document.body.appendChild(ring);
+        requestAnimationFrame(() => {
+          ring.style.transform = 'translate(-50%,-50%) scale(3)';
+          ring.style.opacity = '0';
+          ring.style.borderWidth = '1px';
+        });
+        setTimeout(() => ring.remove(), 450);
+      }
     };
 
     window.addEventListener('keydown', handleKey);
@@ -280,7 +311,23 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       </div>
 
       {/* Main game area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 relative bg-black/40">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 relative bg-[#0a0a15]">
+        {/* Studio ambiance decorations */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 85%, rgba(48,209,88,0.08) 0%, transparent 45%), radial-gradient(ellipse at 15% 30%, rgba(255,45,85,0.06) 0%, transparent 35%), radial-gradient(ellipse at 85% 30%, rgba(167,139,250,0.06) 0%, transparent 35%)' }} />
+          <div className="absolute left-0 top-0 bottom-0 w-20 flex flex-col items-center justify-between py-6">
+            <div className="flex items-end gap-[3px] h-36 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${25+Math.sin(i*0.7)*25+20}%`, background: `linear-gradient(to top, ${['#30d158','#ff2d55','#a78bfa','#ff9f0a'][i%4]}, ${['#30d158','#ff2d55','#a78bfa','#ff9f0a'][i%4]}30)`, animation: `rd-eq ${0.5+i*0.08}s ease-in-out infinite alternate`, animationDelay: `${i*0.06}s` }} />))}</div>
+            <div className="flex flex-col items-center gap-3 text-2xl"><span className="opacity-30">🎛️</span><span className="opacity-25">🎧</span><span className="opacity-30">🎵</span></div>
+            <div className="flex items-end gap-[3px] h-28 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${20+Math.cos(i*0.9)*20+18}%`, background: `linear-gradient(to top, ${['#ff9f0a','#30d158','#5856d6','#ff2d55'][i%4]}60, ${['#ff9f0a','#30d158','#5856d6','#ff2d55'][i%4]}15)`, animation: `rd-eq ${0.6+i*0.09}s ease-in-out infinite alternate-reverse`, animationDelay: `${i*0.07}s` }} />))}</div>
+          </div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 flex flex-col items-center justify-between py-6">
+            <div className="flex items-end gap-[3px] h-36 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${30+Math.cos(i*0.6)*20+20}%`, background: `linear-gradient(to top, ${['#5856d6','#ff9f0a','#30d158','#ff2d55'][i%4]}, ${['#5856d6','#ff9f0a','#30d158','#ff2d55'][i%4]}30)`, animation: `rd-eq ${0.55+i*0.09}s ease-in-out infinite alternate-reverse`, animationDelay: `${i*0.05}s` }} />))}</div>
+            <div className="flex flex-col items-center gap-3 text-2xl"><span className="opacity-30">🎹</span><span className="opacity-25">🎶</span><span className="opacity-30">♬</span></div>
+            <div className="flex items-end gap-[3px] h-28 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${22+Math.sin(i*1.1)*22+18}%`, background: `linear-gradient(to top, ${['#ff2d55','#5856d6','#ff9f0a','#30d158'][i%4]}60, ${['#ff2d55','#5856d6','#ff9f0a','#30d158'][i%4]}15)`, animation: `rd-eq ${0.65+i*0.1}s ease-in-out infinite alternate`, animationDelay: `${i*0.08}s` }} />))}</div>
+          </div>
+          <div className="absolute left-[80px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(48,209,88,0.25) 30%, rgba(255,159,10,0.25) 70%, transparent 90%)' }} />
+          <div className="absolute right-[80px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(88,86,214,0.25) 30%, rgba(48,209,88,0.25) 70%, transparent 90%)' }} />
+        </div>
         
         {/* Upcoming sequence — horizontal strip */}
         <div className="flex items-center gap-2">
