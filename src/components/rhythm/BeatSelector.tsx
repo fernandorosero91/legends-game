@@ -1,6 +1,6 @@
 /**
- * 🎮 LEGENDS: Beat Selector — Pantalla de selección profesional
- * Permite elegir beat Y modo de juego
+ * 🎮 LEGENDS: Beat Selector
+ * Paleta: purple-navy + cyan/turquesa acentos + texto blanco/cyan
  */
 
 import { useState } from 'react';
@@ -16,17 +16,25 @@ interface BeatSelectorProps {
 }
 
 const STYLE_ICONS: Record<string, string> = {
-  trap: '🎹',
+  trap: '⚡',
   lofi: '🎧',
   hiphop: '🎤',
-  drill: '⚡',
+  drill: '🔥',
   boom_bap: '🥁',
 };
 
-const GAME_MODES: { id: MiniGameType; name: string; icon: string; description: string; color: string; instructions: string }[] = [
-  { id: 'rhythm_drop', name: 'Rhythm Drop', icon: '🎹', description: 'Notas caen por 4 carriles — presiona A, S, D, F', color: 'from-red-500 to-purple-600', instructions: 'Las notas caen desde arriba. Presiona la tecla correcta (A, S, D, F) cuando la nota llegue a la zona inferior. ¡Más precisión = más oyentes!' },
-  { id: 'beat_catcher', name: 'Beat Catcher', icon: '🎯', description: 'Círculos aparecen en pantalla — haz clic a tiempo', color: 'from-cyan-500 to-blue-600', instructions: 'Círculos aparecen con un anillo que se contrae. Haz clic cuando el anillo coincida con el círculo. ¡Timing perfecto = máximos oyentes!' },
-  { id: 'flow_mixer', name: 'Flow Mixer', icon: '🎛️', description: 'Secuencias de flechas — sigue el ritmo con ←↑↓→', color: 'from-green-500 to-emerald-600', instructions: 'Flechas aparecen en secuencia. Presiona la flecha correcta (←↑↓→) al ritmo. ¡Combos largos multiplican tus oyentes!' },
+const STYLE_COLORS: Record<string, string> = {
+  trap: '#ff4d6a',
+  lofi: '#22d3ee',
+  hiphop: '#fbbf24',
+  drill: '#a78bfa',
+  boom_bap: '#34d399',
+};
+
+const GAME_MODES: { id: MiniGameType; name: string; icon: string; description: string; color: string }[] = [
+  { id: 'rhythm_drop', name: 'Rhythm Drop', icon: '🎹', description: 'Notas caen por 4 carriles — A, S, D, F', color: '#ff4d6a' },
+  { id: 'beat_catcher', name: 'Beat Catcher', icon: '🎯', description: 'Círculos en pantalla — clic cuando el anillo se cierre', color: '#22d3ee' },
+  { id: 'flow_mixer', name: 'Flow Mixer', icon: '🎛️', description: 'Secuencias de flechas — ←↑↓→', color: '#fbbf24' },
 ];
 
 const STYLE_TO_DEFAULT_GAME: Record<string, MiniGameType> = {
@@ -56,228 +64,210 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
   };
 
   const handleBack = () => {
-    if (step === 'mode') {
-      setStep('beat');
-    } else {
-      onCancel();
-    }
+    if (step === 'mode') setStep('beat');
+    else onCancel();
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className="relative z-10 w-full max-w-3xl mx-auto px-6"
+      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.97 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="relative z-10 w-full max-w-[640px] mx-auto px-4"
     >
-      {/* Contenedor principal con glassmorphism */}
-      <div className="bg-gradient-to-b from-purple-900/60 to-black/80 backdrop-blur-2xl rounded-3xl border border-purple-500/20 p-8 shadow-2xl shadow-purple-900/50">
+      <div className="bg-[#1a1a28]/85 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
         
         {/* Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4"
-          >
-            <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-            <span className="text-purple-300 text-xs font-medium uppercase tracking-widest">
-              Estudio de Grabación
-            </span>
-          </motion.div>
-
-          <h2 className="text-3xl font-black text-white">
-            {step === 'beat' ? 'Elige tu Beat' : 'Modo de Juego'}
-          </h2>
-          <p className="text-purple-400/80 mt-2 text-sm">
-            {step === 'beat' 
-              ? `${beats.length} beats disponibles • Nivel ${currentLevel} • Costo: -30 energía`
-              : `Beat: ${selectedBeat?.name} • Elige cómo quieres grabar`
-            }
-          </p>
+        <div className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+              <span className="text-cyan-400 text-sm">🎵</span>
+            </div>
+            <div>
+              <span className="text-cyan-300/70 text-[10px] font-semibold uppercase tracking-[0.15em]">
+                Estudio de Grabación
+              </span>
+              <h2 className="text-xl font-bold text-white tracking-tight -mt-0.5">
+                {step === 'beat' ? 'Elige tu Beat' : 'Modo de Grabación'}
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] ml-11">
+            <span className="text-cyan-200/60">{beats.length} beats</span>
+            <span className="text-cyan-500/30">•</span>
+            <span className="text-cyan-200/60">Nivel {currentLevel}</span>
+            <span className="text-cyan-500/30">•</span>
+            <span className="text-orange-300/80">⚡ -30 energía</span>
+          </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* PASO 1: Selección de Beat */}
-          {step === 'beat' && (
-            <motion.div
-              key="beat-step"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-transparent">
-                {beats.map((beat, index) => (
-                  <motion.button
-                    key={beat.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => handleBeatSelect(beat)}
-                    className={`relative p-4 rounded-2xl border text-left transition-all duration-200 group overflow-hidden ${
-                      selectedBeat?.id === beat.id
-                        ? 'border-purple-400 bg-purple-500/15 ring-1 ring-purple-400/40 scale-[1.02]'
-                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-purple-500/30'
-                    }`}
-                  >
-                    {/* Glow de fondo al seleccionar */}
-                    {selectedBeat?.id === beat.id && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent pointer-events-none" />
-                    )}
+        {/* Content */}
+        <div className="p-5">
+          <AnimatePresence mode="wait">
+            {/* STEP 1: Beats */}
+            {step === 'beat' && (
+              <motion.div
+                key="beat-step"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[42vh] overflow-y-auto pr-1">
+                  {beats.map((beat, index) => {
+                    const accentColor = STYLE_COLORS[beat.style] || '#22d3ee';
+                    const isSelected = selectedBeat?.id === beat.id;
 
-                    <div className="relative flex items-start gap-3">
-                      <div className="text-3xl shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                        {STYLE_ICONS[beat.style] || '🎵'}
-                      </div>
+                    return (
+                      <motion.button
+                        key={beat.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.04 }}
+                        onClick={() => handleBeatSelect(beat)}
+                        className={`relative p-4 rounded-xl text-left transition-all duration-150 group ${
+                          isSelected
+                            ? 'bg-cyan-400/10 border border-cyan-400/30 shadow-[0_0_20px_-5px_rgba(34,211,238,0.2)]'
+                            : 'bg-white/[0.03] border border-white/[0.06] hover:bg-cyan-400/5 hover:border-cyan-400/15'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-transform group-hover:scale-110"
+                            style={{ backgroundColor: `${accentColor}15`, border: `1px solid ${accentColor}30` }}
+                          >
+                            {STYLE_ICONS[beat.style] || '🎵'}
+                          </div>
 
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-sm truncate">
-                          {beat.name}
-                        </h3>
-                        {beat.description && (
-                          <p className="text-white/40 text-xs mt-1 line-clamp-2">
-                            {beat.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-purple-300 font-semibold uppercase tracking-wider border border-white/5">
-                            {beat.style.replace('_', ' ')}
-                          </span>
-                          <span className="text-[10px] text-white/30 font-mono">
-                            {beat.tempo} BPM
-                          </span>
-                          {beat.requiresSoftware && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                              ★ Premium
-                            </span>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-semibold text-sm truncate">
+                              {beat.name}
+                            </h3>
+                            {beat.description && (
+                              <p className="text-cyan-100/40 text-[11px] mt-0.5 line-clamp-2">
+                                {beat.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span 
+                                className="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider"
+                                style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                              >
+                                {beat.style.replace('_', ' ')}
+                              </span>
+                              <span className="text-[10px] text-cyan-200/40 font-mono">
+                                {beat.tempo} BPM
+                              </span>
+                              {beat.requiresSoftware && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-400/15 text-amber-300 font-bold">
+                                  PRO
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                            >
+                              <span className="text-[10px] text-[#0a0318] font-black">✓</span>
+                            </motion.div>
                           )}
                         </div>
-                      </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
-                      {/* Check indicator */}
-                      {selectedBeat?.id === beat.id && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute top-2 right-2 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center"
-                        >
-                          <span className="text-white text-xs">✓</span>
-                        </motion.div>
-                      )}
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
+            {/* STEP 2: Mode */}
+            {step === 'mode' && (
+              <motion.div
+                key="mode-step"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="grid grid-cols-3 gap-3">
+                  {GAME_MODES.map((mode, index) => {
+                    const isSelected = selectedMode === mode.id;
+                    return (
+                      <motion.button
+                        key={mode.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.07 }}
+                        onClick={() => setSelectedMode(mode.id)}
+                        className={`relative p-5 rounded-xl text-center transition-all duration-150 group ${
+                          isSelected
+                            ? 'bg-cyan-400/10 border border-cyan-400/30 shadow-[0_0_25px_-5px_rgba(34,211,238,0.2)]'
+                            : 'bg-white/[0.03] border border-white/[0.06] hover:bg-cyan-400/5 hover:border-cyan-400/15'
+                        }`}
+                      >
+                        <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">
+                          {mode.icon}
+                        </div>
+                        <h3 className={`font-bold text-sm mb-1 ${isSelected ? 'text-cyan-200' : 'text-white/80'}`}>
+                          {mode.name}
+                        </h3>
+                        <p className="text-cyan-100/35 text-[10px] leading-relaxed">
+                          {mode.description}
+                        </p>
 
-          {/* PASO 2: Selección de Modo de Juego */}
-          {step === 'mode' && (
-            <motion.div
-              key="mode-step"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {GAME_MODES.map((mode, index) => (
-                  <motion.button
-                    key={mode.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    onClick={() => setSelectedMode(mode.id)}
-                    className={`relative p-5 rounded-2xl border text-center transition-all duration-200 group overflow-hidden ${
-                      selectedMode === mode.id
-                        ? 'border-white/20 scale-[1.03] shadow-xl'
-                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10'
-                    }`}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {selectedMode && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-4 px-4 py-3 rounded-lg bg-cyan-400/5 border border-cyan-400/10"
                   >
-                    {/* Gradient background */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${mode.color} transition-opacity duration-200 ${
-                      selectedMode === mode.id ? 'opacity-20' : 'opacity-0 group-hover:opacity-10'
-                    }`} />
+                    <p className="text-cyan-100/60 text-[11px] leading-relaxed">
+                      <span className="text-cyan-300 mr-1.5">💡</span>
+                      {GAME_MODES.find(m => m.id === selectedMode)?.description}
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-                    <div className="relative">
-                      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
-                        {mode.icon}
-                      </div>
-                      <h3 className="text-white font-bold text-sm mb-1">
-                        {mode.name}
-                      </h3>
-                      <p className="text-white/40 text-xs leading-relaxed">
-                        {mode.description}
-                      </p>
-                    </div>
-
-                    {selectedMode === mode.id && (
-                      <motion.div
-                        layoutId="mode-indicator"
-                        className="absolute inset-0 rounded-2xl border-2 border-white/30 pointer-events-none"
-                      />
-                    )}
-                  </motion.button>
-                ))}
-              </div>
-
-              {/* Recomendación */}
-              {selectedBeat && (
-                <p className="text-center text-white/30 text-xs mt-4">
-                  💡 Recomendado para {selectedBeat.style}: <span className="text-purple-400">{GAME_MODES.find(m => m.id === STYLE_TO_DEFAULT_GAME[selectedBeat.style])?.name}</span>
-                </p>
-              )}
-
-              {/* Instructions for selected mode */}
-              {selectedMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-white/5"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-lg">📖</span>
-                    <div>
-                      <h4 className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Cómo jugar</h4>
-                      <p className="text-white/50 text-xs leading-relaxed">
-                        {GAME_MODES.find(m => m.id === selectedMode)?.instructions}
-                      </p>
-                      <p className="text-purple-400/70 text-[10px] mt-2 font-medium">
-                        🎧 Cada acierto = oyentes • Perfect = 8 • Good = 5 • OK = 2 • Miss = 0
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Footer — Botones */}
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.08] bg-[#222230]/80">
           <button
             onClick={handleBack}
-            className="px-5 py-2.5 rounded-xl text-white/60 font-medium hover:text-white hover:bg-white/5 transition-all text-sm"
+            className="text-cyan-200/50 font-medium hover:text-cyan-200 transition text-[13px]"
           >
             ← {step === 'mode' ? 'Cambiar Beat' : 'Cancelar'}
           </button>
 
-          {/* Step indicators */}
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full transition-colors ${step === 'beat' ? 'bg-purple-400' : 'bg-white/20'}`} />
-            <div className={`w-2 h-2 rounded-full transition-colors ${step === 'mode' ? 'bg-purple-400' : 'bg-white/20'}`} />
+          <div className="flex items-center gap-1.5">
+            <div className={`h-1.5 rounded-full transition-all ${step === 'beat' ? 'w-5 bg-cyan-400' : 'w-2 bg-cyan-400/20'}`} />
+            <div className={`h-1.5 rounded-full transition-all ${step === 'mode' ? 'w-5 bg-cyan-400' : 'w-2 bg-cyan-400/20'}`} />
           </div>
 
           <button
             onClick={handleConfirm}
             disabled={step === 'beat' ? !selectedBeat : !selectedMode}
-            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-[13px] transition-all ${
               (step === 'beat' ? selectedBeat : selectedMode)
-                ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-400/40 hover:scale-105 active:scale-95'
-                : 'bg-white/5 text-white/30 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-[#0a0318] hover:from-cyan-300 hover:to-cyan-400 active:scale-95 shadow-[0_4px_15px_rgba(34,211,238,0.35)]'
+                : 'bg-white/[0.05] text-white/20 cursor-not-allowed'
             }`}
           >
-            {step === 'beat' ? 'Siguiente →' : '🎤 ¡Grabar!'}
+            {step === 'beat' ? 'Siguiente →' : '🎤 ¡GRABAR!'}
           </button>
         </div>
       </div>

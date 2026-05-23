@@ -1,9 +1,6 @@
 /**
- * 🎮 LEGENDS: Rhythm Game — Sistema de Grabación con Múltiples Minijuegos
- * 3 modos de juego distintos según el estilo del beat:
- * - Rhythm Drop (Guitar Hero style) — Trap/Drill
- * - Beat Catcher (Osu! style) — Lo-fi/Boom Bap
- * - Flow Mixer (Arrow sequence) — Hip-hop
+ * 🎮 LEGENDS: Rhythm Game — DAW Screen Simulation
+ * La pantalla simula un monitor con un DAW (Logic Pro / FL Studio)
  */
 
 import { useState, useCallback } from 'react';
@@ -23,7 +20,6 @@ import { RhythmSystem } from '../../systems/rhythmSystem';
 type RhythmPhase = 'select_beat' | 'instructions' | 'playing' | 'results';
 export type MiniGameType = 'rhythm_drop' | 'beat_catcher' | 'flow_mixer';
 
-// Mapeo de estilo de beat a minijuego
 const STYLE_TO_GAME: Record<string, MiniGameType> = {
   trap: 'rhythm_drop',
   drill: 'rhythm_drop',
@@ -42,13 +38,11 @@ export function RhythmGame() {
   const { consumeEnergy, inventory } = usePlayerStore();
   const { addNotification } = useUIStore();
 
-  // Obtener beats disponibles
   const hasSoftware = inventory.some(
     (item) => item.itemId === 'production_software' && item.equipped
   );
   const availableBeats = getAvailableBeats(currentLevel, hasSoftware);
 
-  // Seleccionar beat y determinar minijuego
   const handleSelectBeat = useCallback((beat: Beat, selectedGameType?: MiniGameType) => {
     setSelectedBeat(beat);
     const type = selectedGameType || STYLE_TO_GAME[beat.style] || 'rhythm_drop';
@@ -56,7 +50,6 @@ export function RhythmGame() {
     setPhase('instructions');
   }, []);
 
-  // Iniciar juego después de instrucciones
   const handleStartGame = useCallback(() => {
     if (!selectedBeat) return;
     consumeEnergy(30);
@@ -64,14 +57,12 @@ export function RhythmGame() {
     setPhase('playing');
   }, [selectedBeat, consumeEnergy]);
 
-  // Cuando el minijuego termina, recibe el score
   const handleGameComplete = useCallback((score: number, maxCombo: number, stats: {
     perfectHits: number;
     goodHits: number;
     okHits: number;
     misses: number;
   }) => {
-    // Inyectar stats en el RhythmSystem antes de finalizar
     const gameState = RhythmSystem.getGameState();
     if (gameState) {
       gameState.perfectHits = stats.perfectHits;
@@ -81,26 +72,16 @@ export function RhythmGame() {
       gameState.maxCombo = maxCombo;
       gameState.score = score;
     }
-
     const result = RhythmSystem.finishRecording();
-    setResults({
-      ...result,
-      maxCombo,
-      perfectHits: stats.perfectHits,
-      goodHits: stats.goodHits,
-      okHits: stats.okHits,
-      misses: stats.misses,
-    });
+    setResults({ ...result, maxCombo, ...stats });
     setPhase('results');
   }, []);
 
-  // Cancelar
   const handleCancel = useCallback(() => {
     RhythmSystem.cancelRecording();
     useGameStore.getState().setGamePhase('playing');
   }, []);
 
-  // Cerrar resultados
   const handleCloseResults = useCallback(() => {
     useGameStore.getState().setGamePhase('playing');
   }, []);
@@ -112,99 +93,67 @@ export function RhythmGame() {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center"
     >
-      {/* Fondo */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0015] via-[#120025] to-[#0a0015]" />
+      {/* Fondo detrás del monitor — Purple City ambiente */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#2a1450] via-[#1a0d35] to-[#0f0920]" />
 
-      {/* Partículas de fondo decorativas */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-purple-500/30"
-            animate={{
-              y: [0, -window.innerHeight],
-              opacity: [0, 0.5, 0],
-            }}
-            transition={{
-              duration: 4 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 4,
-            }}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: '100%',
-            }}
+      {/* Monitor frame — ocupa casi toda la pantalla */}
+      <div className="absolute inset-2 sm:inset-3 lg:inset-4 rounded-lg overflow-hidden flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.9)]">
+        
+        {/* Monitor bezel top — dark grey like iMac */}
+        <div className="h-9 bg-gradient-to-b from-[#4a4a50] to-[#3a3a40] border-b border-[#2a2a2e] flex items-center px-4 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f57] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.2)]" />
+            <div className="w-3 h-3 rounded-full bg-[#febc2e] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.2)]" />
+            <div className="w-3 h-3 rounded-full bg-[#28c840] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.2)]" />
+          </div>
+          <div className="flex-1 text-center">
+            <span className="text-white/50 text-[11px] font-medium tracking-wider">
+              LEGENDS STUDIO — Sesión de Grabación
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+            <span className="text-red-400 text-[10px] font-bold uppercase">REC</span>
+          </div>
+        </div>
+
+        {/* Screen area — DAW background image */}
+        <div className="flex-1 bg-[#1a1a20] relative overflow-hidden">
+          {/* Imagen de DAW como fondo — bien visible */}
+          <img 
+            src="/studio.png" 
+            alt="" 
+            className="absolute inset-0 w-full h-full object-cover object-top"
           />
-        ))}
+          
+          {/* Overlay sutil para que el contenido sea legible pero se vea el DAW */}
+          <div className="absolute inset-0 bg-black/30" />
+
+          {/* Actual game content */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {phase === 'select_beat' && (
+                <BeatSelector key="selector" beats={availableBeats} onSelect={handleSelectBeat} onCancel={handleCancel} currentLevel={currentLevel} />
+              )}
+              {phase === 'instructions' && selectedBeat && (
+                <InstructionsModal key="instructions" gameType={gameType} beatName={selectedBeat.name} onStart={handleStartGame} onBack={() => setPhase('select_beat')} />
+              )}
+              {phase === 'playing' && selectedBeat && gameType === 'rhythm_drop' && (
+                <RhythmDrop key="rhythm-drop" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              )}
+              {phase === 'playing' && selectedBeat && gameType === 'beat_catcher' && (
+                <BeatCatcher key="beat-catcher" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              )}
+              {phase === 'playing' && selectedBeat && gameType === 'flow_mixer' && (
+                <FlowMixer key="flow-mixer" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              )}
+              {phase === 'results' && results && (
+                <RecordingResults key="results" quality={results.quality} rhythmScore={results.rhythmScore} listenersGenerated={results.listenersGenerated} songTitle={selectedBeat?.name || 'Unknown'} combo={results.maxCombo || 0} perfectHits={results.perfectHits || 0} goodHits={results.goodHits || 0} okHits={results.okHits || 0} misses={results.misses || 0} onClose={handleCloseResults} />
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
-
-      <AnimatePresence mode="wait">
-        {phase === 'select_beat' && (
-          <BeatSelector
-            key="selector"
-            beats={availableBeats}
-            onSelect={handleSelectBeat}
-            onCancel={handleCancel}
-            currentLevel={currentLevel}
-          />
-        )}
-
-        {phase === 'instructions' && selectedBeat && (
-          <InstructionsModal
-            key="instructions"
-            gameType={gameType}
-            beatName={selectedBeat.name}
-            onStart={handleStartGame}
-            onBack={() => setPhase('select_beat')}
-          />
-        )}
-
-        {phase === 'playing' && selectedBeat && gameType === 'rhythm_drop' && (
-          <RhythmDrop
-            key="rhythm-drop"
-            beat={selectedBeat}
-            level={currentLevel}
-            onComplete={handleGameComplete}
-            onCancel={handleCancel}
-          />
-        )}
-
-        {phase === 'playing' && selectedBeat && gameType === 'beat_catcher' && (
-          <BeatCatcher
-            key="beat-catcher"
-            beat={selectedBeat}
-            level={currentLevel}
-            onComplete={handleGameComplete}
-            onCancel={handleCancel}
-          />
-        )}
-
-        {phase === 'playing' && selectedBeat && gameType === 'flow_mixer' && (
-          <FlowMixer
-            key="flow-mixer"
-            beat={selectedBeat}
-            level={currentLevel}
-            onComplete={handleGameComplete}
-            onCancel={handleCancel}
-          />
-        )}
-
-        {phase === 'results' && results && (
-          <RecordingResults
-            key="results"
-            quality={results.quality}
-            rhythmScore={results.rhythmScore}
-            listenersGenerated={results.listenersGenerated}
-            songTitle={selectedBeat?.name || 'Unknown'}
-            combo={results.maxCombo || 0}
-            perfectHits={results.perfectHits || 0}
-            goodHits={results.goodHits || 0}
-            okHits={results.okHits || 0}
-            misses={results.misses || 0}
-            onClose={handleCloseResults}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
