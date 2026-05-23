@@ -41,6 +41,7 @@ const LeaderboardScreen = lazy(() => import('../components/ui/LeaderboardScreen'
 const SaveLoadScreen = lazy(() => import('../components/ui/SaveLoadScreen'));
 const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
 const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
+const LevelSelectScreen = lazy(() => import('../components/ui/LevelSelectScreen'));
 
 function GameScene() {
   // Estados del juego
@@ -107,6 +108,8 @@ function GameScene() {
   const handleCloseTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('legends-map-tutorial', 'seen');
+    // Tras el tutorial, mostrar el menú de selección de niveles
+    useUIStore.getState().setScreen('level_select');
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -364,6 +367,13 @@ function App() {
 
       {/* Pantalla de selección de personaje */}
       {currentScreen === 'character_select' && <CharacterSelectScreen />}
+
+      {/* Pantalla de selección de nivel */}
+      {currentScreen === 'level_select' && (
+        <Suspense fallback={<LoadingScreen />}>
+          <LevelSelectScreen />
+        </Suspense>
+      )}
       
       {/* Pantalla del juego */}
       {currentScreen === 'game' && <GameScene />}

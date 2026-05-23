@@ -17,6 +17,7 @@ export { default as StatsPanel } from './StatsPanel';
 export { default as Notification } from './Notification';
 export { default as DialogBox } from './DialogBox';
 export { LocationMap } from './LocationMap';
+export { CartShopModal } from './CartShopModal';
 
 // Los siguientes componentes se cargan dinámicamente en App.tsx:
 // - SaveLoadScreen
