@@ -10,6 +10,7 @@ import { devtools, persist } from 'zustand/middleware';
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'dialogue' | 'rhythm_game' | 'working' | 'shopping' | 'game_over' | 'victory';
 export type GameScene = 'apartment' | 'cafe' | 'store' | 'shop' | 'restaurant' | 'delivery' | 'bar' | 'academy' | 'city';
+export type ApartmentRoom = 'room_level1' | 'studio_level_3' | 'studio_music';
 
 interface GameState {
   // Estado del juego
@@ -18,6 +19,7 @@ interface GameState {
   timeOfDay: TimeOfDay;
   gamePhase: GamePhase;
   currentScene: GameScene;
+  currentRoom: ApartmentRoom;
   isPaused: boolean;
   isLoading: boolean;
 
@@ -36,6 +38,7 @@ interface GameState {
   setLevel: (level: number) => void;
   setGamePhase: (phase: GamePhase) => void;
   setCurrentScene: (scene: GameScene) => void;
+  setCurrentRoom: (room: ApartmentRoom) => void;
   togglePause: () => void;
   unlockFeature: (feature: string) => void;
   isFeatureUnlocked: (feature: string) => boolean;
@@ -49,6 +52,7 @@ const INITIAL_STATE = {
   timeOfDay: 'morning' as TimeOfDay,
   gamePhase: 'menu' as GamePhase,
   currentScene: 'apartment' as GameScene,
+  currentRoom: 'room_level1' as ApartmentRoom,
   isPaused: false,
   isLoading: false,
   totalDaysPlayed: 0,
@@ -64,10 +68,12 @@ export const useGameStore = create<GameState>()(
         ...INITIAL_STATE,
 
         startNewGame: () => {
+          const { currentRoom } = get();
           set({
             ...INITIAL_STATE,
             gamePhase: 'playing',
             gameStartTime: Date.now(),
+            currentRoom, // preserve room selection
             unlockedFeatures: ['rhythm_game', 'basic_recording'],
           });
         },
@@ -132,6 +138,15 @@ export const useGameStore = create<GameState>()(
           set({ currentScene: scene });
         },
 
+        setCurrentRoom: (room: ApartmentRoom) => {
+          set({ currentRoom: room });
+          // Ensure game is in playing state after room switch
+          const { gamePhase, isPaused } = get();
+          if (gamePhase !== 'playing' && gamePhase !== 'rhythm_game') {
+            set({ gamePhase: 'playing', isPaused: false });
+          }
+        },
+
         togglePause: () => {
           const { isPaused, gamePhase } = get();
           if (gamePhase === 'playing' || gamePhase === 'paused') {
@@ -176,6 +191,7 @@ export const useGameStore = create<GameState>()(
           currentLevel: state.currentLevel,
           timeOfDay: state.timeOfDay,
           currentScene: state.currentScene,
+          currentRoom: state.currentRoom,
           totalDaysPlayed: state.totalDaysPlayed,
           gameStartTime: state.gameStartTime,
           lastSaveTime: state.lastSaveTime,

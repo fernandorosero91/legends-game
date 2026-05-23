@@ -19,6 +19,7 @@ import { MapTutorial } from '../components/ui/MapTutorial';
 import { AuthTestScreen } from '../components/ui/AuthTestScreen';
 import { AuthScreen } from '../components/ui/AuthScreen';
 import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
+import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { useInsForge } from '../hooks/useInsForge';
@@ -64,6 +65,9 @@ function GameScene() {
         playerState.resetPlayer();
       }
       useGameStore.getState().startNewGame();
+    } else if (gamePhase !== 'playing') {
+      // Force back to playing if stuck in an invalid state
+      useGameStore.getState().setGamePhase('playing');
     }
   }, []);
 
@@ -171,6 +175,9 @@ function GameScene() {
         reputation={reputation}
         showReputation={currentLevel >= 3}
       />
+
+      {/* Selector de habitación (desbloqueado en Nivel 3) */}
+      <RoomSelector />
 
       {/* Mini-mapa */}
       <MiniMap
