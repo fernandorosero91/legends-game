@@ -107,8 +107,15 @@ export function MainMenu() {
         setScreen('character_select' as any);
         return;
       }
-      // Tiene sesión y personaje, ir al juego
-      setScreen('game');
+      // Tiene sesión y personaje
+      // Si ya vio el tutorial, va directo al menú de niveles.
+      // Si no, va al juego (donde se muestra el tutorial y luego el menú de niveles).
+      const hasSeenTutorial = localStorage.getItem('legends-map-tutorial');
+      if (hasSeenTutorial) {
+        setScreen('level_select');
+      } else {
+        setScreen('game');
+      }
       return;
     }
     
