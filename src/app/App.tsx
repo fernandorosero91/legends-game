@@ -22,6 +22,7 @@ import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { CartShopModal } from '../components/ui/CartShopModal';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -52,6 +53,7 @@ function GameScene() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
 
   // Hook de InsForge para guardado
   const { user, saveGame } = useInsForge();
@@ -115,6 +117,11 @@ function GameScene() {
   const handleLocationSelect = (locationId: string) => {
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
+    
+    // Si selecciona la tienda, abrir el modal de compras
+    if (locationId === 'shop') {
+      setShopOpen(true);
+    }
     
     // Mostrar notificación
     const locationNames: Record<string, string> = {
@@ -186,6 +193,12 @@ function GameScene() {
       <MiniMap
         currentLocation={currentScene}
         onOpenFullMap={() => setShowLocationMap(true)}
+      />
+
+      {/* Tienda — CartShopModal */}
+      <CartShopModal 
+        forceOpen={shopOpen} 
+        onClose={() => setShopOpen(false)} 
       />
 
       {/* Botón flotante para abrir mapa */}
