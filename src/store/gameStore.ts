@@ -91,7 +91,9 @@ export const useGameStore = create<GameState>()(
           const levelStartDay: Record<number, number> = {
             1: 1, 2: 6, 3: 13, 4: 21, 5: 31, 6: 41,
           };
-          const { highestUnlockedLevel, levelStars } = get();
+          const { highestUnlockedLevel, levelStars, currentLevel } = get();
+          // Nunca bajar el nivel desbloqueado más alto
+          const newHighest = Math.max(highestUnlockedLevel, currentLevel, level);
           set({
             ...INITIAL_STATE,
             currentLevel: level,
@@ -99,7 +101,7 @@ export const useGameStore = create<GameState>()(
             gamePhase: 'playing',
             gameStartTime: Date.now(),
             unlockedFeatures: ['rhythm_game', 'basic_recording'],
-            highestUnlockedLevel,
+            highestUnlockedLevel: newHighest,
             levelStars,
           });
         },

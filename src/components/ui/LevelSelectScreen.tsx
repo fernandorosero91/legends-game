@@ -83,8 +83,22 @@ export function LevelSelectScreen() {
 
   const levels = LEVELS.filter((l) => LEVEL_IDS_TO_SHOW.includes(l.id));
 
-  // El nivel actual y el más alto desbloqueado determinan qué está disponible
-  const effectiveUnlocked = Math.max(highestUnlockedLevel, currentLevel, 1);
+  // Un nivel está desbloqueado si:
+  // - Es <= highestUnlockedLevel (persiste entre partidas)
+  // - Es <= currentLevel (el nivel que estás jugando ahora)
+  // - Tiene estrellas (ya lo completaste antes)
+  // Siempre el nivel 1 está desbloqueado.
+  const getMaxUnlocked = () => {
+    let max = Math.max(highestUnlockedLevel, currentLevel, 1);
+    // También contar niveles con estrellas
+    for (const [lvl, stars] of Object.entries(levelStars)) {
+      if (stars > 0) {
+        max = Math.max(max, Number(lvl) + 1); // completó ese nivel, desbloquea el siguiente
+      }
+    }
+    return max;
+  };
+  const effectiveUnlocked = getMaxUnlocked();
 
   const handleSelectLevel = (levelId: number, unlocked: boolean) => {
     if (!unlocked) {
