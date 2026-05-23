@@ -49,6 +49,12 @@ export class LevelSystem {
     // Actualizar nivel
     useGameStore.getState().setLevel(nextLevel);
 
+    // Actualizar el nivel máximo desbloqueado para el menú de selección
+    const { highestUnlockedLevel } = useGameStore.getState();
+    if (nextLevel > highestUnlockedLevel) {
+      useGameStore.setState({ highestUnlockedLevel: nextLevel });
+    }
+
     // Desbloquear features del nuevo nivel
     level.unlocks.forEach((feature) => {
       useGameStore.getState().unlockFeature(feature);

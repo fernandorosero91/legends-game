@@ -126,7 +126,7 @@ export function RhythmGame() {
             className="absolute inset-0 w-full h-full object-cover object-top"
           />
           
-          {/* Overlay sutil para que el contenido sea legible pero se vea el DAW */}
+          {/* Overlay oscuro para legibilidad del contenido */}
           <div className="absolute inset-0 bg-black/30" />
 
           {/* Actual game content */}

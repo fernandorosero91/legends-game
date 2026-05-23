@@ -92,7 +92,7 @@ export function InstructionsModal({ gameType, beatName, onStart, onBack }: Instr
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="relative z-10 w-full max-w-lg mx-auto px-4"
     >
-      <div className="bg-[#1a1a28]/85 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
+      <div className="bg-[#1a1a28]/92 rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
         
         {/* Header */}
         <div className="relative px-7 pt-7 pb-5 text-center border-b border-white/[0.06]">

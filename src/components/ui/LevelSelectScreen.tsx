@@ -58,33 +58,33 @@ const ArrowLeftIcon = ({ className = '' }: { className?: string }) => (
 
 /* ------------------------------------------------------------------ */
 /*  Configuración: qué niveles mostrar en el menú                      */
-/*  El nivel 1 es el tutorial (no se muestra) y se omite el 6.         */
-/*  Se muestran los niveles 2, 3, 4 y 5.                               */
+/*  Se muestran todos los niveles (1-6).                               */
 /* ------------------------------------------------------------------ */
 
-const LEVEL_IDS_TO_SHOW = [2, 3, 4, 5];
+const LEVEL_IDS_TO_SHOW = [1, 2, 3, 4, 5, 6];
 
-// Color de acento por nivel (degradado dentro de la paleta del juego)
+// Color de acento por nivel
 const LEVEL_ACCENTS: Record<number, { from: string; to: string; glow: string }> = {
+  1: { from: '#34d399', to: '#10b981', glow: 'rgba(52,211,153,0.35)' },   // emerald
   2: { from: '#22d3ee', to: '#06b6d4', glow: 'rgba(34,211,238,0.35)' },  // cyan
   3: { from: '#a78bfa', to: '#7c3aed', glow: 'rgba(167,139,250,0.35)' }, // purple
   4: { from: '#fbbf24', to: '#d97706', glow: 'rgba(251,191,36,0.35)' },  // gold
   5: { from: '#f9a8d4', to: '#db2777', glow: 'rgba(249,168,212,0.35)' }, // pink
+  6: { from: '#f43f5e', to: '#be123c', glow: 'rgba(244,63,94,0.35)' },   // red
 };
 
 export function LevelSelectScreen() {
   const setScreen = useUIStore((s) => s.setScreen);
   const addNotification = useUIStore((s) => s.addNotification);
   const highestUnlockedLevel = useGameStore((s) => s.highestUnlockedLevel);
+  const currentLevel = useGameStore((s) => s.currentLevel);
   const levelStars = useGameStore((s) => s.levelStars);
   const startLevel = useGameStore((s) => s.startLevel);
 
   const levels = LEVELS.filter((l) => LEVEL_IDS_TO_SHOW.includes(l.id));
 
-  // El primer nivel mostrado (2) siempre está desbloqueado, ya que el
-  // nivel 1 es el tutorial. El resto se desbloquea al completar el anterior.
-  const firstLevelId = LEVEL_IDS_TO_SHOW[0];
-  const effectiveUnlocked = Math.max(highestUnlockedLevel, firstLevelId);
+  // El nivel actual y el más alto desbloqueado determinan qué está disponible
+  const effectiveUnlocked = Math.max(highestUnlockedLevel, currentLevel, 1);
 
   const handleSelectLevel = (levelId: number, unlocked: boolean) => {
     if (!unlocked) {
@@ -122,7 +122,7 @@ export function LevelSelectScreen() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center mb-8 mt-2"
+          className="flex flex-col items-center mb-6 mt-2"
         >
           <div className="flex items-center gap-3 text-purple-300 mb-2">
             <MusicNoteIcon className="text-cyan-400" />
@@ -134,8 +134,43 @@ export function LevelSelectScreen() {
           <p className="text-purple-300/70 text-sm">Tu camino para convertirte en leyenda</p>
         </motion.div>
 
+        {/* ===== CÓMO JUGAR ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="w-full max-w-2xl mb-6 p-4 rounded-2xl border border-cyan-400/15 backdrop-blur-sm"
+          style={{ background: 'rgba(34,211,238,0.04)' }}
+        >
+          <h3 className="text-cyan-300 text-sm font-bold mb-2 flex items-center gap-2">
+            <span>💡</span> ¿Cómo funciona?
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] text-white/70">
+            <div className="flex flex-col items-center text-center gap-1 p-2 rounded-lg bg-white/[0.03]">
+              <span className="text-lg">🎤</span>
+              <span className="font-semibold text-white/90">Graba</span>
+              <span className="text-white/40">Canciones al ritmo</span>
+            </div>
+            <div className="flex flex-col items-center text-center gap-1 p-2 rounded-lg bg-white/[0.03]">
+              <span className="text-lg">💰</span>
+              <span className="font-semibold text-white/90">Trabaja</span>
+              <span className="text-white/40">Paga renta diaria</span>
+            </div>
+            <div className="flex flex-col items-center text-center gap-1 p-2 rounded-lg bg-white/[0.03]">
+              <span className="text-lg">📈</span>
+              <span className="font-semibold text-white/90">Crece</span>
+              <span className="text-white/40">Gana oyentes</span>
+            </div>
+            <div className="flex flex-col items-center text-center gap-1 p-2 rounded-lg bg-white/[0.03]">
+              <span className="text-lg">🏆</span>
+              <span className="font-semibold text-white/90">Meta</span>
+              <span className="text-white/40">10,000 oyentes</span>
+            </div>
+          </div>
+        </motion.div>
+
         {/* ===== GRID DE NIVELES ===== */}
-        <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {levels.map((level, index) => {
             const unlocked = level.id <= effectiveUnlocked;
             const stars = levelStars[level.id] ?? 0;
@@ -210,9 +245,23 @@ export function LevelSelectScreen() {
                   </div>
 
                   {/* Descripción */}
-                  <p className={`text-xs leading-relaxed mb-4 ${unlocked ? 'text-purple-200/70' : 'text-white/20'}`}>
+                  <p className={`text-xs leading-relaxed mb-3 ${unlocked ? 'text-purple-200/70' : 'text-white/20'}`}>
                     {unlocked ? level.description : 'Completa el nivel anterior para desbloquear.'}
                   </p>
+
+                  {/* Meta de oyentes */}
+                  {unlocked && (
+                    <div className="flex items-center gap-2 mb-3 text-[10px]">
+                      <span className="text-cyan-400">🎧</span>
+                      <span className="text-cyan-300/70 font-medium">
+                        Meta: {level.listenerGoal[1].toLocaleString()} oyentes
+                      </span>
+                      <span className="text-white/20">•</span>
+                      <span className="text-white/40">
+                        Días {level.days[0]}-{level.days[1]}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Estrellas */}
                   <div className="flex items-center gap-1.5">

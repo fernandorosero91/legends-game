@@ -93,15 +93,26 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
-  // Game loop
+  // Game loop — render at 30fps for UI, notes move via refs
+  const elapsedRef = useRef(0);
+  const frameCount = useRef(0);
+  
   useEffect(() => {
     if (phase !== 'playing') return;
     const loop = () => {
       const el = performance.now() - t0.current;
+      elapsedRef.current = el;
+      
       for (const n of notes.current) {
         if (!n.hit && !n.missed && n.targetTime < el - 280) { n.missed = true; st.current.misses++; co.current = 0; }
       }
-      setElapsed(el);
+
+      // Only update React state every other frame (~30fps) to reduce re-renders
+      frameCount.current++;
+      if (frameCount.current % 2 === 0) {
+        setElapsed(el);
+      }
+
       if (el >= DURATION) { music.current?.stop(); onComplete(sc.current, mx.current, st.current); return; }
       raf.current = requestAnimationFrame(loop);
     };
@@ -200,10 +211,10 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     <div className="relative z-10 w-full h-full flex flex-col">
       
       {/* Fondo oscuro semi-transparente para el área de juego */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[3px]" />
+      <div className="absolute inset-0 bg-black/55" />
 
       {/* TOP HUD — grande e informativo */}
-      <div className="relative shrink-0 px-5 py-3 bg-black/60 border-b border-white/[0.1]">
+      <div className="relative shrink-0 px-5 py-3 bg-black/70 border-b border-white/[0.1]">
         <div className="flex items-center justify-between">
           {/* Left: Song info */}
           <div className="flex items-center gap-3">
@@ -306,7 +317,7 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
       </div>
 
       {/* BOTTOM — Keys + Stats */}
-      <div className="relative shrink-0 bg-black/60 border-t border-white/[0.1]">
+      <div className="relative shrink-0 bg-black/70 border-t border-white/[0.1]">
         {/* Key indicators */}
         <div className="flex justify-center gap-3 py-3">
           {KEYS.map((k, i) => (

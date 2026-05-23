@@ -228,7 +228,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col">
       
       {/* Top HUD */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-black/40 backdrop-blur-sm border-b border-white/[0.08] shrink-0">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-black/70 border-b border-white/[0.08] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
             <span className="text-sm">🎯</span>
@@ -304,7 +304,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
       </div>
 
       {/* Bottom stats */}
-      <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/40 backdrop-blur-sm border-t border-white/[0.08] text-xs shrink-0">
+      <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/70 border-t border-white/[0.08] text-xs shrink-0">
         <div className="flex items-center gap-1.5">
           <span className="text-yellow-400">★</span>
           <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>

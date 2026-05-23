@@ -244,7 +244,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10 w-full h-full flex flex-col">
       
       {/* Top HUD */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-black/40 backdrop-blur-sm border-b border-white/[0.08] shrink-0">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-black/70 border-b border-white/[0.08] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
             <span className="text-sm">🎛️</span>
@@ -340,7 +340,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       </div>
 
       {/* Arrow key indicators */}
-      <div className="flex justify-center gap-3 py-4 bg-black/30 backdrop-blur-sm border-t border-white/[0.08]">
+      <div className="flex justify-center gap-3 py-4 bg-black/50 border-t border-white/[0.08]">
         {DIRECTIONS.map(dir => (
           <div key={dir} className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black transition-all duration-75"
             style={{
@@ -356,7 +356,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       </div>
 
       {/* Bottom stats */}
-      <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/40 backdrop-blur-sm border-t border-white/[0.04] text-xs">
+      <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/70 border-t border-white/[0.04] text-xs">
         <div className="flex items-center gap-1.5">
           <span className="text-yellow-400">★</span>
           <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>

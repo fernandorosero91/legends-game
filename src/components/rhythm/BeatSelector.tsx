@@ -76,7 +76,7 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="relative z-10 w-full max-w-[640px] mx-auto px-4"
     >
-      <div className="bg-[#1a1a28]/85 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
+      <div className="bg-[#1a1a28]/92 rounded-2xl border border-white/10 overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
         
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
