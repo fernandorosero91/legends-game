@@ -109,31 +109,22 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Game loop
+  // Game loop — DO NOT call setState every frame
+  const hudTimerRef = useRef(0);
+  
   useEffect(() => {
     if (!started) return;
     const loop = () => {
       const el = performance.now() - startTimeRef.current;
-      setElapsed(el);
 
-      // Check missed arrows
-      let missCount = 0;
+      // Check missed arrows (mutate only)
       for (const a of arrowsRef.current) {
         if (!a.hit && !a.missed && a.targetTime < el - 300) {
           a.missed = true;
-          missCount++;
+          comboRef.current = 0;
+          statsRef.current.misses++;
         }
       }
-      if (missCount > 0) {
-        comboRef.current = 0;
-        setCombo(0);
-        statsRef.current.misses += missCount;
-        setStats({ ...statsRef.current });
-      }
-
-      // Update current index (first unhit/unmissed)
-      const idx = arrowsRef.current.findIndex(a => !a.hit && !a.missed);
-      setCurrentIndex(idx >= 0 ? idx : arrowsRef.current.length);
 
       if (el >= GAME_DURATION) {
         bgMusic.current?.stop();
@@ -143,7 +134,20 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       animRef.current = requestAnimationFrame(loop);
     };
     animRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animRef.current);
+
+    // HUD updates at ~8fps
+    hudTimerRef.current = window.setInterval(() => {
+      const el = performance.now() - startTimeRef.current;
+      setElapsed(el);
+      setScore(scoreRef.current);
+      setCombo(comboRef.current);
+      setMaxCombo(maxComboRef.current);
+      setStats({ ...statsRef.current });
+      const idx = arrowsRef.current.findIndex(a => !a.hit && !a.missed);
+      setCurrentIndex(idx >= 0 ? idx : arrowsRef.current.length);
+    }, 120);
+
+    return () => { cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); };
   }, [started, onComplete]);
 
   // Keyboard
@@ -206,29 +210,13 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       setMaxCombo(maxComboRef.current);
       setStats({ ...statsRef.current });
       setFeedbackText({ text, color, key: Date.now() });
-
-      // Floating musical note particles (DOM-based for performance)
-      const symbols = ['♪', '♫', '♬', '★', '✦', '🎵'];
-      const count = points >= 100 ? 5 : points >= 75 ? 3 : 2;
-      for (let i = 0; i < count; i++) {
-        const el = document.createElement('div');
-        el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-        const size = 26 + Math.random() * 18;
-        el.style.cssText = `position:fixed;left:50%;top:42%;color:${color};font-size:${size}px;pointer-events:none;z-index:100;text-shadow:0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}50;transition:all 0.9s ease-out;transform:translate(-50%,-50%) scale(1.3);opacity:1;font-weight:bold`;
-        document.body.appendChild(el);
-        requestAnimationFrame(() => {
-          el.style.opacity = '0';
-          el.style.transform = `translate(${(Math.random()-0.5)*180}px, ${-80-Math.random()*120}px) rotate(${(Math.random()-0.5)*120}deg) scale(0.2)`;
-        });
-        setTimeout(() => el.remove(), 950);
-      }
     };
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [started, level]);
 
-  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); }, []);
+  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); }, []);
 
   const progress = elapsed / GAME_DURATION;
   const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
