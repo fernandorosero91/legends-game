@@ -4,7 +4,7 @@
  * Permite comprar accesorios de piezas (micrófonos, audífonos, etc.) con la plata del juego
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/playerStore';
 import { useGameStore } from '@/store/gameStore';
@@ -37,9 +37,11 @@ interface CartItemUI {
 
 interface CartShopModalProps {
   className?: string;
+  forceOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function CartShopModal({ className = '' }: CartShopModalProps) {
+export function CartShopModal({ className = '', forceOpen = false, onClose }: CartShopModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [cart, setCart] = useState<CartItemUI[]>([]);
   const [activeTab, setActiveTab] = useState<'shop' | 'cart'>('shop');
@@ -47,6 +49,17 @@ export function CartShopModal({ className = '' }: CartShopModalProps) {
 
   const { money, inventory } = usePlayerStore();
   const { currentLevel } = useGameStore();
+
+  // Abrir externamente
+  useEffect(() => {
+    if (forceOpen) setIsOpen(true);
+  }, [forceOpen]);
+
+  // Notificar al cerrar
+  const handleModalClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
 
   // Items disponibles según el nivel actual
   const availableItems = ACCESSORY_ITEMS.filter(
@@ -128,7 +141,7 @@ export function CartShopModal({ className = '' }: CartShopModalProps) {
       setPurchaseSuccess(`¡Compra exitosa! 🎉 ${purchasedNames.join(', ')}`);
       setTimeout(() => {
         setPurchaseSuccess(null);
-        setIsOpen(false);
+        handleModalClose();
       }, 2500);
     }
   };
@@ -174,7 +187,7 @@ export function CartShopModal({ className = '' }: CartShopModalProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-              onClick={() => setIsOpen(false)}
+              onClick={handleModalClose}
             />
 
             {/* Panel principal */}
@@ -206,7 +219,7 @@ export function CartShopModal({ className = '' }: CartShopModalProps) {
                   </div>
                   {/* Cerrar */}
                   <button
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleModalClose}
                     className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white flex items-center justify-center text-lg transition-all"
                     aria-label="Cerrar tienda"
                   >
