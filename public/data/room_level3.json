@@ -1,0 +1,122 @@
+[
+    {
+        "name": "extended_floor_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -23.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "extended_wall_back_lev1",
+        "x": 0.0,
+        "y": 8.537002563476562,
+        "z": -32.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "extended_wall_left_lev1",
+        "x": -14.0,
+        "y": 8.428350448608398,
+        "z": -19.87916374206543,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_2_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_3_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_4_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_5_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_6_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_7_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_bedcloth_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_fabric_button_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_steel_black_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_fabric_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_frame_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "edwin_king_size_bed_fabric_junipergreem_plastic_0_lev1",
+        "x": -9.826488494873047,
+        "y": 1.8598490953445435,
+        "z": -29.699256896972656,
+        "level": 1,
+        "role": "default"
+    }
+]

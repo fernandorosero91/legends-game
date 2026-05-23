@@ -1,0 +1,74 @@
+[
+    {
+        "name": "object_2_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_3_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "object_4_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "defaultmaterial_lev1",
+        "x": 0.0,
+        "y": 1.7663789987564087,
+        "z": 12.764451026916504,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "defaultmaterial.001_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "wall_left_extension_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "wall_right_extension_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "wall_back_extension_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "floor_black_full_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    }
+]
