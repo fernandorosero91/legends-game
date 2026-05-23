@@ -20,6 +20,7 @@ import { AuthTestScreen } from '../components/ui/AuthTestScreen';
 import { AuthScreen } from '../components/ui/AuthScreen';
 import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { GameInitializer } from '../components/GameInitializer';
+import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -29,7 +30,6 @@ import { useJobStore } from '../store/jobStore';
 import { ShopSystem } from '../systems/shopSystem';
 import { JobSystem } from '../systems/jobSystem';
 import { motion } from 'framer-motion';
-import { CartShopModal } from '../components/ui/CartShopModal';
 
 // Lazy load de pantallas pesadas para optimización
 const ShopScreen = lazy(() => import('../components/ui/ShopScreen'));
@@ -40,10 +40,11 @@ const LeaderboardScreen = lazy(() => import('../components/ui/LeaderboardScreen'
 const SaveLoadScreen = lazy(() => import('../components/ui/SaveLoadScreen'));
 const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
 const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
+const LevelSelectScreen = lazy(() => import('../components/ui/LevelSelectScreen'));
 
 function GameScene() {
   // Estados del juego
-  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene } = useGameStore();
+  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
   const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
@@ -58,6 +59,11 @@ function GameScene() {
   useEffect(() => {
     const { gamePhase } = useGameStore.getState();
     if (gamePhase === 'menu') {
+      // Reset player state for a fresh game (unless a save was loaded)
+      const playerState = usePlayerStore.getState();
+      if (playerState.monthlyListeners === 0 && playerState.songs.length === 0) {
+        playerState.resetPlayer();
+      }
       useGameStore.getState().startNewGame();
     }
   }, []);
@@ -98,6 +104,8 @@ function GameScene() {
   const handleCloseTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('legends-map-tutorial', 'seen');
+    // Tras el tutorial, mostrar el menú de selección de niveles
+    useUIStore.getState().setScreen('level_select');
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -173,9 +181,6 @@ function GameScene() {
         onOpenFullMap={() => setShowLocationMap(true)}
       />
 
-      {/* Carrito de compras de accesorios musicales */}
-      <CartShopModal />
-      
       {/* Botón flotante para abrir mapa */}
       <motion.button
         initial={{ scale: 0 }}
@@ -272,6 +277,11 @@ function GameScene() {
           </div>
         </Suspense>
       )}
+
+      {/* Rhythm Game — Minijuego de grabación */}
+      <AnimatePresence>
+        {gamePhase === 'rhythm_game' && <RhythmGame />}
+      </AnimatePresence>
     </>
   );
 }
@@ -350,6 +360,13 @@ function App() {
 
       {/* Pantalla de selección de personaje */}
       {currentScreen === 'character_select' && <CharacterSelectScreen />}
+
+      {/* Pantalla de selección de nivel */}
+      {currentScreen === 'level_select' && (
+        <Suspense fallback={<LoadingScreen />}>
+          <LevelSelectScreen />
+        </Suspense>
+      )}
       
       {/* Pantalla del juego */}
       {currentScreen === 'game' && <GameScene />}
