@@ -103,7 +103,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     if (countdown <= 0) {
       setStarted(true);
       startTimeRef.current = performance.now();
-      bgMusic.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.25, loop: true });
+      bgMusic.current = new Howl({ src: [beat.audioFile], volume: 0.25, loop: true });
       bgMusic.current.play();
       return;
     }
@@ -192,9 +192,25 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     setMaxCombo(maxComboRef.current);
     setStats({ ...statsRef.current });
 
-    // Explosion
+    // Explosion + musical notes
     setExplosions(prev => [...prev, { id: `e-${Date.now()}`, x: circle.x, y: circle.y, color: circle.color }]);
     setTimeout(() => setExplosions(prev => prev.slice(1)), 500);
+
+    // Floating musical notes — big and luminous
+    const noteSymbols = ['♪', '♫', '♬', '★', '✦'];
+    const count = points >= 100 ? 4 : points >= 75 ? 3 : 2;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+      const size = 28 + Math.random() * 20;
+      el.style.cssText = `position:fixed;left:${circle.x}%;top:${circle.y}%;color:${circle.color};font-size:${size}px;pointer-events:none;z-index:100;text-shadow:0 0 20px ${circle.color}, 0 0 40px ${circle.color}, 0 0 60px ${circle.color}50;transition:all 1s ease-out;transform:translate(-50%,-50%) scale(1.3);opacity:1;font-weight:bold`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() => {
+        el.style.opacity = '0';
+        el.style.transform = `translate(${(Math.random()-0.5)*150}px, ${-100-Math.random()*100}px) rotate(${(Math.random()-0.5)*90}deg) scale(0.3)`;
+      });
+      setTimeout(() => el.remove(), 1000);
+    }
   }, [level]);
 
   useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); }, []);

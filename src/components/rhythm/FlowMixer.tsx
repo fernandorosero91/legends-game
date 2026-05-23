@@ -101,7 +101,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
     if (countdown <= 0) {
       setStarted(true);
       startTimeRef.current = performance.now();
-      bgMusic.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.25, loop: true });
+      bgMusic.current = new Howl({ src: [beat.audioFile], volume: 0.25, loop: true });
       bgMusic.current.play();
       return;
     }
@@ -206,6 +206,22 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       setMaxCombo(maxComboRef.current);
       setStats({ ...statsRef.current });
       setFeedbackText({ text, color, key: Date.now() });
+
+      // Floating musical note particles (DOM-based for performance)
+      const symbols = ['♪', '♫', '♬', '★', '✦', '🎵'];
+      const count = points >= 100 ? 5 : points >= 75 ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        const size = 26 + Math.random() * 18;
+        el.style.cssText = `position:fixed;left:50%;top:42%;color:${color};font-size:${size}px;pointer-events:none;z-index:100;text-shadow:0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}50;transition:all 0.9s ease-out;transform:translate(-50%,-50%) scale(1.3);opacity:1;font-weight:bold`;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => {
+          el.style.opacity = '0';
+          el.style.transform = `translate(${(Math.random()-0.5)*180}px, ${-80-Math.random()*120}px) rotate(${(Math.random()-0.5)*120}deg) scale(0.2)`;
+        });
+        setTimeout(() => el.remove(), 950);
+      }
     };
 
     window.addEventListener('keydown', handleKey);
