@@ -12,6 +12,7 @@ const ANIMS_MALE = {
   idle: 'idle.001',
   walk: 'walking',
   sit: 'sitting',
+  sleep: 'sleeping',
 };
 
 // Para el modelo femenino: tiene idle (breathing), walking
@@ -19,6 +20,7 @@ const ANIMS_FEMALE = {
   idle: 'idle',
   walk: 'walking',
   sit: 'walking',
+  sleep: 'sleeping',
 };
 
 const PLAYER_RADIUS = 0.7;
@@ -42,7 +44,6 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const { actions } = useAnimations(animations, group);
   const setPlayerRef = usePlayerStore((s) => s.setPlayerRef);
   const wallBoxes = usePlayerStore((s) => s.wallBoxes);
-
   const forward = useRef(false);
   const back = useRef(false);
   const left = useRef(false);
@@ -173,7 +174,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
 
     // Don't process movement during minigames
     const { gamePhase } = useGameStore.getState();
-    const { isSitting } = usePlayerStore.getState();
+    const { isSitting, isSleeping } = usePlayerStore.getState();
     
     if (gamePhase !== 'playing') {
       // Reset movement keys to prevent stuck movement
@@ -182,8 +183,10 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       left.current = false;
       right.current = false;
       
-      // Play sitting animation during rhythm game
-      if (isSitting) {
+      // Play sleeping animation
+      if (isSleeping) {
+        playAnim(ANIMS.sleep || ANIMS.idle);
+      } else if (isSitting) {
         playAnim(ANIMS.sit || ANIMS.idle);
       } else {
         playAnim(ANIMS.idle);
@@ -192,9 +195,15 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       return;
     }
     
-    // If was sitting, stand up
+    // If was sitting or sleeping, stand up when moving
     if (isSitting) {
       usePlayerStore.getState().setPlayerSitting(false);
+    }
+    if (isSleeping) {
+      // No levantarse automáticamente — solo cuando el juego lo indique
+      playAnim(ANIMS.sleep || ANIMS.idle);
+      // Mantener la posicion Y de la cama (no resetear al suelo)
+      return;
     }
 
     let mx = 0, mz = 0;

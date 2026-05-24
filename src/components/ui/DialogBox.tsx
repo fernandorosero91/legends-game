@@ -78,6 +78,7 @@ export function DialogBox({
   // Obtener información del personaje
   const getCharacterInfo = (characterName: string) => {
     const characters: Record<string, { role: string; color: string; emoji: string }> = {
+      'Sandra': { role: 'Dueña del Purple Market', color: '#10b981', emoji: '🛒' },
       'DJ Sonic': { role: 'Mentor Musical', color: '#a855f7', emoji: '🎧' },
       'El de la Renta': { role: 'Cobrador', color: '#ef4444', emoji: '💰' },
       'Luna': { role: 'Fan #1', color: '#06b6d4', emoji: '🌙' },

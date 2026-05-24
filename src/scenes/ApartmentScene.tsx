@@ -32,15 +32,40 @@ export const ApartmentScene = () => {
     }
   }, [currentRoom]);
 
+  const setPlayerSleeping = usePlayerStore((s) => s.setPlayerSleeping);
+  const playerRef = usePlayerStore((s) => s.playerRef);
+
+  // Posicion encima de la cama (ajustada visualmente)
+  const BED_POSITION = { x: -7.2, y: -0.7, z: 2.0 };
+  // Posicion de salida — al lado de la cama, fuera de la colision
+  const BED_EXIT = { x: -5.0, y: 0.0, z: 2 };
+
   // Dormir en la cama
   const handleSleep = () => {
     if (energy >= 100) {
       addNotification('info', '😊 Ya tienes energía al máximo');
       return;
     }
+    // Mover al jugador encima de la cama
+    if (playerRef) {
+      playerRef.position.set(BED_POSITION.x, BED_POSITION.y, BED_POSITION.z);
+      // Orientar a lo largo de la cama (cabecera a la izquierda = rotar 90 en Y)
+      playerRef.rotation.y = Math.PI * 0.5;
+    }
+    // Activar animación de dormir
+    setPlayerSleeping(true);
     addEnergy(50);
-    advanceTime();
-    addNotification('success', '😴 Descansaste bien. +50 energía. Avanzó el turno.');
+    // Después de 2.5 segundos, avanzar turno y despertar
+    setTimeout(() => {
+      setPlayerSleeping(false);
+      // Mover al jugador fuera de la cama antes de reactivar movimiento
+      if (playerRef) {
+        playerRef.position.set(BED_EXIT.x, BED_EXIT.y, BED_EXIT.z);
+        playerRef.rotation.y = 0;
+      }
+      advanceTime();
+      addNotification('success', '😴 Descansaste bien. +50 energía. Avanzó el turno.');
+    }, 2500);
   };
 
   // Descansar en el sofá
