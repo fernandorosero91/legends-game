@@ -57,6 +57,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   const [countdown, setCountdown] = useState(3);
   const [started, setStarted] = useState(false);
   const [explosions, setExplosions] = useState<{ id: string; x: number; y: number; color: string }[]>([]);
+  const [paused, setPaused] = useState(false);
 
   const startTimeRef = useRef(0);
   const animRef = useRef(0);
@@ -66,6 +67,8 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   const comboRef = useRef(0);
   const maxComboRef = useRef(0);
   const bgMusic = useRef<Howl | null>(null);
+  const pausedRef = useRef(false);
+  const pauseTimeRef = useRef(0);
 
   // Generate circles based on BPM
   useEffect(() => {
@@ -117,6 +120,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
   useEffect(() => {
     if (!started) return;
     const loop = () => {
+      if (pausedRef.current) { animRef.current = requestAnimationFrame(loop); return; }
       const el = performance.now() - startTimeRef.current;
 
       // Check missed (mutate only)
@@ -236,6 +240,47 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
 
   useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); }, []);
 
+  // Escape key for pause
+  useEffect(() => {
+    if (!started) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') togglePause();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [started]);
+
+  function togglePause() {
+    if (pausedRef.current) {
+      const pausedDuration = performance.now() - pauseTimeRef.current;
+      startTimeRef.current += pausedDuration;
+      pausedRef.current = false;
+      bgMusic.current?.play();
+      setPaused(false);
+    } else {
+      pausedRef.current = true;
+      pauseTimeRef.current = performance.now();
+      bgMusic.current?.pause();
+      setPaused(true);
+    }
+  }
+
+  function handleRestart() {
+    bgMusic.current?.stop();
+    cancelAnimationFrame(animRef.current);
+    clearInterval(hudTimerRef.current);
+    pausedRef.current = false;
+    setPaused(false);
+    setStarted(false);
+    setCountdown(3);
+    setScore(0); setCombo(0); setMaxCombo(0);
+    setStats({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
+    scoreRef.current = 0; comboRef.current = 0; maxComboRef.current = 0;
+    statsRef.current = { perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 };
+    circlesRef.current = [];
+    setCircles([]);
+  }
+
   const progress = elapsed / GAME_DURATION;
   const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
   const accuracy = (totalHits + stats.misses) > 0 ? Math.round((totalHits / (totalHits + stats.misses)) * 100) : 100;
@@ -292,6 +337,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
             <div className="text-lg font-black text-white leading-none tabular-nums">{score.toLocaleString()}</div>
             <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Score</div>
           </div>
+          <button onClick={togglePause} className="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white text-xs hover:bg-white/20" title="Pausar (Esc)">⏸</button>
           <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xs hover:bg-red-500/20 transition">✕</button>
         </div>
       </div>
@@ -382,6 +428,23 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
         <div className="h-3 w-px bg-white/10" />
         <span className={`font-bold ${accuracy >= 90 ? 'text-yellow-300' : accuracy >= 70 ? 'text-emerald-300' : 'text-white/50'}`}>{accuracy}%</span>
       </div>
+
+      {/* PAUSE OVERLAY */}
+      {paused && (
+        <div className="absolute inset-0 z-[200] bg-black/70 flex items-center justify-center">
+          <div className="bg-[#1a1a30]/95 rounded-2xl border border-purple-400/20 p-8 text-center shadow-2xl max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⏸️</div>
+            <h3 className="text-2xl font-black text-white mb-1">PAUSA</h3>
+            <p className="text-purple-200/60 text-sm mb-6">{beat.name} • {beat.tempo} BPM</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={togglePause} className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-[#0a0318] font-bold text-sm hover:from-cyan-300 hover:to-cyan-400 active:scale-95 shadow-[0_4px_15px_rgba(34,211,238,0.3)] transition-all">▶ Continuar</button>
+              <button onClick={handleRestart} className="w-full py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white font-semibold text-sm hover:bg-white/10 active:scale-95 transition-all">🔄 Reiniciar</button>
+              <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 font-semibold text-sm hover:bg-red-500/20 active:scale-95 transition-all">✕ Salir</button>
+            </div>
+            <p className="text-white/30 text-[10px] mt-4">Presiona ESC para continuar</p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
