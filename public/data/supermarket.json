@@ -1,0 +1,146 @@
+[
+    {
+        "name": "supermarket_group_00_lev1",
+        "x": -5.8639,
+        "y": 0.025,
+        "z": 2.8896,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_01_lev1",
+        "x": -3.4008,
+        "y": 2.6717,
+        "z": 0.7652,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_02_lev1",
+        "x": -3.4008,
+        "y": 2.6717,
+        "z": 0.7652,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_03_lev1",
+        "x": -3.4008,
+        "y": 2.6717,
+        "z": 0.7652,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_04_lev1",
+        "x": -7.9174,
+        "y": 2.3372,
+        "z": 4.4124,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_05_lev1",
+        "x": -7.0642,
+        "y": 2.356,
+        "z": 5.5954,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_06_lev1",
+        "x": -7.0996,
+        "y": 0.6752,
+        "z": 5.5429,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_07_lev1",
+        "x": -4.5198,
+        "y": 1.1959,
+        "z": 5.5944,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_08_lev1",
+        "x": -5.4591,
+        "y": 1.7917,
+        "z": 5.6038,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_09_lev1",
+        "x": -3.6533,
+        "y": 1.7742,
+        "z": 1.2593,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_10_lev1",
+        "x": -1.8521,
+        "y": 2.3976,
+        "z": 1.2959,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_11_lev1",
+        "x": 0.17,
+        "y": 2.3181,
+        "z": 4.5026,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_12_lev1",
+        "x": -4.9242,
+        "y": 2.3531,
+        "z": 4.4963,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_13_lev1",
+        "x": -13.1437,
+        "y": 0.929,
+        "z": 4.7353,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_14_lev1",
+        "x": -13.1437,
+        "y": 0.929,
+        "z": 4.7353,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_15_lev1",
+        "x": -12.6369,
+        "y": 1.1336,
+        "z": 5.5706,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_16_lev1",
+        "x": -14.4701,
+        "y": 0.0249,
+        "z": 2.5851,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "supermarket_group_17_lev1",
+        "x": -14.4701,
+        "y": 0.0249,
+        "z": 2.5851,
+        "level": 1,
+        "role": "default"
+    }
+]
