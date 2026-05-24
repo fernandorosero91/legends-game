@@ -48,7 +48,7 @@ function GameScene() {
   // Estados del juego
   const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
-  const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
+  const { dialogueActive, currentDialogue, closeDialogue, nextDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -115,6 +115,12 @@ function GameScene() {
   };
 
   const handleLocationSelect = (locationId: string) => {
+    // Level access control for restaurant (Level 3+ required)
+    if (locationId === 'restaurant' && currentLevel < 3) {
+      useUIStore.getState().addNotification('warning', 'Necesitas nivel 3 para acceder al restaurante');
+      return;
+    }
+
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
     
@@ -264,7 +270,7 @@ function GameScene() {
         text={currentDialogue?.text || ''}
         portrait={currentDialogue?.portrait}
         options={currentDialogue?.options}
-        onNext={closeDialogue}
+        onNext={nextDialogue}
         onSelectOption={(optionId: string) => {
           console.log('Opción seleccionada:', optionId);
           closeDialogue();

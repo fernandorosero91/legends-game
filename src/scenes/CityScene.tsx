@@ -6,9 +6,15 @@ import { useUIStore } from '../store/uiStore';
 
 export function CityScene() {
   const setCurrentScene = useGameStore(state => state.setCurrentScene);
+  const currentLevel = useGameStore(state => state.currentLevel);
   const addNotification = useUIStore(state => state.addNotification);
 
   const handleGoToLocation = (location: string) => {
+    // Level access control for restaurant (Level 3+ required)
+    if (location === 'restaurant' && currentLevel < 3) {
+      addNotification('warning', 'Necesitas nivel 3 para acceder al restaurante');
+      return;
+    }
     setCurrentScene(location as any);
     addNotification('info', `Entrando a ${location}...`);
   };
