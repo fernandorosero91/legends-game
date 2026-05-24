@@ -50,6 +50,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const currentAction = useRef('');
   const isMoving = useRef(false);
   const floorY = useRef(position[1]);
+  const wasSitting = useRef(false);
   const sameClip = ANIMS.idle === ANIMS.walk; // true for player2
 
   // Find the best matching animation name
@@ -188,7 +189,14 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       back.current = false;
       left.current = false;
       right.current = false;
+      wasSitting.current = true;
       return;
+    }
+
+    // Just stood up — move player away from chair
+    if (wasSitting.current) {
+      wasSitting.current = false;
+      group.current.position.z += 2; // Move back 2 units away from desk
     }
 
     if (gamePhase !== 'playing') {
