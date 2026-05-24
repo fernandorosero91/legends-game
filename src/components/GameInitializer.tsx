@@ -13,31 +13,33 @@ const PRELOAD_MODELS = [
   '/models/player2.glb',
 ];
 
-// Preload room level 1 models (fetch the JSON and preload each GLB)
+// Preload room models (fetch the JSON and preload each GLB)
 async function preloadRoomModels() {
-  try {
-    const response = await fetch('/data/room_level1.json');
-    const objects = await response.json();
-    
-    // Get unique model names
-    const uniqueNames = new Set<string>();
-    objects.forEach((obj: { name: string }) => uniqueNames.add(obj.name));
-    
-    // Preload each GLB (browser will cache them)
-    const basePath = '/models/environments/rooms/room_level1/';
-    for (const name of uniqueNames) {
-      try {
-        // Use fetch to warm the browser cache
-        fetch(`${basePath}${name}.glb`).catch(() => {});
-      } catch {
-        // Ignore individual model failures
+  const rooms = [
+    { json: '/data/room_level1.json', base: '/models/environments/rooms/room_level1/' },
+    { json: '/data/studio_level_3.json', base: '/models/environments/rooms/studio_level_3/' },
+  ];
+
+  for (const room of rooms) {
+    try {
+      const response = await fetch(room.json);
+      const objects = await response.json();
+      const uniqueNames = new Set<string>();
+      objects.forEach((obj: { name: string }) => uniqueNames.add(obj.name));
+
+      for (const name of uniqueNames) {
+        fetch(`${room.base}${name}.glb`).catch(() => {});
       }
+
+      console.log(`[GameInitializer] Preloading ${uniqueNames.size} models from ${room.json}`);
+    } catch {
+      // Ignore room load failures
     }
-    
-    console.log(`[GameInitializer] Preloading ${uniqueNames.size} room models`);
-  } catch (error) {
-    console.warn('[GameInitializer] Could not preload room models:', error);
   }
+
+  // Also preload NPC models
+  fetch('/models/npcs/dj_sonic.glb').catch(() => {});
+  fetch('/models/npcs/npc_rent_collector.glb').catch(() => {});
 }
 
 // Preload audio files
