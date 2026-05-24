@@ -66,7 +66,7 @@ export const ApartmentScene = () => {
 
   // Computador — trabajos online
   const handleComputer = () => {
-    addNotification('info', '💻 Trabajos online — próximamente...');
+    useGameStore.getState().setGamePhase('online_job');
   };
 
   return (
