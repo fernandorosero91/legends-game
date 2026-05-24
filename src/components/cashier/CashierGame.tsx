@@ -8,6 +8,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { useUIStore } from '../../store/uiStore';
+import { useAudioStore } from '../../store/audioStore';
+
+// ─── Sonidos ─────────────────────────────────────────────
+function playAudio(src: string, volume = 1) {
+  try {
+    const audio = new Audio(src);
+    audio.volume = volume;
+    audio.play().catch(() => {});
+  } catch (_) {}
+}
 
 // ─── Productos ───────────────────────────────────────────
 const PRODUCT_POOL = [
@@ -95,6 +105,9 @@ export function CashierGame() {
   const addMoney = usePlayerStore(s => s.addMoney);
   const consumeEnergy = usePlayerStore(s => s.consumeEnergy);
   const addNotification = useUIStore(s => s.addNotification);
+  const muted = useAudioStore(s => s.muted);
+  const sfxVolume = useAudioStore(s => s.sfxVolume);
+  const masterVolume = useAudioStore(s => s.masterVolume);
 
   const correctTotal = products.reduce((sum, p) => sum + p.price, 0);
   const difficulty = getDifficulty(level);
@@ -121,12 +134,15 @@ export function CashierGame() {
     if (showIntro || gameOver || paused || feedback) return;
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { setLives(l => l - 1); setFeedback('wrong'); return 0; }
+        if (prev <= 1) {
+          if (!muted) playAudio('/audio/error.mp3', sfxVolume * masterVolume);
+          setLives(l => l - 1); setFeedback('wrong'); return 0;
+        }
         return prev - 1;
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [showIntro, gameOver, paused, feedback, products]);
+  }, [showIntro, gameOver, paused, feedback, products, muted, sfxVolume, masterVolume]);
 
   // Game over check
   useEffect(() => {
@@ -154,8 +170,10 @@ export function CashierGame() {
     const answer = parseFloat(input);
     const expected = Math.round(correctTotal * 100) / 100;
     if (Math.abs(answer - expected) < 0.01) {
+      if (!muted) playAudio('/audio/cash_register.mp3', sfxVolume * masterVolume);
       setFeedback('correct'); setClientsServed(c => c + 1); setEarnings(e => e + 50);
     } else {
+      if (!muted) playAudio('/audio/error.mp3', sfxVolume * masterVolume);
       setFeedback('wrong'); setLives(l => l - 1);
     }
   };
