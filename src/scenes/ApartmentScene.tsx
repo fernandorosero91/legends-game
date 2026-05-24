@@ -7,6 +7,7 @@
 import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
 import { RoomLevel1 } from '../components/game/RoomLevel1';
+import { RoomAccessories } from '../components/game/RoomAccessories';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
@@ -77,6 +78,14 @@ export const ApartmentScene = () => {
         {currentRoom !== 'studio_level_3' && <RoomLevel1 />}
         {currentRoom === 'studio_level_3' && <StudioLevel3 />}
       </Suspense>
+
+      {/* Accesorios comprados en la tienda (micrófono, audífonos, etc.)
+          Solo en la habitación principal — posiciones calibradas para room_level1 */}
+      {currentRoom !== 'studio_level_3' && (
+        <Suspense fallback={null}>
+          <RoomAccessories />
+        </Suspense>
+      )}
 
       {/* === ZONAS DE INTERACCIÓN POR HABITACIÓN === */}
 
