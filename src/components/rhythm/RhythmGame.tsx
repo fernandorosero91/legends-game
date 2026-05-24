@@ -107,7 +107,7 @@ export function RhythmGame() {
             <div className="w-3 h-3 rounded-full bg-[#28c840] shadow-[0_0_4px_rgba(40,200,64,0.4)]" />
           </div>
           <div className="flex-1 text-center">
-            <span className="text-purple-200/60 text-[11px] font-semibold tracking-[0.2em] uppercase">
+            <span className="text-cyan-200 text-[11px] font-semibold tracking-[0.2em] uppercase">
               Legends Studio — Sesión de Grabación
             </span>
           </div>
