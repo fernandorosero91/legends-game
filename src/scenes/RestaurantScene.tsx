@@ -4,9 +4,15 @@ import { CameraRig } from '../components/game/CameraRig';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RestaurantLevel1 } from '../components/game/RestaurantLevel1';
 import { ChefNPC } from '../components/game/ChefNPC';
+import { CustomerNPC } from '../components/game/CustomerNPC';
+import { SeatMarker } from '../components/game/SeatMarker';
+import { ReadyDishOnCounter } from '../components/game/ReadyDishOnCounter';
+import { RestaurantCustomersManager } from '../components/game/RestaurantCustomersManager';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useUIStore } from '../store/uiStore';
+import { useRestaurantStore } from '../store/restaurantStore';
+import { RESTAURANT_SEATS } from '../data/restaurantConfig';
 
 export function RestaurantScene() {
   const setCurrentScene = useGameStore(state => state.setCurrentScene);
@@ -20,6 +26,9 @@ export function RestaurantScene() {
   const showDialogue = useUIStore(state => state.showDialogue);
   const queueDialogue = useUIStore(state => state.queueDialogue);
   const dialogueActive = useUIStore(state => state.dialogueActive);
+
+  // Lista reactiva de clientes presentes en escena.
+  const customers = useRestaurantStore(s => s.customers);
 
   const handleWork = () => {
     if (energy < 25) {
@@ -41,8 +50,6 @@ export function RestaurantScene() {
 
     const portrait = '/models/chef_image.png';
 
-    // Página 1: saludo. Tras presionar "Continuar conversación" se muestra
-    // la página 2 con el tutorial completo (encolada con queueDialogue).
     showDialogue({
       id: 'chef-carlos-greet',
       speaker: 'Chef Carlos',
@@ -80,6 +87,9 @@ export function RestaurantScene() {
         <RestaurantLevel1 />
       </Suspense>
 
+      {/* Manager de spawn de clientes (sin mesh) */}
+      <RestaurantCustomersManager />
+
       {/* Chef NPC animado dentro del restaurante (detrás de la barra) */}
       <Suspense fallback={null}>
         <ChefNPC
@@ -88,14 +98,29 @@ export function RestaurantScene() {
           scale={1}
           name="Chef Carlos"
           onInteract={handleTalkToChef}
-          // Posición del label "E - Hablar con Chef Carlos" (sobre la cabeza)
           labelOffset={[0, 2.4, 0]}
-          // Posición del nombre flotante del NPC
           nameOffset={[0, 2.8, 0]}
         />
       </Suspense>
 
-      {/* Estación de mesero */}
+      {/* Marcadores de sillas (sólo visibles con cliente seleccionado) */}
+      {RESTAURANT_SEATS.map((seat) => (
+        <SeatMarker key={seat.id} seat={seat} />
+      ))}
+
+      {/* Clientes activos */}
+      <Suspense fallback={null}>
+        {customers.map((c) => (
+          <CustomerNPC key={c.id} id={c.id} />
+        ))}
+      </Suspense>
+
+      {/* Plato listo en la barra del chef + countdown de cocina */}
+      <Suspense fallback={null}>
+        <ReadyDishOnCounter />
+      </Suspense>
+
+      {/* Estación de mesero (queda como atajo opcional) */}
       <InteractableZone
         position={[-3, 1.5, -7]}
         size={[2.5, 1.5, 1.5]}

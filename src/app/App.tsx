@@ -23,6 +23,8 @@ import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
+import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
+import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -115,9 +117,15 @@ function GameScene() {
   };
 
   const handleLocationSelect = (locationId: string) => {
-    // Level access control for restaurant (Level 3+ required)
-    if (locationId === 'restaurant' && currentLevel < 3) {
-      useUIStore.getState().addNotification('warning', 'Necesitas nivel 3 para acceder al restaurante');
+    // Restaurant cooldown check
+    if (locationId === 'restaurant' && isRestaurantOnCooldown()) {
+      const remaining = getRestaurantCooldownRemaining();
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      useUIStore.getState().addNotification(
+        'warning',
+        `Vuelve a tomar otro turno en ${min > 0 ? `${min}m ` : ''}${sec}s`
+      );
       return;
     }
 
@@ -204,6 +212,12 @@ function GameScene() {
             currentLocation={currentScene}
             onOpenFullMap={() => setShowLocationMap(true)}
           />
+
+          {/* Restaurant Timer — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantTimer />}
+
+          {/* Restaurant Orders HUD — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantOrdersHUD />}
 
           {/* Tienda — CartShopModal */}
           <CartShopModal 
