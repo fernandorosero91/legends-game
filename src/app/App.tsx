@@ -23,6 +23,7 @@ import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { CashierGame } from '../components/cashier/CashierGame';
+import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { GameSideButtons } from '../components/ui/GameSideButtons';
 import { useInsForge } from '../hooks/useInsForge';
@@ -318,6 +319,10 @@ function GameScene() {
       <AnimatePresence>
         {gamePhase === 'working' && <CashierGame />}
       </AnimatePresence>
+      {/* Online Job Game */}
+      {gamePhase === 'online_job' && (
+        <OnlineJobGame onClose={() => { useGameStore.getState().setGamePhase('playing'); usePlayerStore.getState().setPlayerSitting(false); }} />
+      )}
     </>
   );
 }

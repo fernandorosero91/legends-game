@@ -51,6 +51,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const currentAction = useRef('');
   const isMoving = useRef(false);
   const floorY = useRef(position[1]);
+  const wasSitting = useRef(false);
   const sameClip = ANIMS.idle === ANIMS.walk; // true for player2
 
   // Find the best matching animation name
@@ -172,40 +173,55 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   useFrame((_s, delta) => {
     if (!group.current) return;
 
-    // Don't process movement during minigames
     const { gamePhase } = useGameStore.getState();
     const { isSitting, isSleeping } = usePlayerStore.getState();
-    
-    if (gamePhase !== 'playing') {
-      // Reset movement keys to prevent stuck movement
+
+    // ── Sleeping: bloquear movimiento, mantener Y de la cama ─────────────────
+    if (isSleeping) {
+      playAnim(ANIMS.sleep || ANIMS.idle);
       forward.current = false;
       back.current = false;
       left.current = false;
       right.current = false;
-      
-      // Play sleeping animation
-      if (isSleeping) {
-        playAnim(ANIMS.sleep || ANIMS.idle);
-      } else if (isSitting) {
-        playAnim(ANIMS.sit || ANIMS.idle);
-      } else {
-        playAnim(ANIMS.idle);
-      }
-      group.current.position.y = floorY.current;
-      return;
+      return; // no resetear Y — la cama tiene su propia altura
     }
-    
-    // If was sitting or sleeping, stand up when moving
+
+    // ── Sitting: teleportar a posicion y reproducir sit ───────────────────────
     if (isSitting) {
-      usePlayerStore.getState().setPlayerSitting(false);
-    }
-    if (isSleeping) {
-      // No levantarse automáticamente — solo cuando el juego lo indique
-      playAnim(ANIMS.sleep || ANIMS.idle);
-      // Mantener la posicion Y de la cama (no resetear al suelo)
+      const { playerPosition } = usePlayerStore.getState();
+      if (playerPosition) {
+        group.current.position.x = playerPosition.x;
+        group.current.position.z = playerPosition.z;
+      }
+      playAnim(ANIMS.sit || ANIMS.idle);
+      group.current.position.y = floorY.current;
+      forward.current = false;
+      back.current = false;
+      left.current = false;
+      right.current = false;
+      wasSitting.current = true;
       return;
     }
 
+    // ── Acaba de levantarse: mover lejos del mueble ───────────────────────────
+    if (wasSitting.current) {
+      wasSitting.current = false;
+      group.current.position.z += 1.5;
+      group.current.position.x -= 0.5;
+    }
+
+    // ── Minijuego activo: congelar movimiento ─────────────────────────────────
+    if (gamePhase !== 'playing') {
+      forward.current = false;
+      back.current = false;
+      left.current = false;
+      right.current = false;
+      playAnim(ANIMS.idle);
+      group.current.position.y = floorY.current;
+      return;
+    }
+
+    // ── Movimiento normal ─────────────────────────────────────────────────────
     let mx = 0, mz = 0;
     if (forward.current) mz = -1;
     if (back.current) mz = 1;

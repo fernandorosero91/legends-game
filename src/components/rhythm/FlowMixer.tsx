@@ -13,6 +13,7 @@ import { getRhythmDifficulty } from '../../data/levels';
 interface FlowMixerProps {
   beat: Beat;
   level: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
   onComplete: (score: number, maxCombo: number, stats: { perfectHits: number; goodHits: number; okHits: number; misses: number }) => void;
   onCancel: () => void;
 }
@@ -50,7 +51,7 @@ function playTone(freq: number, type: OscillatorType = 'sine') {
   osc.stop(audioCtx.currentTime + 0.1);
 }
 
-export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps) {
+export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCancel }: FlowMixerProps) {
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -61,6 +62,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   const [activeDir, setActiveDir] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState<{ text: string; color: string; key: number } | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   const startTimeRef = useRef(0);
   const animRef = useRef(0);
@@ -70,18 +72,22 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   const comboRef = useRef(0);
   const maxComboRef = useRef(0);
   const bgMusic = useRef<Howl | null>(null);
+  const pausedRef = useRef(false);
+  const pauseTimeRef = useRef(0);
 
   // Generate arrows
   useEffect(() => {
     const bpm = beat.tempo || 120;
-    const difficulty = getRhythmDifficulty(level);
-    const interval = (60000 / bpm) / (difficulty?.notesPerBeat || 1);
+    const diffConfig = getRhythmDifficulty(level);
+    // Make it much easier: easy = very few arrows, hard = more
+    const noteMult = difficulty === 'easy' ? 0.3 : difficulty === 'hard' ? 1.2 : 0.7;
+    const interval = (60000 / bpm) / Math.max(0.2, (diffConfig?.notesPerBeat || 0.5) * noteMult);
 
     const generated: ArrowNote[] = [];
-    let time = 2000;
+    let time = 2500; // Start later to give player time
     let id = 0;
 
-    while (time < GAME_DURATION - 1000) {
+    while (time < GAME_DURATION - 1500) {
       generated.push({
         id: `a${id++}`,
         direction: DIRECTIONS[Math.floor(Math.random() * 4)],
@@ -115,6 +121,7 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   useEffect(() => {
     if (!started) return;
     const loop = () => {
+      if (pausedRef.current) { animRef.current = requestAnimationFrame(loop); return; }
       const el = performance.now() - startTimeRef.current;
 
       // Check missed arrows (mutate only)
@@ -135,17 +142,12 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
     };
     animRef.current = requestAnimationFrame(loop);
 
-    // HUD updates at ~8fps
+    // HUD updates at ~5fps — minimal state to trigger render
     hudTimerRef.current = window.setInterval(() => {
-      const el = performance.now() - startTimeRef.current;
-      setElapsed(el);
-      setScore(scoreRef.current);
-      setCombo(comboRef.current);
-      setMaxCombo(maxComboRef.current);
-      setStats({ ...statsRef.current });
+      setElapsed(performance.now() - startTimeRef.current);
       const idx = arrowsRef.current.findIndex(a => !a.hit && !a.missed);
       setCurrentIndex(idx >= 0 ? idx : arrowsRef.current.length);
-    }, 120);
+    }, 200);
 
     return () => { cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); };
   }, [started, onComplete]);
@@ -154,7 +156,8 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   useEffect(() => {
     if (!started) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.key === 'Escape') { togglePause(); return; }
+      if (e.repeat || pausedRef.current) return;
       const dir = DIR_KEYS[e.key.toLowerCase()];
       if (!dir) return;
 
@@ -162,12 +165,13 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       setTimeout(() => setActiveDir(null), 120);
 
       const currentTime = performance.now() - startTimeRef.current;
-      const difficulty = getRhythmDifficulty(level);
-      if (!difficulty) return;
+      const diffCfg = getRhythmDifficulty(level);
+      if (!diffCfg) return;
+      const windowMult = difficulty === 'easy' ? 2.5 : difficulty === 'hard' ? 0.8 : 1.5;
 
       // Find the current arrow to hit
       const arrow = arrowsRef.current.find(
-        a => a.direction === dir && !a.hit && !a.missed && Math.abs(a.targetTime - currentTime) <= difficulty.okWindow
+        a => a.direction === dir && !a.hit && !a.missed && Math.abs(a.targetTime - currentTime) <= diffCfg.okWindow * windowMult
       );
 
       if (!arrow) {
@@ -186,11 +190,11 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       let text: string;
       let color: string;
 
-      if (diff <= difficulty.perfectWindow) {
+      if (diff <= diffCfg.perfectWindow * windowMult) {
         points = 100; text = '✦ PERFECT'; color = '#ffd60a';
         statsRef.current.perfectHits++;
         playTone(1200);
-      } else if (diff <= difficulty.goodWindow) {
+      } else if (diff <= diffCfg.goodWindow * windowMult) {
         points = 75; text = 'GREAT'; color = '#30d158';
         statsRef.current.goodHits++;
         playTone(800);
@@ -249,9 +253,44 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
 
   useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); }, []);
 
+  function togglePause() {
+    if (pausedRef.current) {
+      const pausedDuration = performance.now() - pauseTimeRef.current;
+      startTimeRef.current += pausedDuration;
+      pausedRef.current = false;
+      bgMusic.current?.play();
+      setPaused(false);
+    } else {
+      pausedRef.current = true;
+      pauseTimeRef.current = performance.now();
+      bgMusic.current?.pause();
+      setPaused(true);
+    }
+  }
+
+  function handleRestart() {
+    bgMusic.current?.stop();
+    cancelAnimationFrame(animRef.current);
+    clearInterval(hudTimerRef.current);
+    pausedRef.current = false;
+    setPaused(false);
+    setStarted(false);
+    setCountdown(3);
+    setScore(0); setCombo(0); setMaxCombo(0);
+    setStats({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
+    setCurrentIndex(0);
+    scoreRef.current = 0; comboRef.current = 0; maxComboRef.current = 0;
+    statsRef.current = { perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 };
+    arrowsRef.current = [];
+  }
+
   const progress = elapsed / GAME_DURATION;
-  const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
-  const accuracy = (totalHits + stats.misses) > 0 ? Math.round((totalHits / (totalHits + stats.misses)) * 100) : 100;
+  const displayScore = scoreRef.current;
+  const displayCombo = comboRef.current;
+  const displayMaxCombo = maxComboRef.current;
+  const displayStats = statsRef.current;
+  const totalHits = displayStats.perfectHits + displayStats.goodHits + displayStats.okHits;
+  const accuracy = (totalHits + displayStats.misses) > 0 ? Math.round((totalHits / (totalHits + displayStats.misses)) * 100) : 100;
 
   if (!started) {
     return (
@@ -296,16 +335,17 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
           <span className="text-white font-bold text-sm tabular-nums min-w-[30px] text-right">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
         </div>
         <div className="flex items-center gap-4">
-          {combo > 4 && (
+          {displayCombo > 4 && (
             <div className="text-center">
-              <div className={`text-lg font-black leading-none ${combo >= 20 ? 'text-orange-300' : 'text-emerald-300'}`}>{combo}x</div>
+              <div className={`text-lg font-black leading-none ${displayCombo >= 20 ? 'text-orange-300' : 'text-emerald-300'}`}>{displayCombo}x</div>
               <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Combo</div>
             </div>
           )}
           <div className="text-center">
-            <div className="text-lg font-black text-white leading-none tabular-nums">{score.toLocaleString()}</div>
+            <div className="text-lg font-black text-white leading-none tabular-nums">{displayScore.toLocaleString()}</div>
             <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Score</div>
           </div>
+          <button onClick={togglePause} className="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white text-xs hover:bg-white/20" title="Pausar (Esc)">⏸</button>
           <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xs hover:bg-red-500/20 transition">✕</button>
         </div>
       </div>
@@ -410,27 +450,43 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/70 border-t border-white/[0.04] text-xs">
         <div className="flex items-center gap-1.5">
           <span className="text-yellow-400">★</span>
-          <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>
+          <span className="text-yellow-300 font-bold">{displayStats.perfectHits}</span>
           <span className="text-white/25">Perfect</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-emerald-400">●</span>
-          <span className="text-emerald-300 font-bold">{stats.goodHits}</span>
+          <span className="text-emerald-300 font-bold">{displayStats.goodHits}</span>
           <span className="text-white/25">Great</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-cyan-400">○</span>
-          <span className="text-cyan-300 font-bold">{stats.okHits}</span>
+          <span className="text-cyan-300 font-bold">{displayStats.okHits}</span>
           <span className="text-white/25">OK</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-red-400">✕</span>
-          <span className="text-red-300 font-bold">{stats.misses}</span>
+          <span className="text-red-300 font-bold">{displayStats.misses}</span>
           <span className="text-white/25">Miss</span>
         </div>
         <div className="h-3 w-px bg-white/10" />
         <span className={`font-bold ${accuracy >= 90 ? 'text-yellow-300' : accuracy >= 70 ? 'text-emerald-300' : 'text-white/50'}`}>{accuracy}%</span>
       </div>
+      {/* PAUSE OVERLAY */}
+      {paused && (
+        <div className="absolute inset-0 z-[200] bg-black/70 flex items-center justify-center">
+          <div className="bg-[#1a1a30]/95 rounded-2xl border border-purple-400/20 p-8 text-center shadow-2xl max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⏸️</div>
+            <h3 className="text-2xl font-black text-white mb-1">PAUSA</h3>
+            <p className="text-purple-200/60 text-sm mb-6">{beat.name} • {beat.tempo} BPM</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={togglePause} className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-[#0a0318] font-bold text-sm hover:from-cyan-300 hover:to-cyan-400 active:scale-95 shadow-[0_4px_15px_rgba(34,211,238,0.3)] transition-all">▶ Continuar</button>
+              <button onClick={handleRestart} className="w-full py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white font-semibold text-sm hover:bg-white/10 active:scale-95 transition-all">🔄 Reiniciar</button>
+              <button onClick={() => { bgMusic.current?.stop(); onCancel(); }} className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 font-semibold text-sm hover:bg-red-500/20 active:scale-95 transition-all">✕ Salir</button>
+            </div>
+            <p className="text-white/30 text-[10px] mt-4">Presiona ESC para continuar</p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
