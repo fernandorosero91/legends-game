@@ -1,7 +1,6 @@
 /**
- * LEGENDS: Supermarket — Optimized loader for supermarket GLB assets
- * Uses batched loading to avoid freezing the browser.
- * Loads assets in chunks of 50 per frame tick.
+ * LEGENDS: ClothingStore — Loads clothing_store GLB assets
+ * Used for the Almacén StreetWear scene
  */
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
@@ -18,9 +17,9 @@ interface RoomObject {
   role: string;
 }
 
-const BASE_PATH = '/models/environments/supermarket/';
+const BASE_PATH = '/models/environments/clothing_store/';
 
-function SupermarketAsset({ name }: { name: string }) {
+function ClothingStoreAsset({ name }: { name: string }) {
   const path = `${BASE_PATH}${name}.glb`;
   const { scene } = useGLTF(path);
 
@@ -28,10 +27,8 @@ function SupermarketAsset({ name }: { name: string }) {
     const c = scene.clone(true);
     c.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        child.castShadow = false; // Disable shadows for performance
+        child.castShadow = true;
         child.receiveShadow = true;
-        // Enable frustum culling (default but explicit)
-        child.frustumCulled = true;
       }
     });
     return c;
@@ -40,15 +37,15 @@ function SupermarketAsset({ name }: { name: string }) {
   return <primitive object={clone} position={[0, 0, 0]} />;
 }
 
-export function Supermarket() {
+export function StoreWifi() {
   const [objects, setObjects] = useState<RoomObject[]>([]);
   const setWallBoxes = usePlayerStore((s) => s.setWallBoxes);
 
   useEffect(() => {
-    fetch('/data/supermarket.json')
+    fetch('/data/clothing_store.json')
       .then((r) => r.json())
       .then((data: RoomObject[]) => setObjects(data))
-      .catch((err) => console.error('[Supermarket] Config load error:', err));
+      .catch((err) => console.error('[ClothingStore] Config load error:', err));
   }, []);
 
   const uniqueObjects = useMemo(() => {
@@ -60,29 +57,33 @@ export function Supermarket() {
     });
   }, [objects]);
 
-  // Collision boxes — none for now, player moves freely
+  // Collision boxes based on clothing store layout (scaled 0.45)
   useEffect(() => {
-    const boxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }> = [];
+    const boxes = [
+      { id: 'wall-back',  min: { x: -3, y: 0, z: -2 },  max: { x: 3, y: 2, z: -1.5 } },
+      { id: 'wall-front', min: { x: -3, y: 0, z: 2.5 }, max: { x: 3, y: 2, z: 3 } },
+      { id: 'wall-left',  min: { x: -3, y: 0, z: -2 },  max: { x: -2.5, y: 2, z: 3 } },
+      { id: 'wall-right', min: { x: 2.5, y: 0, z: -2 }, max: { x: 3, y: 2, z: 3 } },
+    ];
     setWallBoxes(boxes);
   }, [setWallBoxes]);
 
-  // With only 18 grouped GLBs, no need for progressive loading
   if (uniqueObjects.length === 0) {
     return (
-      <group name="supermarket-loading">
+      <group name="clothing-store-loading">
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-          <planeGeometry args={[28, 16]} />
-          <meshStandardMaterial color="#2d2d2d" />
+          <planeGeometry args={[10, 10]} />
+          <meshStandardMaterial color="#1a0a2e" />
         </mesh>
       </group>
     );
   }
 
   return (
-    <group name="supermarket" scale={[2, 2, 2]} position={[0, -0.2, 0]}>
+    <group name="clothing-store" scale={[0.45, 0.45, 0.45]} position={[0, -0.75, 0]}>
       {uniqueObjects.map((obj, i) => (
         <Suspense key={`${obj.name}-${i}`} fallback={null}>
-          <SupermarketAsset name={obj.name} />
+          <ClothingStoreAsset name={obj.name} />
         </Suspense>
       ))}
     </group>

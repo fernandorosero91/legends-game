@@ -4,6 +4,7 @@
  */
 
 import { Suspense } from 'react';
+import { Html } from '@react-three/drei';
 import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
 import { InteractableZone } from '../components/game/InteractableZone';
@@ -15,9 +16,6 @@ import { useUIStore } from '../store/uiStore';
 export function StoreScene() {
   const setCurrentScene = useGameStore(state => state.setCurrentScene);
   const energy = usePlayerStore(state => state.energy);
-  const addMoney = usePlayerStore(state => state.addMoney);
-  const consumeEnergy = usePlayerStore(state => state.consumeEnergy);
-  const advanceTime = useGameStore(state => state.advanceTime);
   const addNotification = useUIStore(state => state.addNotification);
 
   const handleWork = () => {
@@ -25,10 +23,8 @@ export function StoreScene() {
       addNotification('warning', 'No tienes suficiente energía para trabajar');
       return;
     }
-    addMoney(350);
-    consumeEnergy(20);
-    advanceTime();
-    addNotification('success', '¡Trabajo completado! +$350');
+    // Lanzar el minijuego de cajero
+    useGameStore.getState().setGamePhase('working');
   };
 
   const handleExit = () => {
@@ -53,15 +49,32 @@ export function StoreScene() {
         <Supermarket />
       </Suspense>
 
-      {/* 💼 Caja registradora — Trabajar */}
-      <InteractableZone
-        position={[-10, 1, 5]}
-        size={[4, 3, 3]}
-        label="Trabajar como Cajero ($350)"
-        icon="💼"
-        onInteract={handleWork}
-        tooltipOffset={[0, 2.5, 0]}
-      />
+      {/* 💼 Caja registradora — Marcador flotante + zona de interacción */}
+      <group position={[-25, 0, 11]}>
+        {/* Marcador flotante siempre visible */}
+        <Html position={[0, 4, 0]} center zIndexRange={[0, 0]} occlude>
+          <div className="flex flex-col items-center animate-bounce pointer-events-none">
+            <div className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg">
+              💼 Trabajar
+            </div>
+            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-600" />
+          </div>
+        </Html>
+
+        {/* Zona clickeable — pequeña y elevada para no bloquear movimiento */}
+        <mesh
+          position={[0, 3, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleWork();
+          }}
+          onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+          onPointerOut={() => { document.body.style.cursor = 'default'; }}
+        >
+          <boxGeometry args={[6, 2, 4]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      </group>
 
       {/* 🚪 Salida */}
       <InteractableZone

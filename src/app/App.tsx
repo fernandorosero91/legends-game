@@ -22,6 +22,7 @@ import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { CashierGame } from '../components/cashier/CashierGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
@@ -141,9 +142,9 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen" style={{ display: gamePhase === 'rhythm_game' ? 'none' : 'block' }}>
+      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'none' : 'block' }}>
         <Canvas
-          frameloop={gamePhase === 'rhythm_game' ? 'never' : 'always'}
+          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'never' : 'always'}
           shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
@@ -168,8 +169,8 @@ function GameScene() {
         </Canvas>
       </div>
 
-      {/* HUD elements — hidden during rhythm game for performance */}
-      {gamePhase !== 'rhythm_game' && (
+      {/* HUD elements — hidden during minigames for performance */}
+      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && (
         <>
           {/* TopBar - Información del día y nivel */}
           <TopBar
@@ -307,6 +308,11 @@ function GameScene() {
       {/* Rhythm Game — Minijuego de grabación */}
       <AnimatePresence>
         {gamePhase === 'rhythm_game' && <RhythmGame />}
+      </AnimatePresence>
+
+      {/* Cashier Game — Minijuego de cajero */}
+      <AnimatePresence>
+        {gamePhase === 'working' && <CashierGame />}
       </AnimatePresence>
     </>
   );
