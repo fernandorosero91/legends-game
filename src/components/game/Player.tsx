@@ -19,7 +19,7 @@ const ANIMS_MALE = {
 const ANIMS_FEMALE = {
   idle: 'idle',
   walk: 'walking',
-  sit: 'walking',
+  sit: 'sitting',
   sleep: 'sleeping',
 };
 
