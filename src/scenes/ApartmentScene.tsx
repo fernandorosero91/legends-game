@@ -10,6 +10,7 @@ import { RoomLevel1 } from '../components/game/RoomLevel1';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
+import { DJSonicNPC } from '../components/game/DJSonicNPC';
 import { Suspense, useEffect } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
@@ -132,7 +133,7 @@ export const ApartmentScene = () => {
             onInteract={handleRecord}
             tooltipOffset={[0, 2, 0]}
           />
-          {/* �️ Sofá del estudio — descansar */}
+          {/* 🛋️ Sofá del estudio — descansar */}
           <InteractableZone
             position={[3.0, 0.8, 2.0]}
             size={[3, 1.5, 2]}
@@ -150,6 +151,10 @@ export const ApartmentScene = () => {
             onInteract={handleComputer}
             tooltipOffset={[0, 2.5, 0]}
           />
+          {/* 🎧 DJ Sonic — Mentor */}
+          <Suspense fallback={null}>
+            <DJSonicNPC />
+          </Suspense>
         </>
       )}
 

@@ -1,11 +1,12 @@
 /**
  * 🎮 LEGENDS: Rhythm Drop — Guitar Hero Style
- * UI premium: HUD grande informativo, lanes anchas, feedback visual potente
- * Performance: Pure CSS positioning, no Framer on notes
+ * ZERO-LAG ARCHITECTURE: Everything visual is direct DOM.
+ * React only renders the static HUD shell once.
+ * Game loop + notes + feedback + particles = all RAF + DOM.
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Howl } from 'howler';
 import type { Beat } from '../../data/songs';
 import { getRhythmDifficulty } from '../../data/levels';
@@ -18,65 +19,103 @@ interface RhythmDropProps {
 }
 
 interface GameNote {
-  id: string;
   lane: number;
   targetTime: number;
   hit: boolean;
   missed: boolean;
+  el: HTMLDivElement | null;
 }
 
 const KEYS = ['a', 's', 'd', 'f'];
 const LANE_COLORS = ['#ff2d55', '#a78bfa', '#22d3ee', '#fbbf24'];
-const LANE_GLOWS = ['rgba(255,45,85,0.6)', 'rgba(167,139,250,0.6)', 'rgba(34,211,238,0.6)', 'rgba(251,191,36,0.6)'];
-const LANE_LABELS = ['A', 'S', 'D', 'F'];
 const DURATION = 30000;
-const FALL_TIME = 2200;
+const FALL_TIME = 2000;
 
-let ctx: AudioContext | null = null;
-function beep(freq: number, dur = 0.08, vol = 0.15, wave: OscillatorType = 'sine') {
-  if (!ctx) ctx = new AudioContext();
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.connect(g); g.connect(ctx.destination);
+// Inject styles once
+const STYLE_ID = 'rd-styles';
+if (!document.getElementById(STYLE_ID)) {
+  const s = document.createElement('style');
+  s.id = STYLE_ID;
+  s.textContent = `
+    @keyframes rd-fb{
+      0%{opacity:1;transform:translate(-50%,0) scale(0.6);filter:blur(0)}
+      30%{transform:translate(-50%,-10px) scale(1.3);filter:blur(0)}
+      100%{opacity:0;transform:translate(-50%,-60px) scale(1.6);filter:blur(2px)}
+    }
+    @keyframes rd-pt{
+      0%{opacity:1;transform:translate(0,0) scale(1.3)}
+      100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.2) rotate(var(--r))}
+    }
+    @keyframes rd-ring{
+      0%{opacity:0.8;transform:translate(-50%,-50%) scale(0.3);border-width:4px}
+      100%{opacity:0;transform:translate(-50%,-50%) scale(2.5);border-width:1px}
+    }
+    @keyframes rd-streak{
+      0%{opacity:0.6;transform:translateY(0) scaleY(1)}
+      100%{opacity:0;transform:translateY(-40px) scaleY(2)}
+    }
+    @keyframes rd-glow-pulse{
+      0%,100%{opacity:0.3}
+      50%{opacity:0.7}
+    }
+    .rd-note{position:absolute;left:50%;transform:translateX(-50%);width:72%;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;will-change:top;transition:opacity 0.05s}
+    .rd-note::after{content:'';width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.95);box-shadow:0 0 6px rgba(255,255,255,0.8)}
+    .rd-fb{position:absolute;left:50%;top:25%;pointer-events:none;z-index:50;font-size:36px;font-weight:900;letter-spacing:2px;animation:rd-fb .55s cubic-bezier(0.22,1,0.36,1) forwards;white-space:nowrap}
+    .rd-pt{position:absolute;pointer-events:none;z-index:40;font-weight:bold;animation:rd-pt .8s cubic-bezier(0.25,0.46,0.45,0.94) forwards}
+    .rd-ring{position:absolute;pointer-events:none;z-index:45;width:80px;height:80px;border-radius:50%;border:4px solid;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.3);animation:rd-ring .5s ease-out forwards}
+    .rd-streak{position:absolute;pointer-events:none;z-index:35;width:3px;border-radius:2px;animation:rd-streak .4s ease-out forwards}
+    @keyframes rd-eq{0%{height:30%}100%{height:80%}}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  `;
+  document.head.appendChild(s);
+}
+
+let audioCtx: AudioContext | null = null;
+function beep(freq: number, dur = 0.05, vol = 0.1, wave: OscillatorType = 'sine') {
+  if (!audioCtx) audioCtx = new AudioContext();
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
   o.frequency.value = freq; o.type = wave;
-  g.gain.setValueAtTime(vol, ctx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-  o.start(); o.stop(ctx.currentTime + dur);
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.start(); o.stop(audioCtx.currentTime + dur);
 }
 
 export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProps) {
   const [phase, setPhase] = useState<'countdown' | 'playing'>('countdown');
   const [countdown, setCountdown] = useState(3);
-  const [score, setScore] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [maxCombo, setMaxCombo] = useState(0);
-  const [stats, setStats] = useState({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
-  const [elapsed, setElapsed] = useState(0);
-  const [flash, setFlash] = useState([false, false, false, false]);
-  const [fb, setFb] = useState<{ text: string; color: string; id: number } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lanesRef = useRef<HTMLDivElement[]>([]);
+  const scoreElRef = useRef<HTMLSpanElement>(null);
+  const comboElRef = useRef<HTMLSpanElement>(null);
+  const timeElRef = useRef<HTMLSpanElement>(null);
+  const progressElRef = useRef<HTMLDivElement>(null);
+  const statsElRef = useRef<HTMLDivElement>(null);
+
+  const notesRef = useRef<GameNote[]>([]);
+  const musicRef = useRef<Howl | null>(null);
+  const rafRef = useRef(0);
   const t0 = useRef(0);
-  const raf = useRef(0);
-  const notes = useRef<GameNote[]>([]);
-  const st = useRef({ perfectHits: 0, goodHits: 0, okHits: 0, misses: 0 });
-  const sc = useRef(0);
-  const co = useRef(0);
-  const mx = useRef(0);
-  const music = useRef<Howl | null>(null);
+  const scoreRef = useRef(0);
+  const comboRef = useRef(0);
+  const maxComboRef = useRef(0);
+  const statsRef = useRef({ perfect: 0, good: 0, ok: 0, miss: 0 });
+  const doneRef = useRef(false);
 
   // Generate notes
   useEffect(() => {
     const diff = getRhythmDifficulty(level);
     if (!diff) return;
     const bpm = beat.tempo || 120;
-    const beatInterval = 60000 / bpm;
-    const noteInterval = beatInterval / Math.max(1, diff.notesPerBeat * 0.7);
+    const interval = (60000 / bpm) / Math.max(1, diff.notesPerBeat * 0.7);
     const arr: GameNote[] = [];
-    let time = 1500, id = 0;
+    let time = 1500;
     while (time < DURATION - 800) {
-      arr.push({ id: `n${id++}`, lane: Math.floor(Math.random() * 4), targetTime: time, hit: false, missed: false });
-      time += noteInterval;
+      arr.push({ lane: Math.floor(Math.random() * 4), targetTime: time, hit: false, missed: false, el: null });
+      time += interval;
     }
-    notes.current = arr;
+    notesRef.current = arr;
   }, [level, beat.tempo]);
 
   // Countdown
@@ -84,110 +123,240 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     if (phase !== 'countdown') return;
     if (countdown <= 0) {
       setPhase('playing');
-      t0.current = performance.now();
-      music.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.3, loop: true });
-      music.current.play();
       return;
     }
     const t = setTimeout(() => setCountdown(c => c - 1), 800);
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
-  // Game loop — render at 30fps for UI, notes move via refs
-  const elapsedRef = useRef(0);
-  const frameCount = useRef(0);
-  
+  // START GAME — all game logic runs in ONE useEffect, pure DOM
   useEffect(() => {
     if (phase !== 'playing') return;
+
+    t0.current = performance.now();
+    doneRef.current = false;
+    musicRef.current = new Howl({ src: [beat.audioFile], volume: 0.35, loop: true });
+    musicRef.current.play();
+
+    // Create note DOM elements and append to lanes
+    const notes = notesRef.current;
+    for (const note of notes) {
+      const el = document.createElement('div');
+      el.className = 'rd-note';
+      el.style.background = `linear-gradient(135deg, ${LANE_COLORS[note.lane]}, ${LANE_COLORS[note.lane]}aa)`;
+      el.style.border = `1.5px solid ${LANE_COLORS[note.lane]}`;
+      el.style.boxShadow = `0 0 8px ${LANE_COLORS[note.lane]}60`;
+      el.style.top = '-30px';
+      el.style.display = 'none';
+      const laneEl = lanesRef.current[note.lane];
+      if (laneEl) laneEl.appendChild(el);
+      note.el = el;
+    }
+
+    // GAME LOOP — pure RAF, zero React
     const loop = () => {
+      if (doneRef.current) return;
       const el = performance.now() - t0.current;
-      elapsedRef.current = el;
-      
-      for (const n of notes.current) {
-        if (!n.hit && !n.missed && n.targetTime < el - 280) { n.missed = true; st.current.misses++; co.current = 0; }
+
+      // Position notes
+      for (const n of notes) {
+        if (n.hit || n.missed) {
+          if (n.el && n.el.style.display !== 'none') n.el.style.display = 'none';
+          continue;
+        }
+        const timeDiff = n.targetTime - el;
+        if (timeDiff > FALL_TIME || timeDiff < -300) {
+          if (timeDiff < -300) {
+            n.missed = true;
+            statsRef.current.miss++;
+            comboRef.current = 0;
+            if (n.el) n.el.style.display = 'none';
+          } else if (n.el) {
+            n.el.style.display = 'none';
+          }
+          continue;
+        }
+        const pct = (1 - timeDiff / FALL_TIME) * 86;
+        if (n.el) {
+          n.el.style.display = 'flex';
+          n.el.style.top = `${pct}%`;
+        }
       }
 
-      // Only update React state every other frame (~30fps) to reduce re-renders
-      frameCount.current++;
-      if (frameCount.current % 2 === 0) {
-        setElapsed(el);
+      // Update HUD elements directly
+      if (scoreElRef.current) scoreElRef.current.textContent = scoreRef.current.toLocaleString();
+      if (comboElRef.current) {
+        comboElRef.current.textContent = comboRef.current > 4 ? `${comboRef.current}x` : '';
+        comboElRef.current.style.color = comboRef.current >= 20 ? '#fdba74' : '#67e8f9';
+      }
+      const timeLeft = Math.max(0, Math.ceil((DURATION - el) / 1000));
+      if (timeElRef.current) timeElRef.current.textContent = `${timeLeft}s`;
+      if (progressElRef.current) progressElRef.current.style.width = `${(el / DURATION) * 100}%`;
+      if (statsElRef.current) {
+        statsElRef.current.textContent = `★${statsRef.current.perfect}  ●${statsRef.current.good}  ○${statsRef.current.ok}  ✕${statsRef.current.miss}`;
       }
 
-      if (el >= DURATION) { music.current?.stop(); onComplete(sc.current, mx.current, st.current); return; }
-      raf.current = requestAnimationFrame(loop);
+      // End
+      if (el >= DURATION) {
+        doneRef.current = true;
+        musicRef.current?.stop();
+        onComplete(scoreRef.current, maxComboRef.current, {
+          perfectHits: statsRef.current.perfect,
+          goodHits: statsRef.current.good,
+          okHits: statsRef.current.ok,
+          misses: statsRef.current.miss,
+        });
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, [phase, onComplete]);
+    rafRef.current = requestAnimationFrame(loop);
 
-  // Keyboard
-  useEffect(() => {
-    if (phase !== 'playing') return;
-    const handle = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+    // KEYBOARD
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.repeat || doneRef.current) return;
       const lane = KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
 
-      setFlash(p => { const n = [...p]; n[lane] = true; return n; });
-      setTimeout(() => setFlash(p => { const n = [...p]; n[lane] = false; return n; }), 120);
+      // Flash lane — intense glow
+      const laneEl = lanesRef.current[lane];
+      if (laneEl) {
+        laneEl.style.borderColor = LANE_COLORS[lane];
+        laneEl.style.boxShadow = `inset 0 0 40px ${LANE_COLORS[lane]}50, 0 0 20px ${LANE_COLORS[lane]}40, 0 0 40px ${LANE_COLORS[lane]}20`;
+        laneEl.style.background = `linear-gradient(180deg, ${LANE_COLORS[lane]}15, rgba(0,0,0,0.3), ${LANE_COLORS[lane]}20)`;
+        setTimeout(() => {
+          laneEl.style.borderColor = `${LANE_COLORS[lane]}25`;
+          laneEl.style.boxShadow = '';
+          laneEl.style.background = `linear-gradient(180deg, ${LANE_COLORS[lane]}06, rgba(0,0,0,0.4), ${LANE_COLORS[lane]}0a)`;
+        }, 100);
+      }
 
       const now = performance.now() - t0.current;
       const diff = getRhythmDifficulty(level);
       if (!diff) return;
 
       let best: GameNote | null = null, bestD = Infinity;
-      for (const n of notes.current) {
+      for (const n of notes) {
         if (n.lane !== lane || n.hit || n.missed) continue;
         const d = Math.abs(n.targetTime - now);
         if (d < bestD && d <= diff.okWindow) { best = n; bestD = d; }
       }
 
       if (!best) {
-        co.current = 0; st.current.misses++;
-        setFb({ text: 'MISS', color: '#ff3b30', id: Date.now() }); beep(100, 0.1, 0.08, 'sawtooth');
+        comboRef.current = 0;
+        statsRef.current.miss++;
+        showFb('MISS', '#ff3b30');
+        beep(100, 0.06, 0.06, 'sawtooth');
       } else {
         best.hit = true;
+        if (best.el) best.el.style.display = 'none';
         let pts: number, txt: string, col: string;
-        if (bestD <= diff.perfectWindow) { pts = 100; txt = '★ PERFECT'; col = '#ffd60a'; st.current.perfectHits++; beep(1200); }
-        else if (bestD <= diff.goodWindow) { pts = 75; txt = 'GREAT'; col = '#34d399'; st.current.goodHits++; beep(800); }
-        else { pts = 50; txt = 'OK'; col: '#22d3ee'; st.current.okHits++; beep(500); col = '#22d3ee'; }
+        if (bestD <= diff.perfectWindow) { pts = 100; txt = '★ PERFECT'; col = '#ffd60a'; statsRef.current.perfect++; beep(1200); }
+        else if (bestD <= diff.goodWindow) { pts = 75; txt = 'GREAT'; col = '#34d399'; statsRef.current.good++; beep(800); }
+        else { pts = 50; txt = 'OK'; col = '#22d3ee'; statsRef.current.ok++; beep(500); }
 
-        co.current++;
-        if (co.current > mx.current) mx.current = co.current;
-        const mult = 1 + Math.floor(co.current / 10) * 0.1;
-        sc.current += Math.floor(pts * mult);
-        setFb({ text: txt, color: col, id: Date.now() });
+        comboRef.current++;
+        if (comboRef.current > maxComboRef.current) maxComboRef.current = comboRef.current;
+        scoreRef.current += Math.floor(pts * (1 + Math.floor(comboRef.current / 10) * 0.1));
+
+        showFb(txt, col);
+        spawnPt(lane, col, pts);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+
+    // Feedback text + shockwave ring on perfect
+    function showFb(text: string, color: string) {
+      const c = containerRef.current;
+      if (!c) return;
+      // Text
+      const el = document.createElement('div');
+      el.className = 'rd-fb';
+      el.style.color = color;
+      el.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}50`;
+      el.textContent = text;
+      c.appendChild(el);
+      setTimeout(() => el.remove(), 600);
+    }
+
+    // Particles + shockwave + streaks
+    function spawnPt(lane: number, color: string, pts: number) {
+      const c = containerRef.current;
+      if (!c) return;
+      const laneEl = lanesRef.current[lane];
+      if (!laneEl) return;
+      const laneRect = laneEl.getBoundingClientRect();
+      const containerRect = c.getBoundingClientRect();
+      const cx = laneRect.left - containerRect.left + laneRect.width / 2;
+      const cy = laneRect.bottom - containerRect.top - 50;
+
+      // Musical note particles
+      const syms = ['♪', '♫', '✦', '★', '♬', '🎵'];
+      const count = pts >= 100 ? 6 : pts >= 75 ? 4 : 2;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'rd-pt';
+        el.textContent = syms[Math.floor(Math.random() * syms.length)];
+        el.style.left = `${cx + (Math.random() - 0.5) * 30}px`;
+        el.style.top = `${cy}px`;
+        el.style.color = color;
+        el.style.fontSize = `${22 + Math.random() * 14}px`;
+        el.style.textShadow = `0 0 12px ${color}, 0 0 24px ${color}`;
+        el.style.setProperty('--dx', `${(Math.random() - 0.5) * 140}px`);
+        el.style.setProperty('--dy', `${-80 - Math.random() * 100}px`);
+        el.style.setProperty('--r', `${(Math.random() - 0.5) * 360}deg`);
+        c.appendChild(el);
+        setTimeout(() => el.remove(), 850);
       }
 
-      setScore(sc.current); setCombo(co.current); setMaxCombo(mx.current); setStats({ ...st.current });
-      setTimeout(() => setFb(null), 400);
+      // Shockwave ring on PERFECT
+      if (pts >= 100) {
+        const ring = document.createElement('div');
+        ring.className = 'rd-ring';
+        ring.style.borderColor = color;
+        ring.style.left = `${cx}px`;
+        ring.style.top = `${cy}px`;
+        ring.style.boxShadow = `0 0 15px ${color}, inset 0 0 15px ${color}50`;
+        c.appendChild(ring);
+        setTimeout(() => ring.remove(), 550);
+      }
+
+      // Streak lines shooting up
+      if (pts >= 75) {
+        const streakCount = pts >= 100 ? 4 : 2;
+        for (let i = 0; i < streakCount; i++) {
+          const streak = document.createElement('div');
+          streak.className = 'rd-streak';
+          streak.style.left = `${cx + (Math.random() - 0.5) * 40}px`;
+          streak.style.top = `${cy - 10}px`;
+          streak.style.height = `${20 + Math.random() * 30}px`;
+          streak.style.background = `linear-gradient(to top, ${color}, transparent)`;
+          c.appendChild(streak);
+          setTimeout(() => streak.remove(), 450);
+        }
+      }
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      cancelAnimationFrame(rafRef.current);
+      musicRef.current?.stop();
+      // Cleanup note elements
+      for (const n of notes) { n.el?.remove(); }
     };
-    window.addEventListener('keydown', handle);
-    return () => window.removeEventListener('keydown', handle);
-  }, [phase, level]);
+  }, [phase, level, beat, onComplete, onCancel]);
 
-  useEffect(() => () => { music.current?.stop(); cancelAnimationFrame(raf.current); }, []);
-
-  const progress = elapsed / DURATION;
-  const timeLeft = Math.ceil((DURATION - elapsed) / 1000);
-  const totalHits = stats.perfectHits + stats.goodHits + stats.okHits + stats.misses;
-  const accuracy = totalHits > 0 ? Math.round(((stats.perfectHits + stats.goodHits + stats.okHits) / totalHits) * 100) : 100;
-
-  // COUNTDOWN SCREEN
+  // COUNTDOWN
   if (phase === 'countdown') {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full h-full flex flex-col items-center justify-center">
-        <motion.div 
-          key={countdown} 
-          initial={{ scale: 3, opacity: 0 }} 
-          animate={{ scale: 1, opacity: 1 }} 
-          transition={{ duration: 0.5, type: 'spring' }}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full h-full flex flex-col items-center justify-center bg-black/60">
+        <motion.div key={countdown} initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, type: 'spring' }}
           className="text-[120px] font-black text-white leading-none"
-          style={{ textShadow: '0 0 80px rgba(34,211,238,0.8), 0 0 40px rgba(34,211,238,0.4)' }}
-        >
+          style={{ textShadow: '0 0 60px rgba(34,211,238,0.7)' }}>
           {countdown}
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 text-center">
+        <div className="mt-8 text-center">
           <p className="text-2xl font-bold text-white">{beat.name}</p>
           <p className="text-cyan-300/60 mt-2 text-sm">{beat.tempo} BPM • Nivel {level}</p>
           <div className="flex items-center justify-center gap-3 mt-6">
@@ -198,172 +367,169 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
               </div>
             ))}
           </div>
-          <p className="text-white/40 mt-4 text-xs">Presiona las teclas al ritmo</p>
-        </motion.div>
+        </div>
       </motion.div>
     );
   }
 
-  // Visible notes
-  const visibleNotes = notes.current.filter(n => !n.hit && !n.missed && n.targetTime > elapsed - 200 && n.targetTime < elapsed + FALL_TIME + 100);
-
+  // PLAYING — static shell, all movement is DOM-direct
   return (
-    <div className="relative z-10 w-full h-full flex flex-col">
+    <div className="relative z-10 w-full h-full flex flex-col bg-[#0a0a15]">
       
-      {/* Fondo oscuro semi-transparente para el área de juego */}
-      <div className="absolute inset-0 bg-black/55" />
+      {/* Background decorations — immersive studio ambiance */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        
+        {/* Gradient ambient background — more colorful */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 85%, rgba(99,102,241,0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 30%, rgba(255,45,85,0.08) 0%, transparent 35%), radial-gradient(ellipse at 85% 30%, rgba(34,211,238,0.08) 0%, transparent 35%), radial-gradient(ellipse at 50% 10%, rgba(167,139,250,0.06) 0%, transparent 40%)' }} />
 
-      {/* TOP HUD — grande e informativo */}
-      <div className="relative shrink-0 px-5 py-3 bg-black/70 border-b border-white/[0.1]">
-        <div className="flex items-center justify-between">
-          {/* Left: Song info */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-              <span className="text-sm">🎹</span>
-            </div>
-            <div>
-              <h3 className="text-white font-bold text-sm leading-none">{beat.name}</h3>
-              <p className="text-cyan-300/50 text-[10px] mt-0.5">{beat.tempo} BPM • Nivel {level}</p>
-            </div>
-          </div>
-
-          {/* Center: Progress + Time */}
-          <div className="flex items-center gap-3 flex-1 max-w-[250px] mx-6">
-            <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-100" style={{ 
-                width: `${progress * 100}%`,
-                background: 'linear-gradient(90deg, #22d3ee, #a78bfa, #ff2d55)',
+        {/* LEFT PANEL — full height, wider */}
+        <div className="absolute left-0 top-8 bottom-8 w-24 flex flex-col items-center justify-between py-6 gap-4">
+          {/* Large EQ bars */}
+          <div className="flex items-end gap-[3px] h-40 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${25 + Math.sin(i * 0.7) * 25 + 25}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[i % 4]}, ${LANE_COLORS[i % 4]}30)`,
+                animation: `rd-eq ${0.5 + i * 0.08}s ease-in-out infinite alternate`,
+                animationDelay: `${i * 0.06}s`,
               }} />
-            </div>
-            <div className="text-right min-w-[40px]">
-              <span className="text-white font-bold text-sm tabular-nums">{timeLeft}s</span>
+            ))}
+          </div>
+          
+          {/* Spinning vinyl */}
+          <div className="w-16 h-16 rounded-full border-[3px] border-purple-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]" style={{ animation: 'spin 3s linear infinite' }}>
+            <div className="w-10 h-10 rounded-full border-2 border-purple-300/20 flex items-center justify-center">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-400/60 to-pink-400/60" />
             </div>
           </div>
 
-          {/* Right: Score + Combo */}
-          <div className="flex items-center gap-4">
-            {combo > 4 && (
-              <div className="text-center">
-                <div className={`text-lg font-black leading-none ${combo >= 20 ? 'text-orange-300' : combo >= 10 ? 'text-cyan-300' : 'text-white/70'}`}>
-                  {combo}x
-                </div>
-                <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Combo</div>
-              </div>
-            )}
-            <div className="text-center">
-              <div className="text-lg font-black text-white leading-none tabular-nums">{score.toLocaleString()}</div>
-              <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Score</div>
+          {/* Music icons — larger, more visible */}
+          <div className="flex flex-col items-center gap-4 text-2xl">
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(168,85,247,0.5)]">🎵</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(34,211,238,0.5)]">🎧</span>
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(255,45,85,0.5)]">🎤</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">♫</span>
+          </div>
+
+          {/* Bottom large EQ */}
+          <div className="flex items-end gap-[3px] h-32 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${20 + Math.cos(i * 0.9) * 20 + 20}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 2) % 4]}, ${LANE_COLORS[(i + 2) % 4]}25)`,
+                animation: `rd-eq ${0.6 + i * 0.09}s ease-in-out infinite alternate-reverse`,
+                animationDelay: `${i * 0.07}s`,
+              }} />
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT PANEL — full height, wider */}
+        <div className="absolute right-0 top-8 bottom-8 w-24 flex flex-col items-center justify-between py-6 gap-4">
+          {/* Large EQ bars */}
+          <div className="flex items-end gap-[3px] h-40 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${30 + Math.cos(i * 0.6) * 20 + 20}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 1) % 4]}, ${LANE_COLORS[(i + 1) % 4]}30)`,
+                animation: `rd-eq ${0.55 + i * 0.09}s ease-in-out infinite alternate-reverse`,
+                animationDelay: `${i * 0.05}s`,
+              }} />
+            ))}
+          </div>
+          
+          {/* Waveform circle — larger */}
+          <div className="w-16 h-16 rounded-full border-[3px] border-cyan-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+            <svg width="36" height="36" viewBox="0 0 36 36" className="opacity-50">
+              <path d="M2,18 Q6,6 10,18 Q14,30 18,18 Q22,6 26,18 Q30,30 34,18" fill="none" stroke="#22d3ee" strokeWidth="2"/>
+            </svg>
+          </div>
+
+          {/* Music icons — larger */}
+          <div className="flex flex-col items-center gap-4 text-2xl">
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">🎹</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(48,209,88,0.5)]">🎶</span>
+            <span className="opacity-30 drop-shadow-[0_0_4px_rgba(167,139,250,0.5)]">🎙️</span>
+            <span className="opacity-25 drop-shadow-[0_0_4px_rgba(255,159,10,0.5)]">♬</span>
+          </div>
+
+          {/* Bottom EQ */}
+          <div className="flex items-end gap-[3px] h-32 w-full px-3">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex-1 rounded-full" style={{
+                height: `${22 + Math.sin(i * 1.1) * 22 + 18}%`,
+                background: `linear-gradient(to top, ${LANE_COLORS[(i + 3) % 4]}, ${LANE_COLORS[(i + 3) % 4]}25)`,
+                animation: `rd-eq ${0.65 + i * 0.1}s ease-in-out infinite alternate`,
+                animationDelay: `${i * 0.08}s`,
+              }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Horizontal waveforms — wider, more visible */}
+        <svg className="absolute left-24 right-24 top-[12%] h-6 opacity-25" preserveAspectRatio="none" viewBox="0 0 500 24">
+          <path d="M0,12 Q20,3 40,12 Q60,21 80,12 Q100,3 120,12 Q140,21 160,12 Q180,3 200,12 Q220,21 240,12 Q260,3 280,12 Q300,21 320,12 Q340,3 360,12 Q380,21 400,12 Q420,3 440,12 Q460,21 480,12 Q500,6 500,12" fill="none" stroke="url(#waveGrad1)" strokeWidth="1.5"/>
+          <defs><linearGradient id="waveGrad1"><stop offset="0%" stopColor="#ff2d55"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#22d3ee"/></linearGradient></defs>
+        </svg>
+        <svg className="absolute left-24 right-24 bottom-[15%] h-6 opacity-20" preserveAspectRatio="none" viewBox="0 0 500 24">
+          <path d="M0,12 Q25,4 50,12 Q75,20 100,12 Q125,4 150,12 Q175,20 200,12 Q225,4 250,12 Q275,20 300,12 Q325,4 350,12 Q375,20 400,12 Q425,4 450,12 Q475,20 500,12" fill="none" stroke="url(#waveGrad2)" strokeWidth="1.5"/>
+          <defs><linearGradient id="waveGrad2"><stop offset="0%" stopColor="#22d3ee"/><stop offset="50%" stopColor="#fbbf24"/><stop offset="100%" stopColor="#ff2d55"/></linearGradient></defs>
+        </svg>
+
+        {/* Neon vertical separators */}
+        <div className="absolute left-[96px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(168,85,247,0.3) 30%, rgba(255,45,85,0.3) 50%, rgba(34,211,238,0.3) 70%, transparent 90%)' }} />
+        <div className="absolute right-[96px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(34,211,238,0.3) 30%, rgba(251,191,36,0.3) 50%, rgba(167,139,250,0.3) 70%, transparent 90%)' }} />
+      </div>
+      {/* HUD — static, updated via refs */}
+      <div className="shrink-0 px-5 py-2 bg-[#0d0d18] border-b border-white/[0.08]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs">🎹</span>
+            <span className="text-white font-bold text-sm">{beat.name}</span>
+            <span className="text-white/30 text-[10px]">{beat.tempo}</span>
+          </div>
+          <div className="flex items-center gap-3 flex-1 max-w-[200px] mx-4">
+            <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div ref={progressElRef} className="h-full rounded-full" style={{ width: '0%', background: 'linear-gradient(90deg, #22d3ee, #a78bfa, #ff2d55)' }} />
             </div>
-            <button onClick={() => { music.current?.stop(); onCancel(); }} className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xs hover:bg-red-500/20 transition">✕</button>
+            <span ref={timeElRef} className="text-white font-bold text-sm tabular-nums">30s</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span ref={comboElRef} className="text-lg font-black text-cyan-300"></span>
+            <span ref={scoreElRef} className="text-lg font-black text-white tabular-nums">0</span>
+            <button onClick={() => { doneRef.current = true; musicRef.current?.stop(); cancelAnimationFrame(rafRef.current); onCancel(); }} className="w-6 h-6 rounded bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-[10px]">✕</button>
           </div>
         </div>
       </div>
 
-      {/* GAME AREA — lanes */}
-      <div className="relative flex-1 flex justify-center gap-3 px-6 sm:px-20 lg:px-28 py-2 overflow-hidden">
+      {/* GAME AREA */}
+      <div ref={containerRef} className="relative flex-1 flex justify-center gap-2 px-4 sm:px-12 lg:px-20 py-1 overflow-hidden">
         {[0, 1, 2, 3].map(lane => (
-          <div key={lane} className="relative flex-1 max-w-28 rounded-2xl overflow-hidden transition-all duration-75"
-            style={{ 
-              background: `linear-gradient(180deg, ${LANE_COLORS[lane]}10, ${LANE_COLORS[lane]}05, ${LANE_COLORS[lane]}15)`, 
-              border: `2px solid ${LANE_COLORS[lane]}${flash[lane] ? '80' : '25'}`,
-              boxShadow: flash[lane] ? `inset 0 0 40px ${LANE_GLOWS[lane]}, 0 0 25px ${LANE_GLOWS[lane]}` : `inset 0 0 20px rgba(0,0,0,0.3)`,
-              backgroundColor: 'rgba(0,0,0,0.3)',
-            }}>
-            
-            {/* Lane label at top */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: `${LANE_COLORS[lane]}50` }}>
-                {LANE_LABELS[lane]}
-              </span>
-            </div>
-
-            {/* Hit zone — bottom glow area */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 transition-all duration-75" style={{
-              background: flash[lane] 
-                ? `linear-gradient(to top, ${LANE_COLORS[lane]}60, ${LANE_COLORS[lane]}20, transparent)` 
-                : `linear-gradient(to top, ${LANE_COLORS[lane]}15, transparent)`,
-              borderTop: `3px solid ${flash[lane] ? LANE_COLORS[lane] : LANE_COLORS[lane] + '30'}`,
-            }} />
-
-            {/* Notes */}
-            {visibleNotes.filter(n => n.lane === lane).map(note => {
-              const pct = (1 - (note.targetTime - elapsed) / FALL_TIME) * 86;
-              if (pct < -5 || pct > 100) return null;
-              return (
-                <div key={note.id} className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
-                  style={{
-                    top: `${pct}%`, width: '75%', height: '24px', borderRadius: '10px',
-                    background: `linear-gradient(135deg, ${LANE_COLORS[lane]}, ${LANE_COLORS[lane]}bb)`,
-                    boxShadow: `0 0 12px ${LANE_GLOWS[lane]}, inset 0 1px 0 rgba(255,255,255,0.4)`,
-                    border: `1.5px solid ${LANE_COLORS[lane]}`,
-                    willChange: 'top',
-                  }}>
-                  <div className="w-3 h-3 rounded-full bg-white/90 shadow-[0_0_6px_white]" />
-                </div>
-              );
-            })}
+          <div
+            key={lane}
+            ref={el => { if (el) lanesRef.current[lane] = el; }}
+            className="relative flex-1 max-w-24 rounded-xl overflow-hidden"
+            style={{
+              background: `linear-gradient(180deg, ${LANE_COLORS[lane]}06, rgba(0,0,0,0.4), ${LANE_COLORS[lane]}0a)`,
+              border: `2px solid ${LANE_COLORS[lane]}25`,
+              transition: 'border-color 0.08s, box-shadow 0.08s',
+            }}
+          >
+            <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold" style={{ color: `${LANE_COLORS[lane]}35` }}>{KEYS[lane].toUpperCase()}</div>
+            <div className="absolute bottom-0 left-0 right-0 h-12" style={{ background: `linear-gradient(to top, ${LANE_COLORS[lane]}10, transparent)`, borderTop: `2px solid ${LANE_COLORS[lane]}20` }} />
           </div>
         ))}
-
-        {/* Feedback text */}
-        <AnimatePresence>
-          {fb && (
-            <motion.div key={fb.id} initial={{ opacity: 1, scale: 0.7, y: 0 }} animate={{ opacity: 0, scale: 1.5, y: -40 }} transition={{ duration: 0.4 }}
-              className="absolute top-[30%] left-1/2 -translate-x-1/2 pointer-events-none z-50">
-              <span className="text-3xl font-black tracking-wider" style={{ color: fb.color, textShadow: `0 0 20px ${fb.color}, 0 0 40px ${fb.color}50` }}>{fb.text}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* BOTTOM — Keys + Stats */}
-      <div className="relative shrink-0 bg-black/70 border-t border-white/[0.1]">
-        {/* Key indicators */}
-        <div className="flex justify-center gap-3 py-3">
+      {/* BOTTOM STATS */}
+      <div className="shrink-0 bg-[#0d0d18] border-t border-white/[0.08] py-2 text-center">
+        <div className="flex justify-center gap-3 mb-1">
           {KEYS.map((k, i) => (
-            <div key={k} className="w-14 h-11 rounded-xl flex items-center justify-center text-base font-black transition-all duration-75"
-              style={{
-                background: flash[i] ? `${LANE_COLORS[i]}30` : 'rgba(255,255,255,0.03)',
-                border: `2px solid ${flash[i] ? LANE_COLORS[i] : 'rgba(255,255,255,0.08)'}`,
-                color: flash[i] ? LANE_COLORS[i] : 'rgba(255,255,255,0.4)',
-                boxShadow: flash[i] ? `0 0 20px ${LANE_GLOWS[i]}, inset 0 0 10px ${LANE_GLOWS[i]}` : 'none',
-                transform: flash[i] ? 'scale(0.9) translateY(2px)' : 'scale(1)',
-              }}>{k.toUpperCase()}</div>
+            <div key={k} className="w-11 h-8 rounded-lg flex items-center justify-center text-xs font-black"
+              style={{ border: `1.5px solid ${LANE_COLORS[i]}20`, color: `${LANE_COLORS[i]}60` }}>{k.toUpperCase()}</div>
           ))}
         </div>
-
-        {/* Stats bar */}
-        <div className="flex items-center justify-center gap-5 py-2 border-t border-white/[0.04] text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="text-yellow-400">★</span>
-            <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>
-            <span className="text-white/20">Perfect</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-emerald-400">●</span>
-            <span className="text-emerald-300 font-bold">{stats.goodHits}</span>
-            <span className="text-white/20">Great</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-cyan-400">○</span>
-            <span className="text-cyan-300 font-bold">{stats.okHits}</span>
-            <span className="text-white/20">OK</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-red-400">✕</span>
-            <span className="text-red-300 font-bold">{stats.misses}</span>
-            <span className="text-white/20">Miss</span>
-          </div>
-          <div className="h-3 w-px bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <span className={`font-bold ${accuracy >= 90 ? 'text-yellow-300' : accuracy >= 70 ? 'text-emerald-300' : 'text-white/60'}`}>{accuracy}%</span>
-            <span className="text-white/20">Acc</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-orange-300 font-bold">{maxCombo}x</span>
-            <span className="text-white/20">Best</span>
-          </div>
-        </div>
+        <div ref={statsElRef} className="text-[11px] text-white/60 font-mono">★0  ●0  ○0  ✕0</div>
       </div>
     </div>
   );

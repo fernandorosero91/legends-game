@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { useUIStore } from '../../store/uiStore';
@@ -117,40 +117,40 @@ export function RhythmGame() {
           </div>
         </div>
 
-        {/* Screen area — DAW background image */}
+        {/* Screen area */}
         <div className="flex-1 bg-[#1a1a20] relative overflow-hidden">
-          {/* Imagen de DAW como fondo — bien visible */}
-          <img 
-            src="/studio.png" 
-            alt="" 
-            className="absolute inset-0 w-full h-full object-cover object-top"
-          />
-          
-          {/* Overlay oscuro para legibilidad del contenido */}
-          <div className="absolute inset-0 bg-black/30" />
+          {/* Imagen de DAW solo visible en select/instructions/results (NO durante gameplay) */}
+          {phase !== 'playing' && (
+            <>
+              <img 
+                src="/studio.png" 
+                alt="" 
+                className="absolute inset-0 w-full h-full object-cover object-top"
+              />
+              <div className="absolute inset-0 bg-black/30" />
+            </>
+          )}
 
-          {/* Actual game content */}
+          {/* Game content */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              {phase === 'select_beat' && (
-                <BeatSelector key="selector" beats={availableBeats} onSelect={handleSelectBeat} onCancel={handleCancel} currentLevel={currentLevel} />
-              )}
-              {phase === 'instructions' && selectedBeat && (
-                <InstructionsModal key="instructions" gameType={gameType} beatName={selectedBeat.name} onStart={handleStartGame} onBack={() => setPhase('select_beat')} />
-              )}
-              {phase === 'playing' && selectedBeat && gameType === 'rhythm_drop' && (
-                <RhythmDrop key="rhythm-drop" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
-              )}
-              {phase === 'playing' && selectedBeat && gameType === 'beat_catcher' && (
-                <BeatCatcher key="beat-catcher" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
-              )}
-              {phase === 'playing' && selectedBeat && gameType === 'flow_mixer' && (
-                <FlowMixer key="flow-mixer" beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
-              )}
-              {phase === 'results' && results && (
-                <RecordingResults key="results" quality={results.quality} rhythmScore={results.rhythmScore} listenersGenerated={results.listenersGenerated} songTitle={selectedBeat?.name || 'Unknown'} combo={results.maxCombo || 0} perfectHits={results.perfectHits || 0} goodHits={results.goodHits || 0} okHits={results.okHits || 0} misses={results.misses || 0} onClose={handleCloseResults} />
-              )}
-            </AnimatePresence>
+            {phase === 'select_beat' && (
+              <BeatSelector key="selector" beats={availableBeats} onSelect={handleSelectBeat} onCancel={handleCancel} currentLevel={currentLevel} />
+            )}
+            {phase === 'instructions' && selectedBeat && (
+              <InstructionsModal key="instructions" gameType={gameType} beatName={selectedBeat.name} onStart={handleStartGame} onBack={() => setPhase('select_beat')} />
+            )}
+            {phase === 'playing' && selectedBeat && gameType === 'rhythm_drop' && (
+              <RhythmDrop beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+            )}
+            {phase === 'playing' && selectedBeat && gameType === 'beat_catcher' && (
+              <BeatCatcher beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+            )}
+            {phase === 'playing' && selectedBeat && gameType === 'flow_mixer' && (
+              <FlowMixer beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+            )}
+            {phase === 'results' && results && (
+              <RecordingResults quality={results.quality} rhythmScore={results.rhythmScore} listenersGenerated={results.listenersGenerated} songTitle={selectedBeat?.name || 'Unknown'} combo={results.maxCombo || 0} perfectHits={results.perfectHits || 0} goodHits={results.goodHits || 0} okHits={results.okHits || 0} misses={results.misses || 0} onClose={handleCloseResults} />
+            )}
           </div>
         </div>
       </div>

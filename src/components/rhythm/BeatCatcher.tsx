@@ -103,7 +103,7 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     if (countdown <= 0) {
       setStarted(true);
       startTimeRef.current = performance.now();
-      bgMusic.current = new Howl({ src: ['/audio/inicio.mp3'], volume: 0.25, loop: true });
+      bgMusic.current = new Howl({ src: [beat.audioFile], volume: 0.25, loop: true });
       bgMusic.current.play();
       return;
     }
@@ -111,29 +111,22 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     return () => clearTimeout(t);
   }, [countdown]);
 
-  // Game loop
+  // Game loop — NO setState every frame
+  const hudTimerRef = useRef(0);
+
   useEffect(() => {
     if (!started) return;
     const loop = () => {
       const el = performance.now() - startTimeRef.current;
-      setElapsed(el);
 
-      // Check missed
-      let missCount = 0;
+      // Check missed (mutate only)
       for (const c of circlesRef.current) {
         if (!c.hit && !c.missed && el > c.spawnTime + c.duration + 300) {
           c.missed = true;
-          missCount++;
+          comboRef.current = 0;
+          statsRef.current.misses++;
         }
       }
-      if (missCount > 0) {
-        comboRef.current = 0;
-        setCombo(0);
-        statsRef.current.misses += missCount;
-        setStats({ ...statsRef.current });
-      }
-
-      setCircles([...circlesRef.current]);
 
       if (el >= GAME_DURATION) {
         bgMusic.current?.stop();
@@ -143,7 +136,19 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
       animRef.current = requestAnimationFrame(loop);
     };
     animRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animRef.current);
+
+    // HUD updates at ~8fps
+    hudTimerRef.current = window.setInterval(() => {
+      const el = performance.now() - startTimeRef.current;
+      setElapsed(el);
+      setCircles([...circlesRef.current]);
+      setScore(scoreRef.current);
+      setCombo(comboRef.current);
+      setMaxCombo(maxComboRef.current);
+      setStats({ ...statsRef.current });
+    }, 120);
+
+    return () => { cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); };
   }, [started, onComplete]);
 
   // Click handler
@@ -195,9 +200,41 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
     // Explosion
     setExplosions(prev => [...prev, { id: `e-${Date.now()}`, x: circle.x, y: circle.y, color: circle.color }]);
     setTimeout(() => setExplosions(prev => prev.slice(1)), 500);
+
+    // Musical note particles flying out from hit position
+    const syms = ['♪', '♫', '✦', '★', '♬'];
+    const count = points >= 100 ? 5 : points >= 75 ? 3 : 2;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.textContent = syms[Math.floor(Math.random() * syms.length)];
+      const size = 22 + Math.random() * 14;
+      const dx = (Math.random() - 0.5) * 160;
+      const dy = -60 - Math.random() * 100;
+      el.style.cssText = `position:fixed;left:${circle.x}%;top:${circle.y}%;color:${circle.color};font-size:${size}px;font-weight:bold;pointer-events:none;z-index:200;text-shadow:0 0 12px ${circle.color}, 0 0 24px ${circle.color};opacity:1;transition:all 0.8s cubic-bezier(0.25,0.46,0.45,0.94);transform:translate(-50%,-50%) scale(1.3)`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() => {
+        el.style.opacity = '0';
+        el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.2) rotate(${(Math.random()-0.5)*300}deg)`;
+      });
+      setTimeout(() => el.remove(), 850);
+    }
+
+    // Shockwave ring on PERFECT hits
+    if (points >= 100) {
+      const ring = document.createElement('div');
+      ring.style.cssText = `position:fixed;left:${circle.x}%;top:${circle.y}%;width:50px;height:50px;border-radius:50%;border:3px solid ${circle.color};pointer-events:none;z-index:199;transform:translate(-50%,-50%) scale(0.5);opacity:0.9;transition:all 0.45s ease-out;box-shadow:0 0 15px ${circle.color}, inset 0 0 15px ${circle.color}50`;
+      document.body.appendChild(ring);
+      requestAnimationFrame(() => {
+        ring.style.transform = 'translate(-50%,-50%) scale(3.5)';
+        ring.style.opacity = '0';
+        ring.style.borderWidth = '1px';
+      });
+      setTimeout(() => ring.remove(), 500);
+    }
+
   }, [level]);
 
-  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); }, []);
+  useEffect(() => () => { bgMusic.current?.stop(); cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); }, []);
 
   const progress = elapsed / GAME_DURATION;
   const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
@@ -260,7 +297,24 @@ export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherPr
       </div>
 
       {/* Game area */}
-      <div className="flex-1 relative overflow-hidden cursor-pointer select-none bg-black/40">
+      <div className="flex-1 relative overflow-hidden cursor-pointer select-none bg-[#0a0a15]">
+        {/* Studio ambiance decorations */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 85%, rgba(34,211,238,0.08) 0%, transparent 45%), radial-gradient(ellipse at 15% 30%, rgba(255,45,85,0.06) 0%, transparent 35%), radial-gradient(ellipse at 85% 30%, rgba(167,139,250,0.06) 0%, transparent 35%)' }} />
+          <div className="absolute left-0 top-0 bottom-0 w-20 flex flex-col items-center justify-between py-6">
+            <div className="flex items-end gap-[3px] h-36 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${25+Math.sin(i*0.7)*25+20}%`, background: `linear-gradient(to top, ${['#ff2d55','#a78bfa','#22d3ee','#fbbf24'][i%4]}, ${['#ff2d55','#a78bfa','#22d3ee','#fbbf24'][i%4]}30)`, animation: `rd-eq ${0.5+i*0.08}s ease-in-out infinite alternate`, animationDelay: `${i*0.06}s` }} />))}</div>
+            <div className="flex flex-col items-center gap-3 text-2xl"><span className="opacity-30">🎯</span><span className="opacity-25">🎧</span><span className="opacity-30">🎵</span></div>
+            <div className="flex items-end gap-[3px] h-28 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${20+Math.cos(i*0.9)*20+18}%`, background: `linear-gradient(to top, ${['#22d3ee','#fbbf24','#ff2d55','#a78bfa'][i%4]}60, ${['#22d3ee','#fbbf24','#ff2d55','#a78bfa'][i%4]}15)`, animation: `rd-eq ${0.6+i*0.09}s ease-in-out infinite alternate-reverse`, animationDelay: `${i*0.07}s` }} />))}</div>
+          </div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 flex flex-col items-center justify-between py-6">
+            <div className="flex items-end gap-[3px] h-36 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${30+Math.cos(i*0.6)*20+20}%`, background: `linear-gradient(to top, ${['#fbbf24','#22d3ee','#a78bfa','#ff2d55'][i%4]}, ${['#fbbf24','#22d3ee','#a78bfa','#ff2d55'][i%4]}30)`, animation: `rd-eq ${0.55+i*0.09}s ease-in-out infinite alternate-reverse`, animationDelay: `${i*0.05}s` }} />))}</div>
+            <div className="flex flex-col items-center gap-3 text-2xl"><span className="opacity-30">🎤</span><span className="opacity-25">🎶</span><span className="opacity-30">♫</span></div>
+            <div className="flex items-end gap-[3px] h-28 w-full px-3">{[...Array(10)].map((_, i) => (<div key={i} className="flex-1 rounded-full" style={{ height: `${22+Math.sin(i*1.1)*22+18}%`, background: `linear-gradient(to top, ${['#a78bfa','#ff2d55','#fbbf24','#22d3ee'][i%4]}60, ${['#a78bfa','#ff2d55','#fbbf24','#22d3ee'][i%4]}15)`, animation: `rd-eq ${0.65+i*0.1}s ease-in-out infinite alternate`, animationDelay: `${i*0.08}s` }} />))}</div>
+          </div>
+          <div className="absolute left-[80px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(168,85,247,0.25) 30%, rgba(34,211,238,0.25) 70%, transparent 90%)' }} />
+          <div className="absolute right-[80px] top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(34,211,238,0.25) 30%, rgba(251,191,36,0.25) 70%, transparent 90%)' }} />
+        </div>
+
         {/* Explosions */}
         <AnimatePresence>
           {explosions.map(e => (
