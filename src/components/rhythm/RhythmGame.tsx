@@ -87,10 +87,12 @@ export function RhythmGame() {
 
   const handleCancel = useCallback(() => {
     RhythmSystem.cancelRecording();
+    usePlayerStore.getState().setPlayerSitting(false);
     useGameStore.getState().setGamePhase('playing');
   }, []);
 
   const handleCloseResults = useCallback(() => {
+    usePlayerStore.getState().setPlayerSitting(false);
     useGameStore.getState().setGamePhase('playing');
   }, []);
 

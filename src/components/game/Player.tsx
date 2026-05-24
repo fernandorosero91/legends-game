@@ -50,6 +50,7 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const currentAction = useRef('');
   const isMoving = useRef(false);
   const floorY = useRef(position[1]);
+  const wasSitting = useRef(false);
   const sameClip = ANIMS.idle === ANIMS.walk; // true for player2
 
   // Find the best matching animation name
@@ -175,19 +176,36 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
     const { gamePhase } = useGameStore.getState();
     const { isSitting } = usePlayerStore.getState();
     
-    if (gamePhase !== 'playing') {
-      // Reset movement keys to prevent stuck movement
+    // If sitting, teleport and play sit anim (stay seated during minigames)
+    if (isSitting) {
+      const { playerPosition } = usePlayerStore.getState();
+      if (playerPosition) {
+        group.current.position.x = playerPosition.x;
+        group.current.position.z = playerPosition.z;
+      }
+      playAnim(ANIMS.sit || ANIMS.idle);
+      group.current.position.y = floorY.current;
       forward.current = false;
       back.current = false;
       left.current = false;
       right.current = false;
-      
-      // Play sitting animation during rhythm game
-      if (isSitting) {
-        playAnim(ANIMS.sit || ANIMS.idle);
-      } else {
-        playAnim(ANIMS.idle);
-      }
+      wasSitting.current = true;
+      return;
+    }
+
+    // Just stood up — move player away from furniture
+    if (wasSitting.current) {
+      wasSitting.current = false;
+      group.current.position.z += 1.5;
+      group.current.position.x -= 0.5;
+    }
+
+    if (gamePhase !== 'playing') {
+      forward.current = false;
+      back.current = false;
+      left.current = false;
+      right.current = false;
+      playAnim(ANIMS.idle);
       group.current.position.y = floorY.current;
       return;
     }

@@ -11,7 +11,8 @@ import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
 import { DJSonicNPC } from '../components/game/DJSonicNPC';
-import { Suspense, useEffect } from 'react';
+import { useGLTF, useKTX2 } from '@react-three/drei';
+import { Suspense, useEffect, useMemo } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
@@ -19,6 +20,7 @@ import { useUIStore } from '../store/uiStore';
 export const ApartmentScene = () => {
   const energy = usePlayerStore((s) => s.energy);
   const addEnergy = usePlayerStore((s) => s.addEnergy);
+  const inventory = usePlayerStore((s) => s.inventory);
   const addNotification = useUIStore((s) => s.addNotification);
   const advanceTime = useGameStore((s) => s.advanceTime);
   const setGamePhase = useGameStore((s) => s.setGamePhase);
@@ -53,20 +55,32 @@ export const ApartmentScene = () => {
     addNotification('success', '🛋️ Descansaste un rato. +40 energía');
   };
 
-  // Grabar canción
+  // Grabar canción — sienta al jugador en la silla frente al escritorio
   const handleRecord = () => {
     if (energy < 30) {
       addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
-    usePlayerStore.getState().setPosition({ x: 1.5, y: 0, z: -3.5 });
+    // Position player at the chair and sit
+    usePlayerStore.getState().setPosition({ x: 0.3, y: 0, z: -3.2 });
     usePlayerStore.getState().setPlayerSitting(true);
-    setGamePhase('rhythm_game');
+    // Small delay to show sitting animation before opening minigame
+    setTimeout(() => {
+      setGamePhase('rhythm_game');
+    }, 800);
   };
 
-  // Computador — trabajos online
+  // Computador — trabajos online (sienta al jugador en la silla del PC)
   const handleComputer = () => {
-    addNotification('info', '💻 Trabajos online — próximamente...');
+    if (energy < 15) {
+      addNotification('warning', '💻 Necesitas al menos 15 de energía para trabajar');
+      return;
+    }
+    usePlayerStore.getState().setPosition({ x: 6.0, y: 0, z: -3.5 });
+    usePlayerStore.getState().setPlayerSitting(true);
+    setTimeout(() => {
+      useGameStore.getState().setGamePhase('online_job');
+    }, 800);
   };
 
   return (
@@ -83,6 +97,11 @@ export const ApartmentScene = () => {
 
       {currentRoom !== 'studio_level_3' && (
         <>
+          {/* 🪑 Silla frente al escritorio de grabación */}
+          <Suspense fallback={null}>
+            <DeskChair position={[0.3, 0, -3.2]} rotation={[0, 0, 0]} />
+          </Suspense>
+
           {/* 🎤 Escritorio con headset — GRABAR CANCIÓN */}
           <InteractableZone
             position={[0.3, 1.5, -5.0]}
@@ -101,9 +120,14 @@ export const ApartmentScene = () => {
             onInteract={handleSleep}
             tooltipOffset={[0, 2.5, 0]}
           />
-          {/* 🛋️ Sofá — DESCANSAR */}
+          {/* 🛋️ Sofá — DESCANSAR (solo visible si fue comprado) */}
+          {inventory.some(i => i.itemId === 'comfy_couch') && (
+            <Suspense fallback={null}>
+              <SofaModel position={[5.0, 0, 5.0]} rotation={[0, Math.PI, 0]} />
+            </Suspense>
+          )}
           <InteractableZone
-            position={[5.0, 0.6, 3.5]}
+            position={[5.0, 0.6, 5.0]}
             size={[2.5, 1.5, 2]}
             label="Descansar"
             icon="🛋️"
@@ -168,3 +192,43 @@ export const ApartmentScene = () => {
     </>
   );
 };
+
+/** Silla de escritorio — GLB con texturas KTX2 */
+function DeskChair({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
+  const { scene } = useGLTF('/models/accesorios/silla-inter.glb', '/draco/');
+  const clone = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return c;
+  }, [scene]);
+
+  return (
+    <primitive object={clone} position={position} rotation={rotation || [0, 0, 0]} scale={1.8} />
+  );
+}
+
+/** Sofá — modelo GLB */
+function SofaModel({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
+  const { scene } = useGLTF('/models/accesorios/sofa_3230.glb', '/draco/');
+  const clone = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return c;
+  }, [scene]);
+
+  return (
+    <primitive object={clone} position={position} rotation={rotation || [0, 0, 0]} scale={1.5} />
+  );
+}
+
+useGLTF.preload('/models/accesorios/sofa_3230.glb');

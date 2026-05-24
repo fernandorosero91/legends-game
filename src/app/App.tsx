@@ -22,6 +22,7 @@ import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
@@ -308,6 +309,11 @@ function GameScene() {
       <AnimatePresence>
         {gamePhase === 'rhythm_game' && <RhythmGame />}
       </AnimatePresence>
+
+      {/* Online Job Game */}
+      {gamePhase === 'online_job' && (
+        <OnlineJobGame onClose={() => { useGameStore.getState().setGamePhase('playing'); usePlayerStore.getState().setPlayerSitting(false); }} />
+      )}
     </>
   );
 }
