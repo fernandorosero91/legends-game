@@ -6,11 +6,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoalsPanel } from './GoalsPanel';
-import { SettingsProfilePanel } from './SettingsProfilePanel';
+import { useUIStore } from '../../store/uiStore';
 
 export function GameSideButtons() {
   const [showGoals, setShowGoals] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const setScreen = useUIStore((s) => s.setScreen);
 
   return (
     <>
@@ -22,7 +22,7 @@ export function GameSideButtons() {
           animate={{ scale: 1 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => setShowSettings(true)}
+          onClick={() => setScreen('settings')}
           className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 text-white shadow-2xl border-2 border-gray-400 flex items-center justify-center text-lg hover:shadow-gray-500/50 transition-all"
           title="Ajustes / Perfil"
         >
@@ -44,12 +44,9 @@ export function GameSideButtons() {
         </motion.button>
       </div>
 
-      {/* Paneles modales */}
+      {/* Panel de metas */}
       <AnimatePresence>
         {showGoals && <GoalsPanel isOpen={showGoals} onClose={() => setShowGoals(false)} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showSettings && <SettingsProfilePanel isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       </AnimatePresence>
     </>
   );

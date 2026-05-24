@@ -14,11 +14,11 @@ const ANIMS_MALE = {
   sit: 'sitting',
 };
 
-// Para el modelo femenino: tiene idle001, sitting, walking
+// Para el modelo femenino: tiene idle (breathing), walking
 const ANIMS_FEMALE = {
-  idle: 'idle001',
+  idle: 'idle',
   walk: 'walking',
-  sit: 'sitting',
+  sit: 'walking',
 };
 
 const PLAYER_RADIUS = 0.7;

@@ -86,7 +86,9 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   const [genderMsg, setGenderMsg] = useState('');
   const [showConfirm, setShowConfirm] = useState<'reset' | 'logout' | null>(null);
 
-  const handleBack = () => { if (onClose) onClose(); else setScreen('main_menu'); };
+  const goBack = useUIStore((s) => s.goBack);
+  const previousScreen = useUIStore((s) => s.previousScreen);
+  const handleBack = () => { if (onClose) onClose(); else if (previousScreen) goBack(); else setScreen('main_menu'); };
 
   const handleSaveUsername = async () => {
     if (!user || !newUsername.trim() || newUsername.trim().length < 3) { setProfileMsg('Mínimo 3 caracteres'); return; }
