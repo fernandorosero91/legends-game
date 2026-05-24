@@ -3,9 +3,14 @@
  * Renderiza dentro de la habitación (room_level1) los accesorios que el
  * jugador ha COMPRADO (presentes en su inventario), cada uno en su posición.
  * Ej: el micrófono aparece sobre la mesa al comprarlo.
+ *
+ * Cada accesorio está envuelto en un ErrorBoundary, de modo que si un GLB
+ * concreto falla al cargar (archivo faltante, etc.), solo se omite ese
+ * modelo y NO se rompe el resto de la escena.
  */
 
-import { useMemo, Suspense } from 'react';
+import { Component, useMemo, Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlayerStore } from '../../store/playerStore';
@@ -13,6 +18,32 @@ import {
   ACCESSORY_MODELS,
   getAccessoryRoomPlacement,
 } from '../../data/accessoryModels';
+
+/* ------------------------------------------------------------------ */
+/*  Error boundary: aísla fallos de carga de un GLB individual         */
+/* ------------------------------------------------------------------ */
+class ModelErrorBoundary extends Component<
+  { children: ReactNode; name: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; name: string }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error(`[RoomAccessories] No se pudo cargar el modelo "${this.props.name}":`, error);
+  }
+
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
 interface AccessoryInRoomProps {
   itemId: string;
@@ -63,9 +94,11 @@ export function RoomAccessories() {
   return (
     <group name="room-accessories">
       {ownedAccessories.map((itemId) => (
-        <Suspense key={itemId} fallback={null}>
-          <AccessoryInRoom itemId={itemId} modelPath={ACCESSORY_MODELS[itemId]} />
-        </Suspense>
+        <ModelErrorBoundary key={itemId} name={itemId}>
+          <Suspense fallback={null}>
+            <AccessoryInRoom itemId={itemId} modelPath={ACCESSORY_MODELS[itemId]} />
+          </Suspense>
+        </ModelErrorBoundary>
       ))}
     </group>
   );

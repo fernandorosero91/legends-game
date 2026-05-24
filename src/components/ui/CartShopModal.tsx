@@ -11,6 +11,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useUIStore } from '@/store/uiStore';
 import { ShopSystem } from '@/systems/shopSystem';
 import { EQUIPMENT_ITEMS } from '@/data/shopItems';
+import { getAccessoryModel } from '@/data/accessoryModels';
+import { AccessoryViewer3D } from '@/components/game/AccessoryViewer3D';
 import type { ShopItem } from '@/types/shop';
 
 // ===== ACCESORIOS DISPONIBLES EN EL CARRITO =====
@@ -293,9 +295,9 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            {/* Ícono */}
+                            {/* Ícono o modelo 3D */}
                             <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden ${
                                 owned
                                   ? 'bg-green-500/20'
                                   : inCart
@@ -303,7 +305,15 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
                                   : 'bg-purple-500/20'
                               }`}
                             >
-                              {emoji}
+                              {getAccessoryModel(item.id) ? (
+                                <AccessoryViewer3D
+                                  itemId={item.id}
+                                  className="w-full h-full"
+                                  autoRotate
+                                />
+                              ) : (
+                                emoji
+                              )}
                             </div>
 
                             {/* Info */}
