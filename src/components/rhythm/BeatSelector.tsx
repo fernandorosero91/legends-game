@@ -76,10 +76,10 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="relative z-10 w-full max-w-[640px] mx-auto px-4"
     >
-      <div className="bg-gradient-to-b from-[#1a1a30]/95 to-[#12122a]/95 rounded-2xl border border-purple-500/15 overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(139,92,246,0.05)]">
+      <div className="bg-gradient-to-b from-[#252545]/95 to-[#1c1c3a]/95 rounded-2xl border border-purple-400/20 overflow-hidden shadow-[0_25px_60px_-12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(139,92,246,0.08)]">
         
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-purple-400/10 bg-gradient-to-r from-purple-500/[0.03] to-cyan-500/[0.03]">
+        <div className="px-6 pt-6 pb-4 border-b border-purple-400/15 bg-gradient-to-r from-purple-500/[0.05] to-cyan-500/[0.05]">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400/15 to-purple-400/15 border border-cyan-400/20 flex items-center justify-center shadow-[0_0_12px_rgba(34,211,238,0.1)]">
               <span className="text-cyan-300 text-base">🎵</span>
@@ -128,20 +128,20 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
                         onClick={() => handleBeatSelect(beat)}
                         className={`relative p-4 rounded-xl text-left transition-all duration-150 group ${
                           isSelected
-                            ? 'bg-cyan-400/[0.08] border border-cyan-400/25 shadow-[0_0_20px_-5px_rgba(34,211,238,0.15),inset_0_1px_0_rgba(255,255,255,0.05)]'
-                            : 'bg-white/[0.025] border border-white/[0.06] hover:bg-purple-400/[0.05] hover:border-purple-400/15'
+                            ? 'bg-gradient-to-br from-cyan-400/[0.15] to-purple-500/[0.1] border border-cyan-400/35 shadow-[0_0_20px_-5px_rgba(34,211,238,0.2),inset_0_1px_0_rgba(255,255,255,0.08)]'
+                            : 'bg-gradient-to-br from-white/[0.06] to-white/[0.03] border border-purple-300/15 hover:from-purple-400/[0.08] hover:to-cyan-400/[0.04] hover:border-purple-300/25'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div 
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-transform group-hover:scale-110"
-                            style={{ backgroundColor: `${accentColor}15`, border: `1px solid ${accentColor}30` }}
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-transform group-hover:scale-110 shadow-sm"
+                            style={{ backgroundColor: `${accentColor}20`, border: `1.5px solid ${accentColor}40`, boxShadow: `0 0 10px ${accentColor}15` }}
                           >
                             {STYLE_ICONS[beat.style] || '🎵'}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-semibold text-sm truncate">
+                            <h3 className="text-white font-bold text-[14px] truncate">
                               {beat.name}
                             </h3>
                             {beat.description && (
@@ -151,8 +151,8 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
                             )}
                             <div className="flex items-center gap-2 mt-2">
                               <span 
-                                className="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider"
-                                style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                                className="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider shadow-sm"
+                                style={{ backgroundColor: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}40`, textShadow: `0 0 6px ${accentColor}40` }}
                               >
                                 {beat.style.replace('_', ' ')}
                               </span>
@@ -205,8 +205,8 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
                         onClick={() => setSelectedMode(mode.id)}
                         className={`relative p-5 rounded-xl text-center transition-all duration-150 group ${
                           isSelected
-                            ? 'bg-cyan-400/[0.08] border border-cyan-400/25 shadow-[0_0_25px_-5px_rgba(34,211,238,0.15)]'
-                            : 'bg-white/[0.025] border border-white/[0.06] hover:bg-purple-400/[0.05] hover:border-purple-400/15'
+                            ? 'bg-gradient-to-br from-cyan-400/[0.15] to-purple-500/[0.1] border border-cyan-400/35 shadow-[0_0_25px_-5px_rgba(34,211,238,0.2)]'
+                            : 'bg-gradient-to-br from-white/[0.06] to-white/[0.03] border border-purple-300/15 hover:from-purple-400/[0.08] hover:to-cyan-400/[0.04] hover:border-purple-300/25'
                         }`}
                       >
                         <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">
@@ -245,7 +245,7 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-purple-400/10 bg-[#12122a]/60">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-purple-400/15 bg-[#1e1e3a]/60">
           <button
             onClick={handleBack}
             className="text-purple-200/70 font-medium hover:text-cyan-200 transition text-[13px]"
@@ -263,8 +263,8 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
             disabled={step === 'beat' ? !selectedBeat : !selectedMode}
             className={`px-5 py-2.5 rounded-xl font-bold text-[13px] transition-all ${
               (step === 'beat' ? selectedBeat : selectedMode)
-                ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-[#0a0318] hover:from-cyan-300 hover:to-cyan-400 active:scale-95 shadow-[0_4px_15px_rgba(34,211,238,0.35)]'
-                : 'bg-white/[0.05] text-purple-300/40 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-[#0a0318] hover:from-cyan-300 hover:to-cyan-400 active:scale-95 shadow-[0_4px_20px_rgba(34,211,238,0.4)] hover:shadow-[0_6px_25px_rgba(34,211,238,0.5)]'
+                : 'bg-purple-500/10 text-purple-300/40 cursor-not-allowed border border-purple-500/10'
             }`}
           >
             {step === 'beat' ? 'Siguiente →' : '🎤 ¡GRABAR!'}
