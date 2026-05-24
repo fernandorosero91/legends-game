@@ -72,7 +72,7 @@ export const useGameStore = create<GameState>()(
         ...INITIAL_STATE,
 
         startNewGame: () => {
-          const { currentRoom } = get();
+          const { currentRoom, highestUnlockedLevel, levelStars } = get();
           set({
             ...INITIAL_STATE,
             gamePhase: 'playing',
