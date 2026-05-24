@@ -24,6 +24,7 @@ import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
 import { CashierGame } from '../components/cashier/CashierGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
+import { GameSideButtons } from '../components/ui/GameSideButtons';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -206,6 +207,9 @@ function GameScene() {
             onClose={() => setShopOpen(false)} 
           />
 
+          {/* Botones laterales: Metas + Ajustes */}
+          <GameSideButtons />
+
           {/* Botón flotante para abrir mapa */}
           <motion.button
             initial={{ scale: 0 }}
@@ -213,7 +217,7 @@ function GameScene() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowLocationMap(true)}
-            className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
+            className="fixed bottom-8 right-8 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-lg hover:shadow-purple-500/50 transition-all"
             title="Abrir mapa (M)"
           >
             🗺️

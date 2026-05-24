@@ -156,7 +156,7 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.92 }}
         onClick={() => setIsOpen(true)}
-        className={`fixed z-40 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer bottom-28 right-8 bg-gradient-to-br from-purple-500 to-indigo-700 border-2 border-purple-300 hover:shadow-purple-500/60 ${className}`}
+        className={`fixed z-40 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer bottom-24 right-8 bg-gradient-to-br from-purple-500 to-indigo-700 border-2 border-purple-300 hover:shadow-purple-500/60 ${className}`}
         title="Tienda de Accesorios"
         aria-label="Abrir tienda de accesorios"
       >

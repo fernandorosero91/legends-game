@@ -1,8 +1,6 @@
 /**
  * LEGENDS: CashierGame — Minijuego "Cajero Express"
- * Suma rápida: el jugador suma los precios de los productos y escribe el total.
- * La dificultad aumenta con cada cliente atendido.
- * Progreso guardado en localStorage.
+ * Caja registradora visual con pantalla LED, teclado y ticket.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -13,27 +11,27 @@ import { useUIStore } from '../../store/uiStore';
 
 // ─── Productos ───────────────────────────────────────────
 const PRODUCT_POOL = [
-  { name: 'Leche', emoji: '🥛' },
-  { name: 'Pan', emoji: '🍞' },
-  { name: 'Manzanas', emoji: '🍎' },
-  { name: 'Pollo', emoji: '🍗' },
-  { name: 'Arroz', emoji: '🍚' },
-  { name: 'Jugo', emoji: '🧃' },
-  { name: 'Huevos', emoji: '🥚' },
-  { name: 'Queso', emoji: '🧀' },
-  { name: 'Bananas', emoji: '🍌' },
-  { name: 'Agua', emoji: '💧' },
-  { name: 'Papas', emoji: '🥔' },
-  { name: 'Refresco', emoji: '🥤' },
-  { name: 'Pasta', emoji: '🍝' },
-  { name: 'Tomates', emoji: '🍅' },
-  { name: 'Cereal', emoji: '🥣' },
-  { name: 'Galletas', emoji: '🍪' },
-  { name: 'Yogurt', emoji: '🥛' },
-  { name: 'Café', emoji: '☕' },
+  { name: 'Leche', emoji: '🥛', color: '#e0f0ff' },
+  { name: 'Pan', emoji: '🍞', color: '#f5e6c8' },
+  { name: 'Manzanas', emoji: '🍎', color: '#ffe0e0' },
+  { name: 'Pollo', emoji: '🍗', color: '#fff0d0' },
+  { name: 'Arroz', emoji: '🍚', color: '#f8f8f0' },
+  { name: 'Jugo', emoji: '🧃', color: '#e8ffe0' },
+  { name: 'Huevos', emoji: '🥚', color: '#fff8e0' },
+  { name: 'Queso', emoji: '🧀', color: '#fff5c0' },
+  { name: 'Bananas', emoji: '🍌', color: '#fffde0' },
+  { name: 'Agua', emoji: '💧', color: '#e0f8ff' },
+  { name: 'Papas', emoji: '🥔', color: '#f0e8d8' },
+  { name: 'Refresco', emoji: '🥤', color: '#ffe0f0' },
+  { name: 'Pasta', emoji: '🍝', color: '#fff0d0' },
+  { name: 'Tomates', emoji: '🍅', color: '#ffe0d0' },
+  { name: 'Cereal', emoji: '🥣', color: '#f0e8ff' },
+  { name: 'Galletas', emoji: '🍪', color: '#f5e0c0' },
+  { name: 'Café', emoji: '☕', color: '#e8d8c8' },
+  { name: 'Jabón', emoji: '🧼', color: '#e0f8f0' },
 ];
 
-// ─── Dificultad por nivel ────────────────────────────────
+// ─── Dificultad ──────────────────────────────────────────
 interface DifficultyConfig {
   products: number;
   maxPrice: number;
@@ -51,19 +49,14 @@ function getDifficulty(level: number): DifficultyConfig {
   return { products: 5, maxPrice: 20, useDecimals: true, timeLimit: 8 };
 }
 
-// ─── Generar cliente ─────────────────────────────────────
-interface Product {
-  name: string;
-  emoji: string;
-  price: number;
-}
+interface Product { name: string; emoji: string; price: number; color: string; }
 
 function generateClient(difficulty: DifficultyConfig): Product[] {
   const shuffled = [...PRODUCT_POOL].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, difficulty.products).map(p => {
     let price: number;
     if (difficulty.useDecimals) {
-      price = Math.round((Math.random() * (difficulty.maxPrice - 1) + 1) * 4) / 4; // .25 increments
+      price = Math.round((Math.random() * (difficulty.maxPrice - 1) + 1) * 4) / 4;
     } else {
       price = Math.floor(Math.random() * (difficulty.maxPrice - 1)) + 1;
     }
@@ -71,17 +64,12 @@ function generateClient(difficulty: DifficultyConfig): Product[] {
   });
 }
 
-// ─── Guardar/cargar progreso ─────────────────────────────
+// ─── Progreso ────────────────────────────────────────────
 const STORAGE_KEY = 'legends-cashier-progress';
-
-function loadProgress(): { bestLevel: number; totalEarnings: number } {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return { bestLevel: 1, totalEarnings: 0 };
+function loadProgress() {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : { bestLevel: 1, totalEarnings: 0 }; }
+  catch { return { bestLevel: 1, totalEarnings: 0 }; }
 }
-
 function saveProgress(bestLevel: number, totalEarnings: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ bestLevel, totalEarnings }));
 }
@@ -99,230 +87,175 @@ export function CashierGame() {
   const [gameOver, setGameOver] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const setGamePhase = useGameStore(state => state.setGamePhase);
-  const advanceTime = useGameStore(state => state.advanceTime);
-  const addMoney = usePlayerStore(state => state.addMoney);
-  const consumeEnergy = usePlayerStore(state => state.consumeEnergy);
-  const addNotification = useUIStore(state => state.addNotification);
+  const setGamePhase = useGameStore(s => s.setGamePhase);
+  const advanceTime = useGameStore(s => s.advanceTime);
+  const addMoney = usePlayerStore(s => s.addMoney);
+  const consumeEnergy = usePlayerStore(s => s.consumeEnergy);
+  const addNotification = useUIStore(s => s.addNotification);
 
   const correctTotal = products.reduce((sum, p) => sum + p.price, 0);
   const difficulty = getDifficulty(level);
 
-  // ─── Generar nuevo cliente ───────────────────────────
   const nextClient = useCallback(() => {
     const diff = getDifficulty(level);
     setProducts(generateClient(diff));
     setInput('');
     setTimeLeft(diff.timeLimit);
     setFeedback(null);
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setDrawerOpen(false);
   }, [level]);
 
-  // ─── Iniciar juego ──────────────────────────────────
   const startGame = () => {
     setShowIntro(false);
-    setLives(3);
-    setClientsServed(0);
-    setEarnings(0);
-    setLevel(1);
-    setGameOver(false);
+    setLives(3); setClientsServed(0); setEarnings(0); setLevel(1); setGameOver(false);
     const diff = getDifficulty(1);
     setProducts(generateClient(diff));
     setTimeLeft(diff.timeLimit);
-    setTimeout(() => inputRef.current?.focus(), 200);
   };
 
-  // ─── Timer ──────────────────────────────────────────
+  // Timer
   useEffect(() => {
     if (showIntro || gameOver || paused || feedback) return;
-
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
-          // Tiempo agotado = respuesta incorrecta
-          setLives(l => l - 1);
-          setFeedback('wrong');
-          return 0;
-        }
+        if (prev <= 1) { setLives(l => l - 1); setFeedback('wrong'); return 0; }
         return prev - 1;
       });
     }, 1000);
-
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [showIntro, gameOver, paused, feedback, products]);
 
-  // ─── Check game over ────────────────────────────────
+  // Game over check
   useEffect(() => {
     if (lives <= 0 && !gameOver) {
       setGameOver(true);
-      const progress = loadProgress();
-      const newBest = Math.max(progress.bestLevel, level);
-      saveProgress(newBest, progress.totalEarnings + earnings);
+      const p = loadProgress();
+      saveProgress(Math.max(p.bestLevel, level), p.totalEarnings + earnings);
     }
   }, [lives, gameOver, level, earnings]);
 
-  // ─── Después del feedback, siguiente cliente ────────
+  // After feedback → next client
   useEffect(() => {
     if (!feedback) return;
+    if (feedback === 'correct') setDrawerOpen(true);
     const timer = setTimeout(() => {
       if (lives <= 0) return;
-      if (feedback === 'correct') {
-        // Subir nivel cada 3 clientes
-        if ((clientsServed + 1) % 3 === 0) {
-          setLevel(l => l + 1);
-        }
-      }
+      if (feedback === 'correct' && (clientsServed + 1) % 3 === 0) setLevel(l => l + 1);
       nextClient();
-    }, 1200);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [feedback, lives, clientsServed, nextClient]);
 
-  // ─── Verificar respuesta ────────────────────────────
   const handleSubmit = () => {
     if (!input || feedback) return;
     const answer = parseFloat(input);
     const expected = Math.round(correctTotal * 100) / 100;
-
     if (Math.abs(answer - expected) < 0.01) {
-      // Correcto
-      setFeedback('correct');
-      setClientsServed(c => c + 1);
-      setEarnings(e => e + 50);
+      setFeedback('correct'); setClientsServed(c => c + 1); setEarnings(e => e + 50);
     } else {
-      // Incorrecto
-      setFeedback('wrong');
-      setLives(l => l - 1);
+      setFeedback('wrong'); setLives(l => l - 1);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit();
-    if (e.key === 'Escape') setPaused(true);
+  const handleKey = (key: string) => {
+    if (feedback) return;
+    if (key === 'C') { setInput(''); return; }
+    if (key === '←') { setInput(prev => prev.slice(0, -1)); return; }
+    if (key === '=') { handleSubmit(); return; }
+    if (key === '.' && input.includes('.')) return;
+    if (input.length >= 7) return;
+    setInput(prev => prev + key);
   };
 
-  // ─── Salir del juego ───────────────────────────────
   const handleExit = () => {
     const totalPay = 350 + (clientsServed * 50);
     if (clientsServed > 0) {
-      addMoney(totalPay);
-      consumeEnergy(20);
-      advanceTime();
-      addNotification('success', `¡Turno completado! ${clientsServed} clientes atendidos. +$${totalPay}`);
+      addMoney(totalPay); consumeEnergy(20); advanceTime();
+      addNotification('success', `¡Turno completado! ${clientsServed} clientes. +$${totalPay}`);
     }
     setGamePhase('playing');
   };
 
-  const handleExitNoSave = () => {
-    setGamePhase('playing');
-  };
+  const handleExitNoSave = () => { setGamePhase('playing'); };
 
   const timePercent = (timeLeft / difficulty.timeLimit) * 100;
   const isUrgent = timeLeft <= 4;
 
-  // ─── PANTALLA INTRO ─────────────────────────────────
+  // ─── INTRO ─────────────────────────────────────────
   if (showIntro) {
     const progress = loadProgress();
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center"
-      >
-        <div className="text-center max-w-md px-6">
-          <div className="text-6xl mb-4">🛒</div>
-          <h1 className="text-3xl font-bold text-white mb-2">Cajero Express</h1>
-          <p className="text-gray-400 mb-6">
-            Suma los precios de los productos y cobra el total correcto. 
-            ¡Cada cliente es más difícil!
-          </p>
-
-          <div className="bg-gray-700/50 rounded-lg p-4 mb-6 text-left">
-            <p className="text-sm text-gray-300">📊 Tu récord: <span className="text-purple-400 font-bold">Nivel {progress.bestLevel}</span></p>
-            <p className="text-sm text-gray-300">💰 Ganado total: <span className="text-yellow-400 font-bold">${progress.totalEarnings}</span></p>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-gradient-to-b from-emerald-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="text-center max-w-sm px-6">
+          <div className="text-7xl mb-4">🛒</div>
+          <h1 className="text-3xl font-bold text-white mb-1">Cajero Express</h1>
+          <p className="text-emerald-400 text-sm mb-4">Suma los precios • Cobra el total</p>
+          <div className="bg-gray-800/60 rounded-xl p-4 mb-5 border border-emerald-500/20">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">📊 Récord</span>
+              <span className="text-emerald-400 font-bold">Nivel {progress.bestLevel}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-gray-400">💰 Total ganado</span>
+              <span className="text-yellow-400 font-bold">${progress.totalEarnings}</span>
+            </div>
           </div>
-
-          <div className="space-y-3">
-            <button
-              onClick={startGame}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors text-lg"
-            >
-              ▶️ Empezar Turno
-            </button>
-            <button
-              onClick={handleExitNoSave}
-              className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors text-sm"
-            >
-              ← Volver al supermercado
-            </button>
-          </div>
+          <button onClick={startGame}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-lg transition-colors shadow-lg shadow-emerald-600/30">
+            ▶️ Empezar Turno
+          </button>
+          <button onClick={handleExitNoSave}
+            className="w-full py-2 mt-3 text-gray-500 hover:text-gray-300 text-sm transition-colors">
+            ← Volver al supermercado
+          </button>
         </div>
       </motion.div>
     );
   }
 
-  // ─── PANTALLA PAUSA ─────────────────────────────────
+  // ─── PAUSA ─────────────────────────────────────────
   if (paused) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center"
-      >
-        <div className="bg-gray-800 rounded-xl p-6 max-w-sm w-full mx-4 border border-purple-500/30">
-          <h2 className="text-xl font-bold text-white text-center mb-4">⏸️ Pausa</h2>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center">
+        <div className="bg-gray-800 rounded-2xl p-6 max-w-xs w-full mx-4 border border-emerald-500/30">
+          <h2 className="text-xl font-bold text-white text-center mb-5">⏸️ Pausa</h2>
           <div className="space-y-3">
-            <button
-              onClick={() => { setPaused(false); inputRef.current?.focus(); }}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg"
-            >
-              ▶️ Continuar
+            <button onClick={() => setPaused(false)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl">▶️ Continuar</button>
+            <button onClick={handleExit}
+              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-xl text-sm">
+              💰 Cobrar ${350 + clientsServed * 50} y salir
             </button>
-            <button
-              onClick={handleExit}
-              className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-sm"
-            >
-              💰 Cobrar y salir ({clientsServed} clientes = ${350 + clientsServed * 50})
-            </button>
-            <button
-              onClick={handleExitNoSave}
-              className="w-full py-2 bg-red-900/50 hover:bg-red-800/50 text-red-300 rounded-lg text-sm"
-            >
-              ❌ Salir sin cobrar
-            </button>
+            <button onClick={handleExitNoSave}
+              className="w-full py-2 text-red-400 hover:text-red-300 text-sm">❌ Salir sin cobrar</button>
           </div>
         </div>
       </motion.div>
     );
   }
 
-  // ─── PANTALLA GAME OVER ─────────────────────────────
+  // ─── GAME OVER ─────────────────────────────────────
   if (gameOver) {
     const totalPay = 350 + (clientsServed * 50);
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-[100] bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center"
-      >
-        <div className="text-center max-w-md px-6">
-          <div className="text-5xl mb-3">{clientsServed >= 5 ? '🎉' : '💼'}</div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="fixed inset-0 z-[100] bg-gradient-to-b from-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="text-center max-w-sm px-6">
+          <div className="text-6xl mb-3">{clientsServed >= 5 ? '🎉' : '💼'}</div>
           <h2 className="text-2xl font-bold text-white mb-1">Turno Terminado</h2>
-          <p className="text-gray-400 mb-4">Se acabaron tus vidas</p>
-
-          <div className="bg-gray-700/50 rounded-lg p-4 mb-6 space-y-2">
-            <p className="text-gray-300">👥 Clientes atendidos: <span className="text-white font-bold">{clientsServed}</span></p>
-            <p className="text-gray-300">📈 Nivel alcanzado: <span className="text-purple-400 font-bold">{level}</span></p>
-            <p className="text-gray-300">💰 Pago total: <span className="text-yellow-400 font-bold">${totalPay}</span></p>
+          <p className="text-gray-400 text-sm mb-5">Se acabaron tus vidas</p>
+          <div className="bg-gray-800/60 rounded-xl p-4 mb-5 space-y-2 border border-gray-700">
+            <div className="flex justify-between"><span className="text-gray-400">👥 Clientes</span><span className="text-white font-bold">{clientsServed}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">📈 Nivel</span><span className="text-emerald-400 font-bold">{level}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">💰 Pago</span><span className="text-yellow-400 font-bold">${totalPay}</span></div>
           </div>
-
-          <button
-            onClick={handleExit}
-            className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-lg"
-          >
+          <button onClick={handleExit}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-lg shadow-lg shadow-emerald-600/30">
             💰 Cobrar ${totalPay}
           </button>
         </div>
@@ -330,136 +263,121 @@ export function CashierGame() {
     );
   }
 
-  // ─── PANTALLA DE JUEGO ──────────────────────────────
+  // ─── JUEGO PRINCIPAL ───────────────────────────────
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-gradient-to-b from-gray-900 via-slate-900 to-gray-900 flex flex-col"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-black/40">
-        <div className="flex items-center gap-4">
-          {/* Vidas */}
-          <div className="flex gap-1">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 flex flex-col overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black/50">
+        <div className="flex items-center gap-3">
+          <div className="flex gap-0.5">
             {[...Array(3)].map((_, i) => (
-              <span key={i} className={`text-xl ${i < lives ? 'opacity-100' : 'opacity-20'}`}>
-                ❤️
-              </span>
+              <span key={i} className={`text-lg ${i < lives ? '' : 'opacity-20'}`}>❤️</span>
             ))}
           </div>
-          {/* Nivel */}
-          <span className="text-purple-400 text-sm font-bold">Nv.{level}</span>
+          <span className="text-emerald-400 text-xs font-bold bg-emerald-900/40 px-2 py-0.5 rounded">Nv.{level}</span>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-gray-300 text-xs">👥 {clientsServed}</span>
+          <span className="text-yellow-400 text-xs font-bold">${earnings}</span>
+          <button onClick={() => setPaused(true)} className="text-gray-400 hover:text-white">⏸️</button>
+        </div>
+      </div>
 
-        <div className="flex items-center gap-4">
-          {/* Clientes */}
-          <span className="text-gray-300 text-sm">👥 {clientsServed}</span>
-          {/* Ganancias */}
-          <span className="text-yellow-400 text-sm font-bold">${earnings}</span>
-          {/* Pausa */}
-          <button
-            onClick={() => setPaused(true)}
-            className="text-gray-400 hover:text-white text-lg"
+      {/* ── Timer ── */}
+      <div className="w-full h-1.5 bg-gray-800">
+        <motion.div className={`h-full ${isUrgent ? 'bg-red-500' : 'bg-emerald-500'}`}
+          animate={{ width: `${timePercent}%` }} transition={{ duration: 0.3 }} />
+      </div>
+
+      {/* ── Caja Registradora ── */}
+      <div className="flex-1 flex items-center justify-center px-3 py-2">
+        <div className="w-full max-w-md">
+
+          {/* Ticket de papel */}
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            className="bg-white rounded-t-sm mx-8 px-3 py-2 shadow-md border border-gray-200 overflow-hidden"
           >
-            ⏸️
-          </button>
-        </div>
-      </div>
-
-      {/* Timer bar */}
-      <div className="w-full h-2 bg-gray-800">
-        <motion.div
-          className={`h-full ${isUrgent ? 'bg-red-500' : 'bg-green-500'}`}
-          animate={{ width: `${timePercent}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      {/* Caja registradora */}
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-lg">
-          {/* Pantalla de la caja */}
-          <div className="bg-gray-800 rounded-t-2xl border-2 border-gray-600 p-5 relative">
-            {/* Pantalla LED */}
-            <div className="bg-black rounded-lg p-4 mb-4 border border-gray-700">
-              <p className="text-green-400 text-xs font-mono mb-2 opacity-70">CLIENTE #{clientsServed + 1}</p>
-              
-              {/* Productos */}
-              <div className="space-y-2 mb-3">
-                <AnimatePresence>
-                  {products.map((p, i) => (
-                    <motion.div
-                      key={`${p.name}-${i}`}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.15 }}
-                      className="flex justify-between items-center"
-                    >
-                      <span className="text-green-300 font-mono text-sm">
-                        {p.emoji} {p.name}
-                      </span>
-                      <span className="text-green-400 font-mono font-bold">
-                        ${p.price.toFixed(2)}
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+            <p className="text-[10px] text-gray-400 font-mono text-center mb-1">══ PURPLE MARKET ══</p>
+            {products.map((p, i) => (
+              <div key={i} className="flex justify-between text-xs font-mono text-gray-700">
+                <span>{p.emoji} {p.name}</span>
+                <span>${p.price.toFixed(2)}</span>
               </div>
+            ))}
+            <div className="border-t border-dashed border-gray-300 mt-1 pt-1">
+              <div className="flex justify-between text-xs font-mono font-bold text-gray-900">
+                <span>TOTAL</span>
+                <span>{feedback === 'correct' ? `$${correctTotal.toFixed(2)}` : '$ ???'}</span>
+              </div>
+            </div>
+          </motion.div>
 
-              {/* Línea separadora */}
-              <div className="border-t border-green-900 my-2" />
+          {/* Cuerpo de la caja */}
+          <div className="bg-gradient-to-b from-gray-700 to-gray-800 rounded-t-2xl p-4 border-2 border-gray-600 relative shadow-2xl">
 
-              {/* Total */}
-              <div className="flex justify-between items-center">
-                <span className="text-green-500 font-mono text-sm">TOTAL:</span>
-                <span className="text-green-400 font-mono text-xl font-bold">
-                  {feedback === 'correct' ? `$${correctTotal.toFixed(2)}` : '$???'}
+            {/* Pantalla LED */}
+            <div className="bg-black rounded-lg p-3 mb-3 border border-gray-600 shadow-inner">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] text-emerald-700 font-mono">CLIENTE #{clientsServed + 1}</span>
+                <span className={`text-[10px] font-mono ${isUrgent ? 'text-red-500 animate-pulse' : 'text-emerald-700'}`}>
+                  ⏱ {timeLeft}s
                 </span>
+              </div>
+              {/* Display LED grande */}
+              <div className="bg-gray-950 rounded px-3 py-2 border border-emerald-900/50">
+                <p className="text-emerald-400 font-mono text-2xl text-right tracking-wider"
+                   style={{ textShadow: '0 0 8px #10b981' }}>
+                  ${input || '0.00'}
+                </p>
               </div>
             </div>
 
-            {/* Input de respuesta */}
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                <input
-                  ref={inputRef}
-                  type="number"
-                  step="0.01"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={!!feedback}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-gray-900 border-2 border-gray-600 rounded-lg text-white text-lg font-mono focus:border-purple-500 focus:outline-none disabled:opacity-50"
-                />
-              </div>
-              <button
-                onClick={handleSubmit}
-                disabled={!input || !!feedback}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors"
-              >
-                ✓
+            {/* Teclado numérico */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {/* Fila 1 */}
+              {['7', '8', '9', 'C'].map(key => (
+                <button key={key} onClick={() => handleKey(key)}
+                  className={`py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${
+                    key === 'C' ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-gray-200 hover:bg-white text-gray-800'
+                  }`}>{key}</button>
+              ))}
+              {/* Fila 2 */}
+              {['4', '5', '6', '←'].map(key => (
+                <button key={key} onClick={() => handleKey(key)}
+                  className={`py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 ${
+                    key === '←' ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-gray-200 hover:bg-white text-gray-800'
+                  }`}>{key}</button>
+              ))}
+              {/* Fila 3 */}
+              {['1', '2', '3', '.'].map(key => (
+                <button key={key} onClick={() => handleKey(key)}
+                  className="py-2.5 rounded-lg font-bold text-sm bg-gray-200 hover:bg-white text-gray-800 transition-all active:scale-95"
+                >{key}</button>
+              ))}
+              {/* Fila 4 */}
+              <button onClick={() => handleKey('0')}
+                className="py-2.5 rounded-lg font-bold text-sm bg-gray-200 hover:bg-white text-gray-800 col-span-2 transition-all active:scale-95">0</button>
+              <button onClick={() => handleKey('=')}
+                className="py-2.5 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white col-span-2 transition-all active:scale-95 shadow-md shadow-emerald-600/30">
+                COBRAR ✓
               </button>
             </div>
 
-            {/* Feedback */}
+            {/* Feedback overlay */}
             <AnimatePresence>
               {feedback && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}
                   className={`absolute inset-0 flex items-center justify-center rounded-2xl ${
-                    feedback === 'correct' ? 'bg-green-900/80' : 'bg-red-900/80'
-                  }`}
-                >
+                    feedback === 'correct' ? 'bg-emerald-900/90' : 'bg-red-900/90'
+                  }`}>
                   <div className="text-center">
                     <div className="text-5xl mb-2">{feedback === 'correct' ? '✅' : '❌'}</div>
                     <p className="text-white font-bold text-lg">
-                      {feedback === 'correct' ? '¡Correcto! +$50' : `Incorrecto. Era $${correctTotal.toFixed(2)}`}
+                      {feedback === 'correct' ? '¡Correcto! +$50' : `Era $${correctTotal.toFixed(2)}`}
                     </p>
                   </div>
                 </motion.div>
@@ -467,34 +385,39 @@ export function CashierGame() {
             </AnimatePresence>
           </div>
 
-          {/* Base de la caja registradora */}
-          <div className="bg-gray-700 h-4 rounded-b-2xl border-x-2 border-b-2 border-gray-600" />
-          <div className="bg-gray-600 h-2 mx-4 rounded-b-lg" />
+          {/* Cajón de la caja */}
+          <motion.div
+            animate={{ y: drawerOpen ? 8 : 0 }}
+            className="bg-gradient-to-b from-gray-800 to-gray-900 h-10 rounded-b-xl border-x-2 border-b-2 border-gray-600 flex items-center justify-center relative overflow-hidden"
+          >
+            <div className="w-8 h-2 bg-gray-600 rounded-full" />
+            {drawerOpen && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-gray-700 flex items-center justify-center gap-1 rounded-b-xl">
+                <span className="text-xs">💵</span><span className="text-xs">💵</span><span className="text-xs">💵</span>
+              </motion.div>
+            )}
+          </motion.div>
+
+          {/* Base */}
+          <div className="bg-gray-900 h-3 mx-6 rounded-b-lg border-x border-b border-gray-700" />
         </div>
       </div>
 
-      {/* Teclado numérico (mobile) */}
-      <div className="px-4 pb-4 md:hidden">
-        <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto">
-          {['7','8','9','','4','5','6','','1','2','3','.','0','00','←','✓'].map((key, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                if (key === '←') setInput(prev => prev.slice(0, -1));
-                else if (key === '✓') handleSubmit();
-                else if (key === '') return;
-                else setInput(prev => prev + key);
-              }}
-              disabled={key === '' || !!feedback}
-              className={`py-3 rounded-lg font-bold text-lg transition-colors ${
-                key === '✓' ? 'bg-purple-600 text-white' :
-                key === '←' ? 'bg-red-900/50 text-red-300' :
-                key === '' ? 'invisible' :
-                'bg-gray-700 text-white hover:bg-gray-600'
-              } disabled:opacity-30`}
+      {/* ── Productos del cliente (banda transportadora) ── */}
+      <div className="px-4 pb-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 justify-center">
+          {products.map((p, i) => (
+            <motion.div key={i}
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm"
+              style={{ backgroundColor: p.color, borderColor: `${p.color}88` }}
             >
-              {key}
-            </button>
+              <span className="text-lg">{p.emoji}</span>
+              <span className="text-xs font-bold text-gray-700">${p.price.toFixed(2)}</span>
+            </motion.div>
           ))}
         </div>
       </div>
