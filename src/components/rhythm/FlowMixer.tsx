@@ -79,14 +79,15 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
   useEffect(() => {
     const bpm = beat.tempo || 120;
     const diffConfig = getRhythmDifficulty(level);
-    const noteMult = difficulty === 'easy' ? 0.5 : difficulty === 'hard' ? 1.5 : 1;
-    const interval = (60000 / bpm) / Math.max(0.3, (diffConfig?.notesPerBeat || 1) * noteMult);
+    // Make it much easier: easy = very few arrows, hard = more
+    const noteMult = difficulty === 'easy' ? 0.3 : difficulty === 'hard' ? 1.2 : 0.7;
+    const interval = (60000 / bpm) / Math.max(0.2, (diffConfig?.notesPerBeat || 0.5) * noteMult);
 
     const generated: ArrowNote[] = [];
-    let time = 2000;
+    let time = 2500; // Start later to give player time
     let id = 0;
 
-    while (time < GAME_DURATION - 1000) {
+    while (time < GAME_DURATION - 1500) {
       generated.push({
         id: `a${id++}`,
         direction: DIRECTIONS[Math.floor(Math.random() * 4)],
@@ -166,7 +167,7 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
       const currentTime = performance.now() - startTimeRef.current;
       const diffCfg = getRhythmDifficulty(level);
       if (!diffCfg) return;
-      const windowMult = difficulty === 'easy' ? 1.5 : difficulty === 'hard' ? 0.7 : 1;
+      const windowMult = difficulty === 'easy' ? 2.5 : difficulty === 'hard' ? 0.8 : 1.5;
 
       // Find the current arrow to hit
       const arrow = arrowsRef.current.find(

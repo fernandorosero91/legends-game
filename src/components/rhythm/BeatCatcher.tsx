@@ -71,22 +71,24 @@ export function BeatCatcher({ beat, level, difficulty = 'normal', onComplete, on
   const pausedRef = useRef(false);
   const pauseTimeRef = useRef(0);
 
-  // Generate circles based on BPM
+  // Generate circles based on BPM and difficulty
   useEffect(() => {
     const bpm = beat.tempo || 120;
-    const difficulty = getRhythmDifficulty(level);
-    const interval = (60000 / bpm) / (difficulty?.notesPerBeat || 1);
-    const shrinkDuration = 1200; // Ring shrinks over 1.2s
+    const diffConfig = getRhythmDifficulty(level);
+    const noteMult = difficulty === 'easy' ? 0.4 : difficulty === 'hard' ? 1.3 : 0.8;
+    const interval = (60000 / bpm) / Math.max(0.3, (diffConfig?.notesPerBeat || 0.5) * noteMult);
+    // Easier = more time to click (longer shrink), harder = less time
+    const shrinkDuration = difficulty === 'easy' ? 2000 : difficulty === 'hard' ? 1000 : 1500;
 
     const generated: CircleNote[] = [];
-    let time = 2000;
+    let time = 2500;
     let id = 0;
 
     while (time < GAME_DURATION - 1500) {
       generated.push({
         id: `c${id}`,
-        x: 12 + Math.random() * 76,
-        y: 10 + Math.random() * 70,
+        x: 15 + Math.random() * 70,
+        y: 12 + Math.random() * 65,
         spawnTime: time - shrinkDuration,
         duration: shrinkDuration,
         hit: false,
@@ -100,7 +102,7 @@ export function BeatCatcher({ beat, level, difficulty = 'normal', onComplete, on
     console.log(`[BeatCatcher] Generated ${generated.length} circles`);
     circlesRef.current = generated;
     setCircles(generated);
-  }, [level, beat.tempo]);
+  }, [level, beat.tempo, difficulty]);
 
   // Countdown
   useEffect(() => {
@@ -160,29 +162,30 @@ export function BeatCatcher({ beat, level, difficulty = 'normal', onComplete, on
     const currentTime = performance.now() - startTimeRef.current;
     const hitTime = circle.spawnTime + circle.duration;
     const diff = Math.abs(currentTime - hitTime);
-    const difficulty = getRhythmDifficulty(level);
-    if (!difficulty) return;
+    const diffConfig = getRhythmDifficulty(level);
+    if (!diffConfig) return;
+
+    // Difficulty multiplier — easy = much more forgiving windows
+    const windowMult = difficulty === 'easy' ? 2.5 : difficulty === 'hard' ? 1.2 : 1.8;
 
     let points: number;
     let text: string;
 
-    if (diff <= difficulty.perfectWindow * 1.5) {
+    if (diff <= diffConfig.perfectWindow * windowMult) {
       circle.accuracy = 'perfect'; points = 100;
       statsRef.current.perfectHits++;
       playNote(1200);
-    } else if (diff <= difficulty.goodWindow * 1.5) {
+    } else if (diff <= diffConfig.goodWindow * windowMult) {
       circle.accuracy = 'good'; points = 75;
       statsRef.current.goodHits++;
       playNote(800);
-    } else if (diff <= difficulty.okWindow * 1.5) {
+    } else if (diff <= diffConfig.okWindow * windowMult) {
       circle.accuracy = 'ok'; points = 50;
       statsRef.current.okHits++;
       playNote(500);
     } else {
       statsRef.current.misses++;
       comboRef.current = 0;
-      setCombo(0);
-      setStats({ ...statsRef.current });
       playNote(120, 'sawtooth');
       return;
     }
