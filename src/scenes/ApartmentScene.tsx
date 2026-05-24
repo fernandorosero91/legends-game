@@ -20,6 +20,7 @@ import { useUIStore } from '../store/uiStore';
 export const ApartmentScene = () => {
   const energy = usePlayerStore((s) => s.energy);
   const addEnergy = usePlayerStore((s) => s.addEnergy);
+  const inventory = usePlayerStore((s) => s.inventory);
   const addNotification = useUIStore((s) => s.addNotification);
   const advanceTime = useGameStore((s) => s.advanceTime);
   const setGamePhase = useGameStore((s) => s.setGamePhase);
@@ -119,9 +120,14 @@ export const ApartmentScene = () => {
             onInteract={handleSleep}
             tooltipOffset={[0, 2.5, 0]}
           />
-          {/* 🛋️ Sofá — DESCANSAR */}
+          {/* 🛋️ Sofá — DESCANSAR (solo visible si fue comprado) */}
+          {inventory.some(i => i.itemId === 'comfy_couch') && (
+            <Suspense fallback={null}>
+              <SofaModel position={[5.0, 0, 5.0]} rotation={[0, Math.PI, 0]} />
+            </Suspense>
+          )}
           <InteractableZone
-            position={[5.0, 0.6, 3.5]}
+            position={[5.0, 0.6, 5.0]}
             size={[2.5, 1.5, 2]}
             label="Descansar"
             icon="🛋️"
@@ -205,3 +211,24 @@ function DeskChair({ position, rotation }: { position: [number, number, number];
     <primitive object={clone} position={position} rotation={rotation || [0, 0, 0]} scale={1.8} />
   );
 }
+
+/** Sofá — modelo GLB */
+function SofaModel({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
+  const { scene } = useGLTF('/models/accesorios/sofa_3230.glb', '/draco/');
+  const clone = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return c;
+  }, [scene]);
+
+  return (
+    <primitive object={clone} position={position} rotation={rotation || [0, 0, 0]} scale={1.5} />
+  );
+}
+
+useGLTF.preload('/models/accesorios/sofa_3230.glb');
