@@ -10,12 +10,11 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useGameStore } from '@/store/gameStore';
 import { useUIStore } from '@/store/uiStore';
 import { ShopSystem } from '@/systems/shopSystem';
-import { EQUIPMENT_ITEMS } from '@/data/shopItems';
+import { EQUIPMENT_ITEMS, APARTMENT_ITEMS } from '@/data/shopItems';
 import type { ShopItem } from '@/types/shop';
 
-// ===== ACCESORIOS DISPONIBLES EN EL CARRITO =====
-// Solo mostramos equipo de piezas musicales (micrófonos, audífonos, etc.)
-const ACCESSORY_ITEMS: ShopItem[] = EQUIPMENT_ITEMS;
+// ===== ITEMS DISPONIBLES EN LA TIENDA =====
+const ACCESSORY_ITEMS: ShopItem[] = [...EQUIPMENT_ITEMS, ...APARTMENT_ITEMS];
 
 // Iconos emoji para cada accesorio
 const ITEM_EMOJIS: Record<string, string> = {
@@ -28,6 +27,13 @@ const ITEM_EMOJIS: Record<string, string> = {
   production_software: '💻',
   beat_pack: '🥁',
   midi_controller: '🎹',
+  // Apartment items
+  motivational_poster: '🖼️',
+  led_lighting: '💡',
+  comfy_couch: '🛋️',
+  new_bed: '🛏️',
+  studio_decor: '🎨',
+  soundproofing: '🔇',
 };
 
 interface CartItemUI {
