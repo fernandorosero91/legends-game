@@ -141,17 +141,12 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
     };
     animRef.current = requestAnimationFrame(loop);
 
-    // HUD updates at ~8fps
+    // HUD updates at ~5fps — minimal state to trigger render
     hudTimerRef.current = window.setInterval(() => {
-      const el = performance.now() - startTimeRef.current;
-      setElapsed(el);
-      setScore(scoreRef.current);
-      setCombo(comboRef.current);
-      setMaxCombo(maxComboRef.current);
-      setStats({ ...statsRef.current });
+      setElapsed(performance.now() - startTimeRef.current);
       const idx = arrowsRef.current.findIndex(a => !a.hit && !a.missed);
       setCurrentIndex(idx >= 0 ? idx : arrowsRef.current.length);
-    }, 120);
+    }, 200);
 
     return () => { cancelAnimationFrame(animRef.current); clearInterval(hudTimerRef.current); };
   }, [started, onComplete]);
@@ -289,8 +284,12 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
   }
 
   const progress = elapsed / GAME_DURATION;
-  const totalHits = stats.perfectHits + stats.goodHits + stats.okHits;
-  const accuracy = (totalHits + stats.misses) > 0 ? Math.round((totalHits / (totalHits + stats.misses)) * 100) : 100;
+  const displayScore = scoreRef.current;
+  const displayCombo = comboRef.current;
+  const displayMaxCombo = maxComboRef.current;
+  const displayStats = statsRef.current;
+  const totalHits = displayStats.perfectHits + displayStats.goodHits + displayStats.okHits;
+  const accuracy = (totalHits + displayStats.misses) > 0 ? Math.round((totalHits / (totalHits + displayStats.misses)) * 100) : 100;
 
   if (!started) {
     return (
@@ -335,14 +334,14 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
           <span className="text-white font-bold text-sm tabular-nums min-w-[30px] text-right">{Math.ceil((GAME_DURATION - elapsed) / 1000)}s</span>
         </div>
         <div className="flex items-center gap-4">
-          {combo > 4 && (
+          {displayCombo > 4 && (
             <div className="text-center">
-              <div className={`text-lg font-black leading-none ${combo >= 20 ? 'text-orange-300' : 'text-emerald-300'}`}>{combo}x</div>
+              <div className={`text-lg font-black leading-none ${displayCombo >= 20 ? 'text-orange-300' : 'text-emerald-300'}`}>{displayCombo}x</div>
               <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Combo</div>
             </div>
           )}
           <div className="text-center">
-            <div className="text-lg font-black text-white leading-none tabular-nums">{score.toLocaleString()}</div>
+            <div className="text-lg font-black text-white leading-none tabular-nums">{displayScore.toLocaleString()}</div>
             <div className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5">Score</div>
           </div>
           <button onClick={togglePause} className="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white text-xs hover:bg-white/20" title="Pausar (Esc)">⏸</button>
@@ -450,22 +449,22 @@ export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCa
       <div className="flex items-center justify-center gap-5 px-5 py-2.5 bg-black/70 border-t border-white/[0.04] text-xs">
         <div className="flex items-center gap-1.5">
           <span className="text-yellow-400">★</span>
-          <span className="text-yellow-300 font-bold">{stats.perfectHits}</span>
+          <span className="text-yellow-300 font-bold">{displayStats.perfectHits}</span>
           <span className="text-white/25">Perfect</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-emerald-400">●</span>
-          <span className="text-emerald-300 font-bold">{stats.goodHits}</span>
+          <span className="text-emerald-300 font-bold">{displayStats.goodHits}</span>
           <span className="text-white/25">Great</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-cyan-400">○</span>
-          <span className="text-cyan-300 font-bold">{stats.okHits}</span>
+          <span className="text-cyan-300 font-bold">{displayStats.okHits}</span>
           <span className="text-white/25">OK</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-red-400">✕</span>
-          <span className="text-red-300 font-bold">{stats.misses}</span>
+          <span className="text-red-300 font-bold">{displayStats.misses}</span>
           <span className="text-white/25">Miss</span>
         </div>
         <div className="h-3 w-px bg-white/10" />
