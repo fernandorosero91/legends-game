@@ -1,9 +1,3 @@
-/**
- * 🎮 LEGENDS: UI Store
- * Estado de la interfaz (pantallas, diálogos, notificaciones)
- * Autor: Felipe (Systems Developer)
- */
-
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Dialogue } from '../types/dialogue';
@@ -11,6 +5,9 @@ import type { Dialogue } from '../types/dialogue';
 export type Screen =
   | 'loading'
   | 'main_menu'
+  | 'auth'
+  | 'character_select'
+  | 'level_select'
   | 'save_load'
   | 'game'
   | 'pause'

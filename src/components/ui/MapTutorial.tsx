@@ -26,9 +26,9 @@ export function MapTutorial({ isOpen, onClose }: MapTutorialProps) {
       highlight: 'jobs'
     },
     {
-      title: '🎵 Purple Sound Shop',
+      title: '🛒 Accesorios de sonido',
       content: 'Compra equipamiento musical para mejorar la calidad de tus canciones.',
-      highlight: 'shop'
+      highlight: 'cart'
     },
     {
       title: '⚡ Gestión de Energía',
@@ -169,7 +169,7 @@ function getStepIcon(highlight: string): string {
     'mini-map': '🗺️',
     'apartment': '🏠',
     'jobs': '💼',
-    'shop': '🎵',
+    'cart': '🛒',
     'energy': '⚡'
   };
   return icons[highlight] || '📍';

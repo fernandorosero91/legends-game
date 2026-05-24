@@ -1,24 +1,21 @@
 import { PropPlaceholder } from './PropPlaceholder';
 import { useUIStore } from '@/store/uiStore';
 import { usePlayerStore } from '@/store/playerStore';
+import { useGameStore } from '@/store/gameStore';
 
 export function MicStand() {
-  const setCurrentScreen = useUIStore(state => state.setCurrentScreen);
   const energy = usePlayerStore(state => state.energy);
-  const showNotification = useUIStore(state => state.showNotification);
+  const addNotification = useUIStore(state => state.addNotification);
+  const setGamePhase = useGameStore(state => state.setGamePhase);
 
   const handleInteract = () => {
     if (energy < 30) {
-      showNotification({
-        type: 'warning',
-        message: 'Necesitas al menos 30 de energía para grabar',
-        duration: 3000
-      });
+      addNotification('warning', 'Necesitas al menos 30 de energía para grabar 🎤');
       return;
     }
 
-    // Abrir minijuego rítmico
-    setCurrentScreen('rhythm');
+    // Abrir selección de beat → minijuego rítmico
+    setGamePhase('rhythm_game');
   };
 
   return (

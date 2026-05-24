@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { AnimatePresence } from 'framer-motion';
 import { SceneManager } from '../scenes/SceneManager';
 import { 
@@ -16,7 +17,13 @@ import { LocationMap } from '../components/ui/LocationMap';
 import { MiniMap } from '../components/ui/MiniMap';
 import { MapTutorial } from '../components/ui/MapTutorial';
 import { AuthTestScreen } from '../components/ui/AuthTestScreen';
+import { AuthScreen } from '../components/ui/AuthScreen';
+import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
+import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
+import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { CartShopModal } from '../components/ui/CartShopModal';
+import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -35,14 +42,37 @@ const LeaderboardScreen = lazy(() => import('../components/ui/LeaderboardScreen'
 const SaveLoadScreen = lazy(() => import('../components/ui/SaveLoadScreen'));
 const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
 const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
+const LevelSelectScreen = lazy(() => import('../components/ui/LevelSelectScreen'));
 
 function GameScene() {
   // Estados del juego
-  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene } = useGameStore();
+  const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
   const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+
+  // Hook de InsForge para guardado
+  const { user, saveGame } = useInsForge();
+
+  // Asegurar que el gamePhase sea 'playing' al entrar a la escena
+  useEffect(() => {
+    const { gamePhase } = useGameStore.getState();
+    if (gamePhase === 'menu') {
+      // Reset player state for a fresh game (unless a save was loaded)
+      const playerState = usePlayerStore.getState();
+      if (playerState.monthlyListeners === 0 && playerState.songs.length === 0) {
+        playerState.resetPlayer();
+      }
+      useGameStore.getState().startNewGame();
+    } else if (gamePhase !== 'playing') {
+      // Force back to playing if stuck in an invalid state
+      useGameStore.getState().setGamePhase('playing');
+    }
+  }, []);
 
   // Mostrar tutorial la primera vez
   useEffect(() => {
@@ -80,11 +110,18 @@ function GameScene() {
   const handleCloseTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('legends-map-tutorial', 'seen');
+    // Tras el tutorial, mostrar el menú de selección de niveles
+    useUIStore.getState().setScreen('level_select');
   };
 
   const handleLocationSelect = (locationId: string) => {
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
+    
+    // Si selecciona la tienda, abrir el modal de compras
+    if (locationId === 'shop') {
+      setShopOpen(true);
+    }
     
     // Mostrar notificación
     const locationNames: Record<string, string> = {
@@ -104,16 +141,17 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen">
+      <div className="w-screen h-screen" style={{ display: gamePhase === 'rhythm_game' ? 'none' : 'block' }}>
         <Canvas
-          shadows
-          camera={{ fov: 50, near: 0.01, far: 200, position: [0, 3, 3] }}
+          frameloop={gamePhase === 'rhythm_game' ? 'never' : 'always'}
+          shadows={{ type: THREE.PCFShadowMap }}
+          camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
-          <color attach="background" args={['#87CEEB']} />
-          <ambientLight intensity={0.7} />
+          <color attach="background" args={['#8a8a8e']} />
+          <ambientLight intensity={1.8} />
           <directionalLight
-            position={[10, 15, 10]}
-            intensity={1.2}
+            position={[5, 12, 5]}
+            intensity={2}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -123,48 +161,64 @@ function GameScene() {
             shadow-camera-top={15}
             shadow-camera-bottom={-15}
           />
-          <hemisphereLight args={['#b1e1ff', '#b97a20', 0.3]} />
+          <hemisphereLight args={['#e8e0ff', '#b97a20', 0.6]} />
+          {/* Extra fill light from below to brighten the floor */}
+          <pointLight position={[0, 8, 0]} intensity={1.5} distance={25} color="#ffffff" />
           <SceneManager />
         </Canvas>
       </div>
 
-      {/* TopBar - Información del día y nivel */}
-      <TopBar
-        currentDay={currentDay}
-        maxDays={45}
-        currentLevel={currentLevel}
-        levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
-        timeOfDay={timeOfDay}
-      />
+      {/* HUD elements — hidden during rhythm game for performance */}
+      {gamePhase !== 'rhythm_game' && (
+        <>
+          {/* TopBar - Información del día y nivel */}
+          <TopBar
+            currentDay={currentDay}
+            maxDays={45}
+            currentLevel={currentLevel}
+            levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
+            timeOfDay={timeOfDay}
+          />
 
-      {/* HUD - Recursos del jugador */}
-      <HUD
-        money={money}
-        energy={energy}
-        hunger={hunger}
-        listeners={monthlyListeners}
-        reputation={reputation}
-        showReputation={currentLevel >= 3}
-      />
+          {/* HUD - Recursos del jugador */}
+          <HUD
+            money={money}
+            energy={energy}
+            hunger={hunger}
+            listeners={monthlyListeners}
+            reputation={reputation}
+            showReputation={currentLevel >= 3}
+          />
 
-      {/* Mini-mapa */}
-      <MiniMap
-        currentLocation={currentScene}
-        onOpenFullMap={() => setShowLocationMap(true)}
-      />
+          {/* Selector de habitación (desbloqueado en Nivel 3) */}
+          <RoomSelector />
 
-      {/* Botón flotante para abrir mapa */}
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setShowLocationMap(true)}
-        className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
-        title="Abrir mapa (M)"
-      >
-        🗺️
-      </motion.button>
+          {/* Mini-mapa */}
+          <MiniMap
+            currentLocation={currentScene}
+            onOpenFullMap={() => setShowLocationMap(true)}
+          />
+
+          {/* Tienda — CartShopModal */}
+          <CartShopModal 
+            forceOpen={shopOpen} 
+            onClose={() => setShopOpen(false)} 
+          />
+
+          {/* Botón flotante para abrir mapa */}
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowLocationMap(true)}
+            className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
+            title="Abrir mapa (M)"
+          >
+            🗺️
+          </motion.button>
+        </>
+      )}
 
       {/* Indicador de ubicación actual */}
       <div className="fixed bottom-8 left-8 z-40 bg-black/70 backdrop-blur-md border-2 border-purple-500 rounded-xl px-4 py-2">
@@ -222,12 +276,72 @@ function GameScene() {
       <PauseMenu
         isOpen={isPaused}
         onContinue={togglePause}
-        onSave={() => useUIStore.getState().addNotification('success', 'Partida guardada')}
-        onSettings={() => console.log('Configuración')}
+        onSave={async () => {
+          if (!user) {
+            useUIStore.getState().addNotification('warning', 'Inicia sesión para guardar');
+            return;
+          }
+          setIsSaving(true);
+          const result = await saveGame('manual');
+          if (result.success) {
+            useUIStore.getState().addNotification('success', '💾 Partida guardada exitosamente');
+          } else {
+            useUIStore.getState().addNotification('error', `Error al guardar: ${result.error}`);
+          }
+          setIsSaving(false);
+        }}
+        onSettings={() => { togglePause(); setShowSettings(true); }}
         onMainMenu={() => useUIStore.getState().setScreen('main_menu')}
-        isSaving={false}
+        isSaving={isSaving}
       />
+
+      {/* Settings overlay (dentro del juego, no cambia de pantalla) */}
+      {showSettings && (
+        <Suspense fallback={null}>
+          <div className="fixed inset-0 z-[90]">
+            <SettingsScreen onClose={() => setShowSettings(false)} />
+          </div>
+        </Suspense>
+      )}
+
+      {/* Rhythm Game — Minijuego de grabación */}
+      <AnimatePresence>
+        {gamePhase === 'rhythm_game' && <RhythmGame />}
+      </AnimatePresence>
     </>
+  );
+}
+
+/* Wrapper to load leaderboard data from InsForge */
+function LeaderboardWrapper() {
+  const { topPlayers, refreshLeaderboard, isLoading } = useInsForge();
+  const [filter, setFilter] = useState<'all' | 'winners' | 'week'>('all');
+
+  useEffect(() => { refreshLeaderboard(); }, [refreshLeaderboard]);
+
+  const entries = topPlayers.map((p: any, i: number) => ({
+    id: p.id,
+    username: p.username,
+    finalListeners: p.final_listeners,
+    finalDay: p.final_day,
+    totalSongs: p.total_songs,
+    won: p.won,
+    completedAt: p.completed_at,
+    rank: i + 1,
+  }));
+
+  const filtered = filter === 'all' ? entries
+    : filter === 'winners' ? entries.filter((e: any) => e.won)
+    : entries; // 'week' filter would need date logic
+
+  return (
+    <LeaderboardScreen
+      entries={filtered}
+      isLoading={isLoading}
+      onBack={() => useUIStore.getState().setScreen('main_menu')}
+      filter={filter}
+      onFilterChange={setFilter}
+    />
   );
 }
 
@@ -266,6 +380,19 @@ function App() {
 
       {/* Pantalla del menú principal */}
       {currentScreen === 'main_menu' && !isLoading && <MainMenu />}
+
+      {/* Pantalla de autenticación */}
+      {currentScreen === 'auth' && <AuthScreen />}
+
+      {/* Pantalla de selección de personaje */}
+      {currentScreen === 'character_select' && <CharacterSelectScreen />}
+
+      {/* Pantalla de selección de nivel */}
+      {currentScreen === 'level_select' && (
+        <Suspense fallback={<LoadingScreen />}>
+          <LevelSelectScreen />
+        </Suspense>
+      )}
       
       {/* Pantalla del juego */}
       {currentScreen === 'game' && <GameScene />}
@@ -353,10 +480,7 @@ function App() {
         )}
         
         {currentScreen === 'leaderboard' && (
-          <LeaderboardScreen 
-            entries={[]}
-            onBack={() => useUIStore.getState().setScreen('main_menu')}
-          />
+          <LeaderboardWrapper />
         )}
 
         {currentScreen === 'settings' && <SettingsScreen />}

@@ -1,268 +1,170 @@
+/**
+ * LEGENDS: ApartmentScene — Dynamic room rendering
+ * Loads the correct room based on gameStore.currentRoom
+ * Interaction zones adjust per room layout
+ */
+
 import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
-import { PropPlaceholder } from '../components/game/PropPlaceholder';
-import { NPCPlaceholder } from '../components/game/NPCPlaceholder';
+import { RoomLevel1 } from '../components/game/RoomLevel1';
+import { StudioLevel3 } from '../components/game/StudioLevel3';
+import { InteractableZone } from '../components/game/InteractableZone';
+import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
+import { DJSonicNPC } from '../components/game/DJSonicNPC';
+import { Suspense, useEffect } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
-import { useEffect, useState } from 'react';
 
 export const ApartmentScene = () => {
-  const currentDay = useGameStore(state => state.currentDay);
-  const timeOfDay = useGameStore(state => state.timeOfDay);
-  const currentScene = useGameStore(state => state.currentScene);
-  const setCurrentScene = useGameStore(state => state.setCurrentScene);
-  const energy = usePlayerStore(state => state.energy);
-  const money = usePlayerStore(state => state.money);
-  const addEnergy = usePlayerStore(state => state.addEnergy);
-  const payRent = usePlayerStore(state => state.payRent);
-  const advanceTime = useGameStore(state => state.advanceTime);
-  const setCurrentScreen = useUIStore(state => state.setCurrentScreen);
-  const showNotification = useUIStore(state => state.showNotification);
-  const showDialogue = useUIStore(state => state.showDialogue);
-  
-  const [hasCollectedToday, setHasCollectedToday] = useState(false);
+  const energy = usePlayerStore((s) => s.energy);
+  const addEnergy = usePlayerStore((s) => s.addEnergy);
+  const addNotification = useUIStore((s) => s.addNotification);
+  const advanceTime = useGameStore((s) => s.advanceTime);
+  const setGamePhase = useGameStore((s) => s.setGamePhase);
+  const currentRoom = useGameStore((s) => s.currentRoom);
 
+  // Ensure gamePhase is 'playing' when apartment scene is active
   useEffect(() => {
-    setHasCollectedToday(false);
-  }, [currentDay]);
+    const state = useGameStore.getState();
+    if (state.gamePhase !== 'playing' && state.gamePhase !== 'rhythm_game') {
+      useGameStore.setState({ gamePhase: 'playing', isPaused: false });
+    }
+  }, [currentRoom]);
 
-  // Handler para dormir
+  // Dormir en la cama
   const handleSleep = () => {
-    if (timeOfDay !== 'night') {
-      showNotification({
-        type: 'warning',
-        message: 'Solo puedes dormir por la noche',
-        duration: 3000
-      });
+    if (energy >= 100) {
+      addNotification('info', '😊 Ya tienes energía al máximo');
       return;
     }
-
-    if (energy >= 90) {
-      showNotification({
-        type: 'info',
-        message: 'No estás cansado todavía',
-        duration: 3000
-      });
-      return;
-    }
-
-    const energyRestored = 50;
-    addEnergy(energyRestored);
+    addEnergy(50);
     advanceTime();
-
-    showNotification({
-      type: 'success',
-      message: `Dormiste bien. +${energyRestored} energía`,
-      duration: 3000
-    });
+    addNotification('success', '😴 Descansaste bien. +50 energía. Avanzó el turno.');
   };
 
-  // Handler para computador
-  const handleComputer = () => {
-    if (energy < 15) {
-      showNotification({
-        type: 'warning',
-        message: 'Estás muy cansado para trabajar',
-        duration: 3000
-      });
+  // Descansar en el sofá
+  const handleRest = () => {
+    if (energy >= 100) {
+      addNotification('info', '😊 Ya tienes energía al máximo');
       return;
     }
-    setCurrentScreen('job_select');
+    addEnergy(40);
+    addNotification('success', '🛋️ Descansaste un rato. +40 energía');
   };
 
-  // Handler para micrófono
-  const handleMic = () => {
+  // Grabar canción
+  const handleRecord = () => {
     if (energy < 30) {
-      showNotification({
-        type: 'warning',
-        message: 'Necesitas al menos 30 de energía para grabar',
-        duration: 3000
-      });
+      addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
-    setCurrentScreen('rhythm');
+    usePlayerStore.getState().setPosition({ x: 1.5, y: 0, z: -3.5 });
+    usePlayerStore.getState().setPlayerSitting(true);
+    setGamePhase('rhythm_game');
   };
 
-  // Handler para puerta
-  const handleDoor = () => {
-    if (currentScene === 'apartment') {
-      setCurrentScene('city');
-      showNotification({
-        type: 'info',
-        message: 'Saliste a Purple City',
-        duration: 2000
-      });
-    } else {
-      setCurrentScene('apartment');
-      showNotification({
-        type: 'info',
-        message: 'Volviste al apartamento',
-        duration: 2000
-      });
-    }
-  };
-
-  // Handler para El de la Renta
-  const handleRentCollector = () => {
-    if (hasCollectedToday) {
-      showDialogue({
-        character: {
-          name: 'El de la Renta',
-          portrait: '/images/portraits/rent_collector.png'
-        },
-        text: 'Ya pagaste hoy. Nos vemos mañana.',
-        onContinue: () => {}
-      });
-      return;
-    }
-
-    const rentAmount = 1000;
-    
-    if (money >= rentAmount) {
-      payRent(rentAmount);
-      setHasCollectedToday(true);
-      
-      showDialogue({
-        character: {
-          name: 'El de la Renta',
-          portrait: '/images/portraits/rent_collector.png'
-        },
-        text: `Perfecto. $${rentAmount} como siempre. Nos vemos mañana.`,
-        onContinue: () => {}
-      });
-    } else {
-      showDialogue({
-        character: {
-          name: 'El de la Renta',
-          portrait: '/images/portraits/rent_collector.png'
-        },
-        text: `¿Dónde está mi dinero? Necesito $${rentAmount}. No me hagas volver.`,
-        onContinue: () => {
-          usePlayerStore.getState().addReputation(-10);
-        }
-      });
-    }
-  };
-
-  // Handler para DJ Sonic
-  const handleDJSonic = () => {
-    let dialogueText = '';
-
-    if (currentDay === 1) {
-      dialogueText = 'Oye, ¿qué tal? Escuché que querías hacer música. Tengo algunos beats que podrían funcionarte. ¿Qué dices? Te puedo enseñar cómo funciona esto.';
-    } else {
-      dialogueText = '¿Cómo va todo? Recuerda, la consistencia es clave. Sigue grabando y mejorando.';
-    }
-
-    showDialogue({
-      character: {
-        name: 'DJ Sonic',
-        portrait: '/images/portraits/dj_sonic.png'
-      },
-      text: dialogueText,
-      onContinue: () => {}
-    });
+  // Computador — trabajos online
+  const handleComputer = () => {
+    addNotification('info', '💻 Trabajos online — próximamente...');
   };
 
   return (
     <>
       <CameraRig />
 
-      {/* Piso */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color="#2d1b4e" />
-      </mesh>
+      {/* Room — dynamic based on currentRoom selection */}
+      <Suspense fallback={null}>
+        {currentRoom !== 'studio_level_3' && <RoomLevel1 />}
+        {currentRoom === 'studio_level_3' && <StudioLevel3 />}
+      </Suspense>
 
-      {/* Paredes */}
-      <mesh position={[0, 2.5, -10]} receiveShadow>
-        <boxGeometry args={[20, 5, 0.2]} />
-        <meshStandardMaterial color="#1a0a2e" />
-      </mesh>
+      {/* === ZONAS DE INTERACCIÓN POR HABITACIÓN === */}
 
-      <mesh position={[-10, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[20, 5, 0.2]} />
-        <meshStandardMaterial color="#1a0a2e" />
-      </mesh>
-
-      <mesh position={[10, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[20, 5, 0.2]} />
-        <meshStandardMaterial color="#1a0a2e" />
-      </mesh>
-
-      {/* Techo */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 5, 0]}>
-        <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color="#0f0520" />
-      </mesh>
-
-      {/* Línea de neón decorativa */}
-      <mesh position={[0, 3, -9.9]}>
-        <boxGeometry args={[18, 0.1, 0.1]} />
-        <meshStandardMaterial color="#9333ea" emissive="#9333ea" emissiveIntensity={2} />
-      </mesh>
-
-      {/* Props interactuables */}
-      <PropPlaceholder
-        type="bed"
-        position={[-3, 0, -2]}
-        rotation={[0, Math.PI / 2, 0]}
-        scale={1}
-        label="Dormir"
-        onInteract={handleSleep}
-      />
-
-      <PropPlaceholder
-        type="computer"
-        position={[2, 0.8, -3]}
-        rotation={[0, Math.PI, 0]}
-        scale={0.8}
-        label="Trabajar Online"
-        onInteract={handleComputer}
-      />
-
-      <PropPlaceholder
-        type="mic"
-        position={[0, 0, -4]}
-        rotation={[0, 0, 0]}
-        scale={1}
-        label="Grabar Canción"
-        onInteract={handleMic}
-      />
-
-      <PropPlaceholder
-        type="door"
-        position={[0, 0, 5]}
-        rotation={[0, 0, 0]}
-        scale={1}
-        label="Salir a la Ciudad"
-        onInteract={handleDoor}
-      />
-
-      {/* NPCs */}
-      {timeOfDay === 'evening' && (
-        <NPCPlaceholder
-          position={[-2, 0, 3]}
-          rotation={[0, Math.PI / 4, 0]}
-          scale={1}
-          name="El de la Renta"
-          color="#ef4444"
-          onInteract={handleRentCollector}
-        />
+      {currentRoom !== 'studio_level_3' && (
+        <>
+          {/* 🎤 Escritorio con headset — GRABAR CANCIÓN */}
+          <InteractableZone
+            position={[0.3, 1.5, -5.0]}
+            size={[2.5, 1.5, 1.5]}
+            label="Grabar Canción"
+            icon="🎤"
+            onInteract={handleRecord}
+            tooltipOffset={[0, 2, 0]}
+          />
+          {/* 🛏️ Cama/Litera — DORMIR */}
+          <InteractableZone
+            position={[-7.2, 1.0, 4.6]}
+            size={[3, 2.5, 3]}
+            label="Dormir"
+            icon="🛏️"
+            onInteract={handleSleep}
+            tooltipOffset={[0, 2.5, 0]}
+          />
+          {/* 🛋️ Sofá — DESCANSAR */}
+          <InteractableZone
+            position={[5.0, 0.6, 3.5]}
+            size={[2.5, 1.5, 2]}
+            label="Descansar"
+            icon="🛋️"
+            onInteract={handleRest}
+            tooltipOffset={[0, 2, 0]}
+          />
+          {/* � Estantería con PC — TRABAJOS ONLINE */}
+          <InteractableZone
+            position={[6.3, 1.5, -3.1]}
+            size={[3, 3, 2.5]}
+            label="Computador"
+            icon="💻"
+            onInteract={handleComputer}
+            tooltipOffset={[0, 2.5, 0]}
+          />
+        </>
       )}
 
-      <NPCPlaceholder
-        position={[5, 0, -2]}
-        rotation={[0, -Math.PI / 2, 0]}
-        scale={1}
-        name="DJ Sonic"
-        color="#22d3ee"
-        onInteract={handleDJSonic}
-      />
+      {currentRoom === 'studio_level_3' && (
+        <>
+          {/* 🎤 Estudio de grabación — zona de grabación principal */}
+          <InteractableZone
+            position={[-6.6, 2.0, -3.5]}
+            size={[3, 2, 2]}
+            label="Grabar Canción"
+            icon="🎤"
+            onInteract={handleRecord}
+            tooltipOffset={[0, 2, 0]}
+          />
+          {/* 🛋️ Sofá del estudio — descansar */}
+          <InteractableZone
+            position={[3.0, 0.8, 2.0]}
+            size={[3, 1.5, 2]}
+            label="Descansar"
+            icon="🛋️"
+            onInteract={handleRest}
+            tooltipOffset={[0, 2, 0]}
+          />
+          {/* 💻 PC del estudio */}
+          <InteractableZone
+            position={[-6.5, 2.5, -4.0]}
+            size={[2, 2, 1.5]}
+            label="Computador"
+            icon="💻"
+            onInteract={handleComputer}
+            tooltipOffset={[0, 2.5, 0]}
+          />
+          {/* 🎧 DJ Sonic — Mentor */}
+          <Suspense fallback={null}>
+            <DJSonicNPC />
+          </Suspense>
+        </>
+      )}
 
-      {/* Jugador */}
-      <Player position={[0, 0, 0]} />
+      {/* NPC: El de la Renta — aparece al atardecer */}
+      <Suspense fallback={null}>
+        <RentCollectorNPC />
+      </Suspense>
+
+      {/* Player — spawn position adjusted per room */}
+      <Player position={[0, 0, 2]} />
     </>
   );
 };

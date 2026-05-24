@@ -33,7 +33,12 @@ interface JobRecord {
   moneyEarned: number;
 }
 
+export type CharacterModel = 'player1' | 'player2';
+
 interface PlayerState {
+  // Selección de personaje
+  selectedCharacter: CharacterModel;
+
   // Recursos básicos
   money: number;
   energy: number;
@@ -72,6 +77,10 @@ interface PlayerState {
   position: { x: number; y: number; z: number }; // Alias para compatibilidad
   playerRef: any; // Referencia al mesh del jugador en Three.js
   wallBoxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>;
+  isSitting: boolean;
+
+  // Personaje
+  characterGender: 'male' | 'female';
 
   // Acciones - Recursos
   addMoney: (amount: number) => void;
@@ -123,12 +132,18 @@ interface PlayerState {
   clearWallBoxes: () => void;
   setWallBoxes: (boxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>) => void;
 
+  // Personaje
+  setCharacterGender: (gender: 'male' | 'female') => void;
+  setPlayerSitting: (sitting: boolean) => void;
+
   // Acciones - Sistema
+  setSelectedCharacter: (character: CharacterModel) => void;
   resetPlayer: () => void;
   loadPlayer: (savedState: Partial<PlayerState>) => void;
 }
 
 const INITIAL_STATE = {
+  selectedCharacter: 'player2' as CharacterModel,
   money: 5000,
   energy: 100,
   hunger: 100,
@@ -158,6 +173,8 @@ const INITIAL_STATE = {
   position: { x: 0, y: 0, z: 0 },
   playerRef: null,
   wallBoxes: [],
+  isSitting: false,
+  characterGender: 'male' as const,
 };
 
 export const usePlayerStore = create<PlayerState>()(
@@ -419,7 +436,19 @@ export const usePlayerStore = create<PlayerState>()(
           set({ wallBoxes: boxes });
         },
 
+        setCharacterGender: (gender: 'male' | 'female') => {
+          set({ characterGender: gender });
+        },
+
+        setPlayerSitting: (sitting: boolean) => {
+          set({ isSitting: sitting });
+        },
+
         // Sistema
+        setSelectedCharacter: (character: CharacterModel) => {
+          set({ selectedCharacter: character });
+        },
+
         resetPlayer: () => {
           set(INITIAL_STATE);
         },
@@ -431,6 +460,7 @@ export const usePlayerStore = create<PlayerState>()(
       {
         name: 'legends-player-store',
         partialize: (state) => ({
+          selectedCharacter: state.selectedCharacter,
           money: state.money,
           energy: state.energy,
           hunger: state.hunger,
@@ -445,6 +475,7 @@ export const usePlayerStore = create<PlayerState>()(
           inventory: state.inventory,
           jobHistory: state.jobHistory,
           dialogueFlags: state.dialogueFlags,
+          characterGender: state.characterGender,
         }),
       }
     ),

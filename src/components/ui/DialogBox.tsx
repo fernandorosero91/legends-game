@@ -50,7 +50,7 @@ export function DialogBox({
     setIsTyping(true);
 
     let currentIndex = 0;
-    const typingSpeed = 25; // ms por carácter
+    const typingSpeed = 8; // ms por carácter — rápido
 
     const timer = setInterval(() => {
       if (currentIndex < text.length) {

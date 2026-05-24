@@ -8,34 +8,28 @@ export function LoadingScreen() {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState('Inicializando Purple City...');
   const [show, setShow] = useState(false);
+  const [showBg, setShowBg] = useState(false);
   const [done, setDone] = useState(false);
-  const [showBgAfterDone, setShowBgAfterDone] = useState(false);
-  const [showTitle, setShowTitle] = useState(true);
   const musicRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => { 
-    setTimeout(() => setShow(true), 200);
+    setShow(true);
     
-    // Ocultar el título después de 2.5 segundos
-    setTimeout(() => {
-      setShowTitle(false);
-    }, 2500);
+    // Precargar música (no reproducir — los navegadores bloquean autoplay)
+    const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
     
-    // Iniciar música solo si no existe ya
-    setTimeout(() => {
-      const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
-      
-      if (!existingMusic) {
-        const music = new Audio('/audio/inicio.mp3');
-        music.loop = true;
-        music.volume = 0.35;
-        musicRef.current = music;
-        music.play().catch(() => {});
-        (window as unknown as Record<string, unknown>).__legendsMusic = music;
-      } else {
-        musicRef.current = existingMusic;
-      }
-    }, 300);
+    if (!existingMusic) {
+      const music = new Audio('/audio/inicio.mp3');
+      music.loop = true;
+      music.volume = 0.35;
+      music.preload = 'auto';
+      musicRef.current = music;
+      (window as unknown as Record<string, unknown>).__legendsMusic = music;
+      // Intentar reproducir (funciona en localhost, falla en producción — OK)
+      music.play().catch(() => {});
+    } else {
+      musicRef.current = existingMusic;
+    }
   }, []);
 
   // Progress bar con lógica de develop pero más lento
@@ -43,32 +37,28 @@ export function LoadingScreen() {
     const phases = [
       { at: 15, text: 'Cargando modelos 3D...' },
       { at: 30, text: 'Renderizando Purple City...' },
-      { at: 45, text: 'Preparando beats...' },
-      { at: 60, text: 'Conectando con SoundCloud...' },
-      { at: 75, text: 'Configurando el estudio...' },
-      { at: 90, text: 'Afinando instrumentos...' },
-      { at: 98, text: 'Casi listo...' },
+      { at: 50, text: 'Preparando beats...' },
+      { at: 70, text: 'Configurando el estudio...' },
+      { at: 90, text: 'Casi listo...' },
     ];
-    
-    console.log('[LoadingScreen] Starting progress animation');
     
     const iv = setInterval(() => {
       setProgress((p) => {
-        // Incremento más controlado: entre 0.5 y 1.5 por tick
-        const next = p + Math.random() * 1 + 0.5;
+        // Incremento rápido: 2-4 por tick para completar en ~2 segundos
+        const next = p + Math.random() * 2 + 2;
+        
+        // Mostrar fondo al 20%
+        if (next >= 20 && !showBg) {
+          setShowBg(true);
+        }
         
         if (next >= 100) {
-          console.log('[LoadingScreen] Progress complete, showing background');
           clearInterval(iv);
           setDone(true);
-          // Mostrar el fondo con fade-in después de completar
-          setTimeout(() => setShowBgAfterDone(true), 300);
-          // Transicionar al menú principal después de que el fondo se muestre
           setTimeout(() => {
-            console.log('[LoadingScreen] Calling setScreen(main_menu)');
             setLoading(false);
             setScreen('main_menu');
-          }, 2000);
+          }, 400); // Reduced from 1000ms
           return 100;
         }
         
@@ -76,28 +66,25 @@ export function LoadingScreen() {
         if (ph) setPhase(ph.text);
         return next;
       });
-    }, 80); // 80ms por tick = aproximadamente 5-6 segundos total
+    }, 50); // 50ms per tick = ~2 seconds total
     
-    return () => {
-      console.log('[LoadingScreen] Cleaning up interval');
-      clearInterval(iv);
-    };
-  }, [setScreen, setLoading]);
+    return () => clearInterval(iv);
+  }, [setScreen, setLoading, showBg]);
 
   const pct = Math.floor(progress);
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className={`fixed inset-0 z-50 transition-opacity duration-700 ${done ? 'opacity-0' : 'opacity-100'}`}>
       {/* Fondo negro inicial */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950 via-purple-900 to-black" />
       
-      {/* Fondo de ciudad que aparece SOLO después de completar la carga */}
-      <div className={`absolute inset-0 transition-opacity duration-1500 ${showBgAfterDone ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Fondo de ciudad que aparece gradualmente */}
+      <div className={`absolute inset-0 transition-opacity duration-2000 ${showBg ? 'opacity-100' : 'opacity-0'}`}>
         <CityBackground />
       </div>
 
       {/* Partículas flotantes */}
-      <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${done ? 'opacity-0' : 'opacity-100'}`}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
@@ -114,29 +101,11 @@ export function LoadingScreen() {
       </div>
 
       {/* Gradient overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 transition-opacity duration-700 ${done ? '!opacity-0' : ''}`} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
 
       {show && (
-        <div className={`relative z-10 flex flex-col items-center justify-center h-full px-8 transition-opacity duration-700 ${done ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className="relative z-10 flex flex-col items-center justify-end h-full px-8 pb-16">
           <div className="w-full max-w-2xl">
-            
-            {/* Logo animado */}
-            <div className={`text-center mb-12 animate-fade-in transition-opacity duration-1000 ease-out ${showTitle ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-wider"
-                style={{
-                  background: 'linear-gradient(180deg, #22d3ee 0%, #0891b2 50%, #164e63 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 0 40px rgba(34,211,238,0.3)',
-                  fontFamily: "'Arial Black', 'Impact', sans-serif",
-                }}>
-                LEGENDS
-              </h1>
-              <p className="text-lg md:text-xl text-cyan-300 tracking-[0.3em] font-light"
-                style={{ textShadow: '0 2px 10px rgba(34,211,238,0.5)' }}>
-                THE MUSIC CAREER SIMULATOR
-              </p>
-            </div>
 
             {/* Contenedor de carga con efecto glassmorphism */}
             <div className="backdrop-blur-md bg-black/40 border border-cyan-500/20 rounded-2xl p-8 shadow-2xl"

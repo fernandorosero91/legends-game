@@ -10,6 +10,20 @@ import type { ShopItem } from '../types/shop';
 
 export const EQUIPMENT_ITEMS: ShopItem[] = [
   {
+  id: 'usb_mic',
+  name: 'Micrófono USB',
+  category: 'equipment',
+  description: 'Micrófono USB plug-and-play, ideal para empezar a grabar',
+  price: 250,
+  levelRequired: 2,
+  icon: '/icons/mic_usb.svg',
+  effect: {
+    type: 'quality_bonus',
+    value: 4,
+    permanent: true,
+  },
+  },
+  {
     id: 'basic_mic',
     name: 'Micrófono Básico',
     category: 'equipment',

@@ -312,8 +312,4 @@ export const projectInfo = {
   buckets: ['legends-assets'],
 };
 
-console.log('[InsForge] Client initialized:', {
-  project: PROJECT_CONFIG.projectName,
-  region: PROJECT_CONFIG.region,
-  baseUrl: PROJECT_CONFIG.baseUrl,
-});
+console.log('[InsForge] Client initialized');
