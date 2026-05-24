@@ -13,6 +13,7 @@ import { getRhythmDifficulty } from '../../data/levels';
 interface FlowMixerProps {
   beat: Beat;
   level: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
   onComplete: (score: number, maxCombo: number, stats: { perfectHits: number; goodHits: number; okHits: number; misses: number }) => void;
   onCancel: () => void;
 }
@@ -50,7 +51,7 @@ function playTone(freq: number, type: OscillatorType = 'sine') {
   osc.stop(audioCtx.currentTime + 0.1);
 }
 
-export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps) {
+export function FlowMixer({ beat, level, difficulty = 'normal', onComplete, onCancel }: FlowMixerProps) {
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -77,8 +78,9 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
   // Generate arrows
   useEffect(() => {
     const bpm = beat.tempo || 120;
-    const difficulty = getRhythmDifficulty(level);
-    const interval = (60000 / bpm) / (difficulty?.notesPerBeat || 1);
+    const diffConfig = getRhythmDifficulty(level);
+    const noteMult = difficulty === 'easy' ? 0.5 : difficulty === 'hard' ? 1.5 : 1;
+    const interval = (60000 / bpm) / Math.max(0.3, (diffConfig?.notesPerBeat || 1) * noteMult);
 
     const generated: ArrowNote[] = [];
     let time = 2000;
@@ -167,12 +169,13 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       setTimeout(() => setActiveDir(null), 120);
 
       const currentTime = performance.now() - startTimeRef.current;
-      const difficulty = getRhythmDifficulty(level);
-      if (!difficulty) return;
+      const diffCfg = getRhythmDifficulty(level);
+      if (!diffCfg) return;
+      const windowMult = difficulty === 'easy' ? 1.5 : difficulty === 'hard' ? 0.7 : 1;
 
       // Find the current arrow to hit
       const arrow = arrowsRef.current.find(
-        a => a.direction === dir && !a.hit && !a.missed && Math.abs(a.targetTime - currentTime) <= difficulty.okWindow
+        a => a.direction === dir && !a.hit && !a.missed && Math.abs(a.targetTime - currentTime) <= diffCfg.okWindow * windowMult
       );
 
       if (!arrow) {
@@ -191,11 +194,11 @@ export function FlowMixer({ beat, level, onComplete, onCancel }: FlowMixerProps)
       let text: string;
       let color: string;
 
-      if (diff <= difficulty.perfectWindow) {
+      if (diff <= diffCfg.perfectWindow * windowMult) {
         points = 100; text = '✦ PERFECT'; color = '#ffd60a';
         statsRef.current.perfectHits++;
         playTone(1200);
-      } else if (diff <= difficulty.goodWindow) {
+      } else if (diff <= diffCfg.goodWindow * windowMult) {
         points = 75; text = 'GREAT'; color = '#30d158';
         statsRef.current.goodHits++;
         playTone(800);

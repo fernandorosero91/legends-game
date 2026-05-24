@@ -6,13 +6,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Beat } from '../../data/songs';
-import type { MiniGameType } from './RhythmGame';
+import type { MiniGameType, GameDifficulty } from './RhythmGame';
+import { DIFFICULTY_CONFIG } from './RhythmGame';
 
 interface BeatSelectorProps {
   beats: Beat[];
   onSelect: (beat: Beat, gameType?: MiniGameType) => void;
   onCancel: () => void;
   currentLevel: number;
+  difficulty: GameDifficulty;
+  onDifficultyChange: (d: GameDifficulty) => void;
 }
 
 const STYLE_ICONS: Record<string, string> = {
@@ -45,7 +48,7 @@ const STYLE_TO_DEFAULT_GAME: Record<string, MiniGameType> = {
   hiphop: 'flow_mixer',
 };
 
-export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSelectorProps) {
+export function BeatSelector({ beats, onSelect, onCancel, currentLevel, difficulty, onDifficultyChange }: BeatSelectorProps) {
   const [selectedBeat, setSelectedBeat] = useState<Beat | null>(null);
   const [selectedMode, setSelectedMode] = useState<MiniGameType | null>(null);
   const [step, setStep] = useState<'beat' | 'mode'>('beat');
@@ -239,6 +242,31 @@ export function BeatSelector({ beats, onSelect, onCancel, currentLevel }: BeatSe
                     </p>
                   </motion.div>
                 )}
+
+                {/* Difficulty selector */}
+                <div className="mt-4">
+                  <p className="text-purple-200/60 text-[10px] uppercase tracking-wider font-semibold mb-2">Dificultad</p>
+                  <div className="flex gap-2">
+                    {(Object.entries(DIFFICULTY_CONFIG) as [GameDifficulty, typeof DIFFICULTY_CONFIG['easy']][]).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        onClick={() => onDifficultyChange(key)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-center transition-all text-sm font-semibold ${
+                          difficulty === key
+                            ? 'border-2 shadow-[0_0_12px_-2px] scale-[1.02]'
+                            : 'border border-white/[0.06] bg-white/[0.02] text-white/50 hover:bg-white/[0.04]'
+                        }`}
+                        style={difficulty === key ? { borderColor: cfg.color, color: cfg.color, backgroundColor: `${cfg.color}12`, boxShadow: `0 0 12px -2px ${cfg.color}40` } : {}}
+                      >
+                        <span className="text-base mr-1">{cfg.icon}</span>
+                        {cfg.label}
+                        <div className="text-[9px] mt-0.5 opacity-60 font-normal">
+                          {key === 'easy' ? '×0.6 oyentes' : key === 'hard' ? '×1.5 oyentes' : '×1 oyentes'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

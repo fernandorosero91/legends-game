@@ -13,6 +13,7 @@ import { getRhythmDifficulty } from '../../data/levels';
 interface BeatCatcherProps {
   beat: Beat;
   level: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
   onComplete: (score: number, maxCombo: number, stats: { perfectHits: number; goodHits: number; okHits: number; misses: number }) => void;
   onCancel: () => void;
 }
@@ -47,7 +48,7 @@ function playNote(freq: number, type: OscillatorType = 'sine') {
   osc.stop(audioCtx.currentTime + 0.15);
 }
 
-export function BeatCatcher({ beat, level, onComplete, onCancel }: BeatCatcherProps) {
+export function BeatCatcher({ beat, level, difficulty = 'normal', onComplete, onCancel }: BeatCatcherProps) {
   const [circles, setCircles] = useState<CircleNote[]>([]);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);

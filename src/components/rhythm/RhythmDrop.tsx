@@ -14,6 +14,7 @@ import { getRhythmDifficulty } from '../../data/levels';
 interface RhythmDropProps {
   beat: Beat;
   level: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
   onComplete: (score: number, maxCombo: number, stats: { perfectHits: number; goodHits: number; okHits: number; misses: number }) => void;
   onCancel: () => void;
 }
@@ -81,7 +82,7 @@ function beep(freq: number, dur = 0.05, vol = 0.1, wave: OscillatorType = 'sine'
   o.start(); o.stop(audioCtx.currentTime + dur);
 }
 
-export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProps) {
+export function RhythmDrop({ beat, level, difficulty = 'normal', onComplete, onCancel }: RhythmDropProps) {
   const [phase, setPhase] = useState<'countdown' | 'playing'>('countdown');
   const [countdown, setCountdown] = useState(3);
   const [paused, setPaused] = useState(false);
@@ -111,7 +112,8 @@ export function RhythmDrop({ beat, level, onComplete, onCancel }: RhythmDropProp
     const diff = getRhythmDifficulty(level);
     if (!diff) return;
     const bpm = beat.tempo || 120;
-    const interval = (60000 / bpm) / Math.max(1, diff.notesPerBeat * 0.7);
+    const noteMult = difficulty === 'easy' ? 0.5 : difficulty === 'hard' ? 1.5 : 1;
+    const interval = (60000 / bpm) / Math.max(0.3, diff.notesPerBeat * 0.7 * noteMult);
     const arr: GameNote[] = [];
     let time = 1500;
     while (time < DURATION - 800) {

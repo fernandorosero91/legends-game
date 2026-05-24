@@ -19,6 +19,13 @@ import { RhythmSystem } from '../../systems/rhythmSystem';
 
 type RhythmPhase = 'select_beat' | 'instructions' | 'playing' | 'results';
 export type MiniGameType = 'rhythm_drop' | 'beat_catcher' | 'flow_mixer';
+export type GameDifficulty = 'easy' | 'normal' | 'hard';
+
+export const DIFFICULTY_CONFIG: Record<GameDifficulty, { label: string; noteMultiplier: number; windowMultiplier: number; listenerMultiplier: number; color: string; icon: string }> = {
+  easy: { label: 'Fácil', noteMultiplier: 0.5, windowMultiplier: 1.5, listenerMultiplier: 0.6, color: '#34d399', icon: '🎵' },
+  normal: { label: 'Normal', noteMultiplier: 1, windowMultiplier: 1, listenerMultiplier: 1, color: '#fbbf24', icon: '🎶' },
+  hard: { label: 'Difícil', noteMultiplier: 1.5, windowMultiplier: 0.7, listenerMultiplier: 1.5, color: '#f43f5e', icon: '🔥' },
+};
 
 const STYLE_TO_GAME: Record<string, MiniGameType> = {
   trap: 'rhythm_drop',
@@ -32,6 +39,7 @@ export function RhythmGame() {
   const [phase, setPhase] = useState<RhythmPhase>('select_beat');
   const [selectedBeat, setSelectedBeat] = useState<Beat | null>(null);
   const [gameType, setGameType] = useState<MiniGameType>('rhythm_drop');
+  const [difficulty, setDifficulty] = useState<GameDifficulty>('normal');
   const [results, setResults] = useState<any>(null);
 
   const { currentLevel } = useGameStore();
@@ -225,19 +233,19 @@ export function RhythmGame() {
           {/* Game content */}
           <div className="absolute inset-0 flex items-center justify-center">
             {phase === 'select_beat' && (
-              <BeatSelector key="selector" beats={availableBeats} onSelect={handleSelectBeat} onCancel={handleCancel} currentLevel={currentLevel} />
+              <BeatSelector key="selector" beats={availableBeats} onSelect={handleSelectBeat} onCancel={handleCancel} currentLevel={currentLevel} difficulty={difficulty} onDifficultyChange={setDifficulty} />
             )}
             {phase === 'instructions' && selectedBeat && (
               <InstructionsModal key="instructions" gameType={gameType} beatName={selectedBeat.name} onStart={handleStartGame} onBack={() => setPhase('select_beat')} />
             )}
             {phase === 'playing' && selectedBeat && gameType === 'rhythm_drop' && (
-              <RhythmDrop beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              <RhythmDrop beat={selectedBeat} level={currentLevel} difficulty={difficulty} onComplete={handleGameComplete} onCancel={handleCancel} />
             )}
             {phase === 'playing' && selectedBeat && gameType === 'beat_catcher' && (
-              <BeatCatcher beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              <BeatCatcher beat={selectedBeat} level={currentLevel} difficulty={difficulty} onComplete={handleGameComplete} onCancel={handleCancel} />
             )}
             {phase === 'playing' && selectedBeat && gameType === 'flow_mixer' && (
-              <FlowMixer beat={selectedBeat} level={currentLevel} onComplete={handleGameComplete} onCancel={handleCancel} />
+              <FlowMixer beat={selectedBeat} level={currentLevel} difficulty={difficulty} onComplete={handleGameComplete} onCancel={handleCancel} />
             )}
             {phase === 'results' && results && (
               <RecordingResults quality={results.quality} rhythmScore={results.rhythmScore} listenersGenerated={results.listenersGenerated} songTitle={selectedBeat?.name || 'Unknown'} combo={results.maxCombo || 0} perfectHits={results.perfectHits || 0} goodHits={results.goodHits || 0} okHits={results.okHits || 0} misses={results.misses || 0} onClose={handleCloseResults} />
