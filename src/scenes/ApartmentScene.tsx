@@ -11,7 +11,7 @@ import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
 import { DJSonicNPC } from '../components/game/DJSonicNPC';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, useKTX2 } from '@react-three/drei';
 import { Suspense, useEffect, useMemo } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
@@ -69,9 +69,17 @@ export const ApartmentScene = () => {
     }, 800);
   };
 
-  // Computador — trabajos online
+  // Computador — trabajos online (sienta al jugador en la silla del PC)
   const handleComputer = () => {
-    useGameStore.getState().setGamePhase('online_job');
+    if (energy < 15) {
+      addNotification('warning', '💻 Necesitas al menos 15 de energía para trabajar');
+      return;
+    }
+    usePlayerStore.getState().setPosition({ x: 6.0, y: 0, z: -3.5 });
+    usePlayerStore.getState().setPlayerSitting(true);
+    setTimeout(() => {
+      useGameStore.getState().setGamePhase('online_job');
+    }, 800);
   };
 
   return (
@@ -88,11 +96,11 @@ export const ApartmentScene = () => {
 
       {currentRoom !== 'studio_level_3' && (
         <>
-          {/* 🪑 Silla frente al escritorio */}
+          {/* 🪑 Silla frente al escritorio de grabación */}
           <Suspense fallback={null}>
             <DeskChair position={[0.3, 0, -3.2]} rotation={[0, 0, 0]} />
           </Suspense>
-          
+
           {/* 🎤 Escritorio con headset — GRABAR CANCIÓN */}
           <InteractableZone
             position={[0.3, 1.5, -5.0]}
@@ -179,9 +187,9 @@ export const ApartmentScene = () => {
   );
 };
 
-/** Silla de escritorio — modelo GLB */
+/** Silla de escritorio — GLB con texturas KTX2 */
 function DeskChair({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  const { scene } = useGLTF('/models/accesorios/silla_inter.glb');
+  const { scene } = useGLTF('/models/accesorios/silla-inter.glb', '/draco/');
   const clone = useMemo(() => {
     const c = scene.clone();
     c.traverse((child: any) => {
@@ -197,5 +205,3 @@ function DeskChair({ position, rotation }: { position: [number, number, number];
     <primitive object={clone} position={position} rotation={rotation || [0, 0, 0]} scale={1.8} />
   );
 }
-
-useGLTF.preload('/models/accesorios/silla_inter.glb');

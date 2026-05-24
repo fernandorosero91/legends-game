@@ -312,7 +312,7 @@ function GameScene() {
 
       {/* Online Job Game */}
       {gamePhase === 'online_job' && (
-        <OnlineJobGame onClose={() => useGameStore.getState().setGamePhase('playing')} />
+        <OnlineJobGame onClose={() => { useGameStore.getState().setGamePhase('playing'); usePlayerStore.getState().setPlayerSitting(false); }} />
       )}
     </>
   );

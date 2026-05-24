@@ -193,10 +193,11 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       return;
     }
 
-    // Just stood up — move player slightly away from chair
+    // Just stood up — move player away from furniture
     if (wasSitting.current) {
       wasSitting.current = false;
-      group.current.position.z += 1;
+      group.current.position.z += 1.5;
+      group.current.position.x -= 0.5;
     }
 
     if (gamePhase !== 'playing') {
