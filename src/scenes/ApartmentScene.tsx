@@ -7,6 +7,7 @@
 import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
 import { RoomLevel1 } from '../components/game/RoomLevel1';
+import { RoomLevel2 } from '../components/game/RoomLevel2';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
@@ -25,6 +26,7 @@ export const ApartmentScene = () => {
   const advanceTime = useGameStore((s) => s.advanceTime);
   const setGamePhase = useGameStore((s) => s.setGamePhase);
   const currentRoom = useGameStore((s) => s.currentRoom);
+  const currentLevel = useGameStore((s) => s.currentLevel);
 
   // Ensure gamePhase is 'playing' when apartment scene is active
   useEffect(() => {
@@ -113,9 +115,10 @@ export const ApartmentScene = () => {
     <>
       <CameraRig />
 
-      {/* Room — dynamic based on currentRoom selection */}
+      {/* Room — dynamic based on currentRoom and currentLevel */}
       <Suspense fallback={null}>
-        {currentRoom !== 'studio_level_3' && <RoomLevel1 />}
+        {currentRoom !== 'studio_level_3' && currentLevel >= 2 && <RoomLevel2 />}
+        {currentRoom !== 'studio_level_3' && currentLevel < 2 && <RoomLevel1 />}
         {currentRoom === 'studio_level_3' && <StudioLevel3 />}
       </Suspense>
 
@@ -123,52 +126,58 @@ export const ApartmentScene = () => {
 
       {currentRoom !== 'studio_level_3' && (
         <>
-          {/* 🪑 Silla frente al escritorio de grabación */}
-          <Suspense fallback={null}>
-            <DeskChair position={[0.3, 0, -3.2]} rotation={[0, 0, 0]} />
-          </Suspense>
+          {/* Nivel 1 — zonas propias de room_level1 */}
+          {currentLevel < 2 && (
+            <>
+              {/* 🪑 Silla frente al escritorio de grabación */}
+              <Suspense fallback={null}>
+                <DeskChair position={[0.3, 0, -3.2]} rotation={[0, 0, 0]} />
+              </Suspense>
 
-          {/* 🎤 Escritorio con headset — GRABAR CANCIÓN */}
-          <InteractableZone
-            position={[0.3, 1.5, -5.0]}
-            size={[2.5, 1.5, 1.5]}
-            label="Grabar Canción"
-            icon="🎤"
-            onInteract={handleRecord}
-            tooltipOffset={[0, 2, 0]}
-          />
-          {/* 🛏️ Cama/Litera — DORMIR */}
-          <InteractableZone
-            position={[-7.2, 1.0, 4.6]}
-            size={[3, 2.5, 3]}
-            label="Dormir"
-            icon="🛏️"
-            onInteract={handleSleep}
-            tooltipOffset={[0, 2.5, 0]}
-          />
-          {/* 🛋️ Sofá — DESCANSAR (solo visible si fue comprado) */}
-          {inventory.some(i => i.itemId === 'comfy_couch') && (
-            <Suspense fallback={null}>
-              <SofaModel position={[5.0, 0, 5.0]} rotation={[0, Math.PI, 0]} />
-            </Suspense>
+              {/* 🎤 Escritorio con headset — GRABAR CANCIÓN */}
+              <InteractableZone
+                position={[0.3, 1.5, -5.0]}
+                size={[2.5, 1.5, 1.5]}
+                label="Grabar Canción"
+                icon="🎤"
+                onInteract={handleRecord}
+                tooltipOffset={[0, 2, 0]}
+              />
+              {/* 🛏️ Cama/Litera — DORMIR */}
+              <InteractableZone
+                position={[-7.2, 1.0, 4.6]}
+                size={[3, 2.5, 3]}
+                label="Dormir"
+                icon="🛏️"
+                onInteract={handleSleep}
+                tooltipOffset={[0, 2.5, 0]}
+              />
+              {/* 🛋️ Sofá — DESCANSAR */}
+              {inventory.some(i => i.itemId === 'comfy_couch') && (
+                <Suspense fallback={null}>
+                  <SofaModel position={[5.0, 0, 5.0]} rotation={[0, Math.PI, 0]} />
+                </Suspense>
+              )}
+              <InteractableZone
+                position={[5.0, 0.6, 5.0]}
+                size={[2.5, 1.5, 2]}
+                label="Descansar"
+                icon="🛋️"
+                onInteract={handleRest}
+                tooltipOffset={[0, 2, 0]}
+              />
+              {/* 💻 Estantería con PC — TRABAJOS ONLINE */}
+              <InteractableZone
+                position={[6.3, 1.5, -3.1]}
+                size={[3, 3, 2.5]}
+                label="Computador"
+                icon="💻"
+                onInteract={handleComputer}
+                tooltipOffset={[0, 2.5, 0]}
+              />
+            </>
           )}
-          <InteractableZone
-            position={[5.0, 0.6, 5.0]}
-            size={[2.5, 1.5, 2]}
-            label="Descansar"
-            icon="🛋️"
-            onInteract={handleRest}
-            tooltipOffset={[0, 2, 0]}
-          />
-          {/* � Estantería con PC — TRABAJOS ONLINE */}
-          <InteractableZone
-            position={[6.3, 1.5, -3.1]}
-            size={[3, 3, 2.5]}
-            label="Computador"
-            icon="💻"
-            onInteract={handleComputer}
-            tooltipOffset={[0, 2.5, 0]}
-          />
+          {/* Nivel 2+ — zonas manejadas por RoomLevel2 directamente */}
         </>
       )}
 
@@ -213,8 +222,8 @@ export const ApartmentScene = () => {
         <RentCollectorNPC />
       </Suspense>
 
-      {/* Player — spawn position adjusted per room */}
-      <Player position={[0, 0, 2]} />
+      {/* Player — spawn position adjusted per room and level */}
+      <Player position={currentLevel >= 2 ? [2.5, 0, 3] : [0, 0, 2]} />
     </>
   );
 };
