@@ -15,6 +15,8 @@ interface InteractableZoneProps {
   icon?: string;
   onInteract: () => void;
   tooltipOffset?: [number, number, number];
+  /** If true, renders a faint translucent box for debugging the hit zone */
+  debug?: boolean;
 }
 
 export function InteractableZone({
@@ -24,6 +26,7 @@ export function InteractableZone({
   icon = '🎯',
   onInteract,
   tooltipOffset = [0, 1.5, 0],
+  debug = false,
 }: InteractableZoneProps) {
   const [hovered, setHovered] = useState(false);
 
@@ -46,7 +49,7 @@ export function InteractableZone({
         }}
       >
         <boxGeometry args={size} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={debug ? 0.25 : 0} depthWrite={false} />
       </mesh>
 
       {/* Tooltip al hacer hover */}

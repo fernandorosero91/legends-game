@@ -118,6 +118,18 @@ function GameScene() {
   };
 
   const handleLocationSelect = (locationId: string) => {
+    // Restaurant cooldown check
+    if (locationId === 'restaurant' && isRestaurantOnCooldown()) {
+      const remaining = getRestaurantCooldownRemaining();
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      useUIStore.getState().addNotification(
+        'warning',
+        `Vuelve a tomar otro turno en ${min > 0 ? `${min}m ` : ''}${sec}s`
+      );
+      return;
+    }
+
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
     
@@ -202,6 +214,12 @@ function GameScene() {
             currentLocation={currentScene}
             onOpenFullMap={() => setShowLocationMap(true)}
           />
+
+          {/* Restaurant Timer — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantTimer />}
+
+          {/* Restaurant Orders HUD — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantOrdersHUD />}
 
           {/* Tienda — CartShopModal */}
           <CartShopModal 
