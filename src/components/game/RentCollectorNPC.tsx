@@ -144,6 +144,7 @@ export function RentCollectorNPC() {
       ref={group}
       position={(() => {
         const level = useGameStore.getState().currentLevel;
+        if (level >= 5) return [4, 0.3, 1] as [number, number, number];
         if (level >= 4) return [15, 0.3, -10] as [number, number, number];
         if (level >= 3) return [5, 0.3, 2] as [number, number, number];
         if (level >= 2) return [3, 0.3, 5] as [number, number, number];
