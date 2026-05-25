@@ -233,7 +233,17 @@ function GameScene() {
           <div>
             <div className="text-xs text-purple-400 font-medium">Ubicación</div>
             <div className="text-sm text-white font-bold">
-              {currentScene === 'apartment' ? 'Tu Apartamento' : 'Purple City'}
+              {({
+                apartment:  'Tu Apartamento',
+                cafe:       'Café Purple Beans',
+                store:      'Purple Market',
+                shop:       'Purple Sound Shop',
+                restaurant: 'Restaurante La Esquina',
+                delivery:   'Delivery Express',
+                bar:        'Bar Neon Nights',
+                academy:    'Academia SoundWave',
+                city:       'Purple City',
+              } as Record<string, string>)[currentScene] || 'Purple City'}
             </div>
           </div>
         </div>

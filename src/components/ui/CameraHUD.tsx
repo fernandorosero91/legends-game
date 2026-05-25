@@ -85,16 +85,6 @@ const CameraHUD = ({
             </div>
           </div>
         )}
-
-        {/* Indicador de ubicación (desktop) */}
-        {!showMobileControls && (
-          <div className="hidden md:flex justify-center">
-            <div className="backdrop-blur-md bg-black/40 border border-purple-500/20 rounded-lg px-4 py-2 flex items-center gap-2">
-              <Icon name="day" size="sm" className="text-purple-400" />
-              <span className="text-xs text-gray-400">Apartamento</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
