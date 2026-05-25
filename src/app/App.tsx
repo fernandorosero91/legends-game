@@ -26,6 +26,8 @@ import { CashierGame } from '../components/cashier/CashierGame';
 import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { GameSideButtons } from '../components/ui/GameSideButtons';
+import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
+import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
