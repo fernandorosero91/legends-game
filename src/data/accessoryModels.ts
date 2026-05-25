@@ -67,18 +67,18 @@ export const ACCESSORY_ROOM_PLACEMENTS: Record<string, RoomPlacement> = {
   // 🎙️ Micrófono USB: sobre la mesa. Y subida a 2.0 para que quede CLARAMENTE
   // encima de la superficie (antes a 1.55 quedaba dentro/debajo de la mesa).
   // scale 3 porque el modelo es pequeño (~12cm en escala 1).
-  usb_mic:           { position: [0.3, 2.0, -5.0], rotation: [0, 0.4, 0],  scale: 3.0 },
+  usb_mic:           { position: [0.3, 2.0, -5.0], rotation: [0, 0.4, 0],  scale: 0.8 },
   // 🎙️ Otros micrófonos: encima de la mesa
-  basic_mic:         { position: [0.3, 1.55, -5.0], rotation: [0, 0.4, 0],  scale: 1.0 },
-  pro_mic:           { position: [0.3, 1.55, -5.0], rotation: [0, 0.4, 0],  scale: 1.0 },
+  basic_mic:         { position: [0.3, 2.0, -5.0], rotation: [0, 0.4, 0],  scale: 1.0 },
+  pro_mic:           { position: [0.3, 2.0, -5.0], rotation: [0, 0.4, 0],  scale: 1.0 },
   // 🎧 Audífonos: en una esquina de la mesa
-  studio_headphones: { position: [-0.8, 1.55, -5.0], rotation: [0, 0.2, 0], scale: 1.0 },
+  studio_headphones: { position: [-0.8, 2.0, -5.0], rotation: [0, 0.2, 0], scale: 1.0 },
   // 🔊 Monitores: sobre la mesa, hacia el fondo
-  studio_monitor:    { position: [1.4, 1.55, -5.2],  rotation: [0, -0.3, 0], scale: 1.0 },
+  studio_monitor:    { position: [1.4, 2.0, -5.2],  rotation: [0, -0.3, 0], scale: 1.0 },
   // 🎛️ Interfaz de audio: sobre la mesa, al lado
-  audio_interface:   { position: [-0.2, 1.55, -4.7], rotation: [0, 0, 0],    scale: 1.0 },
+  audio_interface:   { position: [-0.2, 2.0, -4.7], rotation: [0, 0, 0],    scale: 1.0 },
   // 🎹 Controlador MIDI: sobre la mesa, frente al jugador
-  midi_controller:   { position: [0.6, 1.55, -4.6],  rotation: [0, 0, 0],    scale: 1.0 },
+  midi_controller:   { position: [0.6, 2.0, -4.6],  rotation: [0, 0, 0],    scale: 1.0 },
   // 🥁 Kit de beats (caja): en el suelo junto a la mesa
   beat_pack:         { position: [2.2, 0.3, -4.8],   rotation: [0, 0.5, 0],  scale: 1.0 },
 };
