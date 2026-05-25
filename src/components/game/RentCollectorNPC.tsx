@@ -115,28 +115,35 @@ export function RentCollectorNPC() {
   };
 
   const handlePay = () => {
-    if (money >= RENT_AMOUNT) {
-      usePlayerStore.getState().payRent(RENT_AMOUNT);
-      setHasCollectedToday(true);
-      setPaid(true);
-      setShowPayButton(false);
-      setBubbleText('Perfecto. Nos vemos mañana. 💰');
-      useUIStore.getState().addNotification('success', `💰 Renta pagada: -$${RENT_AMOUNT}`);
-      setTimeout(() => setShowBubble(false), 3000);
-    } else {
-      usePlayerStore.getState().missRent();
-      usePlayerStore.getState().addReputation(-10);
-      setShowPayButton(false);
-      const streak = usePlayerStore.getState().consecutiveDaysWithoutRent;
-      setBubbleText(`No tienes dinero... Van ${streak}/3 días. 😤`);
-      useUIStore.getState().addNotification('error', `❌ No pudiste pagar. Días sin pagar: ${streak}/3`);
-      setTimeout(() => setShowBubble(false), 4000);
-    }
+    usePlayerStore.getState().payRent(RENT_AMOUNT);
+    setHasCollectedToday(true);
+    setPaid(true);
+    setShowPayButton(false);
+    setBubbleText('Perfecto. Nos vemos mañana. 💰');
+    useUIStore.getState().addNotification('success', `💰 Renta pagada: -$${RENT_AMOUNT}`);
+    setTimeout(() => setShowBubble(false), 3000);
+  };
+
+  const handlePayLater = () => {
+    usePlayerStore.getState().missRent();
+    usePlayerStore.getState().addReputation(-10);
+    const streak = usePlayerStore.getState().consecutiveDaysWithoutRent;
+    useUIStore.getState().addNotification('error', `❌ No pudiste pagar. Días sin pagar: ${streak}/3`);
+    setShowPayButton(false);
+    setBubbleText(`Más te vale tener mi dinero mañana... Van ${streak}/3 días. 😤`);
+    setTimeout(() => {
+      setShowBubble(false);
+      setPaid(true); // El NPC se va después de la advertencia
+    }, 3000);
   };
 
   const handleCloseBubble = () => {
-    setShowBubble(false);
-    setShowPayButton(false);
+    // Si ya pagó o ya dijo "más tarde", puede cerrar libremente
+    if (hasCollectedToday || paid) {
+      setShowBubble(false);
+      setShowPayButton(false);
+    }
+    // Si no ha pagado, no puede cerrar — debe elegir pagar o "más tarde"
   };
 
   return (
@@ -198,7 +205,7 @@ export function RentCollectorNPC() {
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); handleCloseBubble(); }}
-                className="text-gray-400 hover:text-white text-lg leading-none"
+                className={`text-gray-400 hover:text-white text-lg leading-none ${showPayButton ? 'invisible' : ''}`}
               >
                 ✕
               </button>
@@ -209,7 +216,7 @@ export function RentCollectorNPC() {
               {bubbleText}
             </p>
 
-            {/* Botón de pagar */}
+            {/* Botones de acción */}
             {showPayButton && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-gray-400">
@@ -218,24 +225,25 @@ export function RentCollectorNPC() {
                     ${money.toLocaleString()}
                   </span>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handlePay(); }}
-                  disabled={money < RENT_AMOUNT}
-                  className={`w-full py-2 px-4 rounded-xl font-bold text-sm transition-all ${
-                    money >= RENT_AMOUNT
-                      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white shadow-lg shadow-green-500/30'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {money >= RENT_AMOUNT
-                    ? `💰 Pagar $${RENT_AMOUNT.toLocaleString()}`
-                    : `❌ No tienes $${RENT_AMOUNT.toLocaleString()}`
-                  }
-                </button>
+                {money >= RENT_AMOUNT ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePay(); }}
+                    className="w-full py-2 px-4 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white shadow-lg shadow-green-500/30"
+                  >
+                    💰 Pagar ${RENT_AMOUNT.toLocaleString()}
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePayLater(); }}
+                    className="w-full py-2 px-4 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-yellow-600 to-orange-700 hover:from-yellow-500 hover:to-orange-600 text-white shadow-lg shadow-orange-500/30"
+                  >
+                    🙏 Le pago más tarde
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Cerrar si no hay botón de pago */}
+            {/* Cerrar si ya pagó o ya dijo más tarde */}
             {!showPayButton && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleCloseBubble(); }}
