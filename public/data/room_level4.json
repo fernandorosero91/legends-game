@@ -1,0 +1,82 @@
+[
+    {
+        "name": "room_level4_group_00_lev1",
+        "x": -0.0054,
+        "y": 1.084,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_01_lev1",
+        "x": 0.0,
+        "y": 1.084,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_02_lev1",
+        "x": 0.0,
+        "y": 1.4377,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_03_lev1",
+        "x": 0.0,
+        "y": 1.2609,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_04_lev1",
+        "x": 0.0,
+        "y": 1.084,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_05_lev1",
+        "x": 0.0,
+        "y": 1.084,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_06_lev1",
+        "x": 0.0,
+        "y": 1.084,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_07_lev1",
+        "x": 0.0,
+        "y": 1.4377,
+        "z": -0.0,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_08_lev1",
+        "x": 26.7322,
+        "y": 2.4033,
+        "z": -15.7622,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "room_level4_group_09_lev1",
+        "x": 107.8236,
+        "y": 5.6309,
+        "z": -64.6818,
+        "level": 1,
+        "role": "default"
+    }
+]

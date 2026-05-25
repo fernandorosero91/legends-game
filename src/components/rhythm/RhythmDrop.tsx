@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { Howl } from 'howler';
 import type { Beat } from '../../data/songs';
 import { getRhythmDifficulty } from '../../data/levels';
+import { useAudioStore } from '../../store/audioStore';
 
 interface RhythmDropProps {
   beat: Beat;
@@ -86,6 +87,7 @@ export function RhythmDrop({ beat, level, difficulty = 'normal', onComplete, onC
   const [phase, setPhase] = useState<'countdown' | 'playing'>('countdown');
   const [countdown, setCountdown] = useState(3);
   const [paused, setPaused] = useState(false);
+  const [pauseVolume, setPauseVolume] = useState(() => Math.round(useAudioStore.getState().musicVolume * 100));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lanesRef = useRef<HTMLDivElement[]>([]);
@@ -140,7 +142,9 @@ export function RhythmDrop({ beat, level, difficulty = 'normal', onComplete, onC
 
     t0.current = performance.now();
     doneRef.current = false;
-    musicRef.current = new Howl({ src: [beat.audioFile], volume: 0.35, loop: true });
+    const { musicVolume, masterVolume, muted } = useAudioStore.getState();
+    const vol = muted ? 0 : musicVolume * masterVolume;
+    musicRef.current = new Howl({ src: [beat.audioFile], volume: vol, loop: true });
     musicRef.current.play();
 
     // Create note DOM elements and append to lanes
@@ -587,8 +591,30 @@ export function RhythmDrop({ beat, level, difficulty = 'normal', onComplete, onC
           <div className="bg-[#1a1a30]/95 rounded-2xl border border-purple-400/20 p-8 text-center shadow-2xl max-w-xs w-full mx-4">
             <div className="text-4xl mb-3">⏸️</div>
             <h3 className="text-2xl font-black text-white mb-1">PAUSA</h3>
-            <p className="text-purple-200/60 text-sm mb-6">{beat.name} • {beat.tempo} BPM</p>
+            <p className="text-purple-200/60 text-sm mb-5">{beat.name} • {beat.tempo} BPM</p>
             
+            {/* Volume slider */}
+            <div className="mb-5 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-300 flex items-center gap-1.5">🎵 Volumen Música</span>
+                <span className="text-xs font-mono font-bold text-purple-300">{pauseVolume}%</span>
+              </div>
+              <input
+                type="range" min={0} max={100} value={pauseVolume}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setPauseVolume(v);
+                  const newVol = v / 100;
+                  useAudioStore.getState().setMusicVolume(newVol);
+                  if (musicRef.current) {
+                    musicRef.current.volume(newVol * useAudioStore.getState().masterVolume);
+                  }
+                }}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                style={{ background: `linear-gradient(to right, #a78bfa ${pauseVolume}%, rgba(255,255,255,0.1) ${pauseVolume}%)` }}
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
               <button 
                 onClick={togglePause}

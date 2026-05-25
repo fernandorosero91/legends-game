@@ -133,3 +133,9 @@
 .animate-shake {
   animation: shake 0.5s ease-in-out;
 }
+
+/* Letrero flotante suave — sin parpadeo (reemplaza animate-bounce en 3D) */
+@keyframes floatBadge {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}

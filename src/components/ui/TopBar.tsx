@@ -13,6 +13,7 @@ interface TopBarProps {
   currentLevel: number;
   levelName: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  monthlyListeners?: number;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ export function TopBar({
   currentLevel,
   levelName,
   timeOfDay,
+  monthlyListeners = 0,
   className = '',
 }: TopBarProps) {
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
@@ -65,6 +67,22 @@ export function TopBar({
   const dayProgress = (currentDay / maxDays) * 100;
   const daysRemaining = maxDays - currentDay;
 
+  // Progreso dentro del nivel actual (basado en oyentes)
+  const levelListenerGoals: Record<number, { min: number; max: number }> = {
+    1: { min: 0, max: 500 },
+    2: { min: 500, max: 1000 },
+    3: { min: 1000, max: 3000 },
+    4: { min: 3000, max: 5000 },
+    5: { min: 5000, max: 7000 },
+    6: { min: 7000, max: 10000 },
+  };
+
+  const currentGoal = levelListenerGoals[currentLevel] || { min: 0, max: 10000 };
+  const levelProgress = Math.min(
+    ((monthlyListeners - currentGoal.min) / (currentGoal.max - currentGoal.min)) * 100,
+    100
+  );
+
   // Información del nivel
   const getLevelInfo = () => {
     const levelGoals = {
@@ -89,38 +107,65 @@ export function TopBar({
     >
       <div className="px-4 py-2">
         <div className="flex items-center justify-between gap-4">
-          {/* Izquierda: Información del Día - clickeable para ir a niveles */}
-          <motion.button
-            className="flex items-center gap-3 bg-gradient-to-r from-gray-900/60 to-gray-800/60 rounded-lg px-3 py-1.5 border border-gray-600/30 cursor-pointer hover:border-cyan-400/30 hover:from-gray-900/80 hover:to-gray-800/80 transition-colors"
-            onMouseEnter={() => setHoveredSection('day')}
-            onMouseLeave={() => setHoveredSection(null)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => useUIStore.getState().setScreen('level_select')}
-            title="Seleccionar nivel"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-purple-500/20 rounded flex items-center justify-center">
-                <span className="text-sm">📅</span>
+          {/* Izquierda: Nivel circular con progreso + Día */}
+          <div className="flex items-center gap-3">
+            {/* Círculo del nivel con barra de progreso circular */}
+            <motion.div
+              className="relative w-11 h-11 flex items-center justify-center"
+              whileHover={{ scale: 1.1 }}
+              title={`Nivel ${currentLevel}: ${levelInfo.goal}`}
+            >
+              {/* Anillo de progreso SVG */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 44 44">
+                {/* Fondo del anillo */}
+                <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(168,85,247,0.2)" strokeWidth="3" />
+                {/* Progreso del anillo */}
+                <circle
+                  cx="22" cy="22" r="18" fill="none"
+                  stroke="url(#levelGrad)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 18}`}
+                  strokeDashoffset={`${2 * Math.PI * 18 * (1 - levelProgress / 100)}`}
+                  style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+                />
+                <defs>
+                  <linearGradient id="levelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              {/* Número del nivel */}
+              <div className="relative z-10 w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 border border-purple-400/50 flex items-center justify-center">
+                <span className="text-white font-black text-sm">{currentLevel}</span>
               </div>
+            </motion.div>
+
+            {/* Info del día */}
+            <motion.button
+              className="flex items-center gap-2 bg-gradient-to-r from-gray-900/60 to-gray-800/60 rounded-lg px-3 py-1.5 border border-gray-600/30 cursor-pointer hover:border-cyan-400/30 transition-colors"
+              onMouseEnter={() => setHoveredSection('day')}
+              onMouseLeave={() => setHoveredSection(null)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => useUIStore.getState().setScreen('level_select')}
+              title="Seleccionar nivel"
+            >
               <div>
                 <div className="text-xs text-purple-400 font-bold uppercase">
                   DÍA {currentDay} | NIVEL {currentLevel}
                 </div>
                 <div className="text-xs text-white font-medium">
                   {hoveredSection === 'day' ? (
-                    <span className="text-cyan-300">
-                      Clic para cambiar nivel
-                    </span>
+                    <span className="text-cyan-300">Clic para cambiar nivel</span>
                   ) : (
-                    <span>
-                      "{levelName}"
-                    </span>
+                    <span>"{levelName}"</span>
                   )}
                 </div>
               </div>
-            </div>
-          </motion.button>
+            </motion.button>
+          </div>
 
           {/* Centro: Información del Turno - más compacta */}
           <motion.div

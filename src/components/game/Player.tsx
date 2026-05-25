@@ -12,13 +12,15 @@ const ANIMS_MALE = {
   idle: 'idle.001',
   walk: 'walking',
   sit: 'sitting',
+  sleep: 'sleeping',
 };
 
-// Para el modelo femenino: tiene idle001, sitting, walking
+// Para el modelo femenino: tiene idle (breathing), walking
 const ANIMS_FEMALE = {
-  idle: 'idle001',
+  idle: 'idle',
   walk: 'walking',
   sit: 'sitting',
+  sleep: 'sleeping',
 };
 
 const PLAYER_RADIUS = 0.7;
@@ -42,7 +44,6 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const { actions } = useAnimations(animations, group);
   const setPlayerRef = usePlayerStore((s) => s.setPlayerRef);
   const wallBoxes = usePlayerStore((s) => s.wallBoxes);
-
   const forward = useRef(false);
   const back = useRef(false);
   const left = useRef(false);
@@ -172,11 +173,20 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
   useFrame((_s, delta) => {
     if (!group.current) return;
 
-    // Don't process movement during minigames
     const { gamePhase } = useGameStore.getState();
-    const { isSitting } = usePlayerStore.getState();
-    
-    // If sitting, teleport and play sit anim (stay seated during minigames)
+    const { isSitting, isSleeping } = usePlayerStore.getState();
+
+    // ── Sleeping: bloquear movimiento, mantener Y de la cama ─────────────────
+    if (isSleeping) {
+      playAnim(ANIMS.sleep || ANIMS.idle);
+      forward.current = false;
+      back.current = false;
+      left.current = false;
+      right.current = false;
+      return; // no resetear Y — la cama tiene su propia altura
+    }
+
+    // ── Sitting: teleportar a posicion y reproducir sit ───────────────────────
     if (isSitting) {
       const { playerPosition } = usePlayerStore.getState();
       if (playerPosition) {
@@ -193,13 +203,14 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       return;
     }
 
-    // Just stood up — move player away from furniture
+    // ── Acaba de levantarse: mover lejos del mueble ───────────────────────────
     if (wasSitting.current) {
       wasSitting.current = false;
       group.current.position.z += 1.5;
       group.current.position.x -= 0.5;
     }
 
+    // ── Minijuego activo: congelar movimiento ─────────────────────────────────
     if (gamePhase !== 'playing') {
       forward.current = false;
       back.current = false;
@@ -209,12 +220,8 @@ export function Player({ position = [0, 0, 0] }: PlayerProps) {
       group.current.position.y = floorY.current;
       return;
     }
-    
-    // If was sitting, stand up
-    if (isSitting) {
-      usePlayerStore.getState().setPlayerSitting(false);
-    }
 
+    // ── Movimiento normal ─────────────────────────────────────────────────────
     let mx = 0, mz = 0;
     if (forward.current) mz = -1;
     if (back.current) mz = 1;

@@ -22,8 +22,10 @@ import { CharacterSelectScreen } from '../components/ui/CharacterSelectScreen';
 import { RoomSelector } from '../components/ui/RoomSelector';
 import { GameInitializer } from '../components/GameInitializer';
 import { RhythmGame } from '../components/rhythm/RhythmGame';
+import { CashierGame } from '../components/cashier/CashierGame';
 import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
+import { GameSideButtons } from '../components/ui/GameSideButtons';
 import { useInsForge } from '../hooks/useInsForge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
@@ -49,7 +51,7 @@ function GameScene() {
   // Estados del juego
   const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
-  const { dialogueActive, currentDialogue, closeDialogue } = useUIStore();
+  const { dialogueActive, currentDialogue, closeDialogue, nextDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -142,13 +144,13 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen" style={{ display: gamePhase === 'rhythm_game' ? 'none' : 'block' }}>
+      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'none' : 'block' }}>
         <Canvas
-          frameloop={gamePhase === 'rhythm_game' ? 'never' : 'always'}
+          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'never' : 'always'}
           shadows={{ type: THREE.PCFShadowMap }}
           camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
         >
-          <color attach="background" args={['#8a8a8e']} />
+          <color attach="background" args={['#6542b5']} />
           <ambientLight intensity={1.8} />
           <directionalLight
             position={[5, 12, 5]}
@@ -169,8 +171,8 @@ function GameScene() {
         </Canvas>
       </div>
 
-      {/* HUD elements — hidden during rhythm game for performance */}
-      {gamePhase !== 'rhythm_game' && (
+      {/* HUD elements — hidden during minigames for performance */}
+      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && (
         <>
           {/* TopBar - Información del día y nivel */}
           <TopBar
@@ -179,6 +181,7 @@ function GameScene() {
             currentLevel={currentLevel}
             levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
             timeOfDay={timeOfDay}
+            monthlyListeners={monthlyListeners}
           />
 
           {/* HUD - Recursos del jugador */}
@@ -206,6 +209,9 @@ function GameScene() {
             onClose={() => setShopOpen(false)} 
           />
 
+          {/* Botones laterales: Metas + Ajustes */}
+          <GameSideButtons />
+
           {/* Botón flotante para abrir mapa */}
           <motion.button
             initial={{ scale: 0 }}
@@ -213,7 +219,7 @@ function GameScene() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowLocationMap(true)}
-            className="fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-2xl hover:shadow-purple-500/50 transition-all"
+            className="fixed bottom-8 right-8 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-2xl border-2 border-purple-400 flex items-center justify-center text-lg hover:shadow-purple-500/50 transition-all"
             title="Abrir mapa (M)"
           >
             🗺️
@@ -228,7 +234,17 @@ function GameScene() {
           <div>
             <div className="text-xs text-purple-400 font-medium">Ubicación</div>
             <div className="text-sm text-white font-bold">
-              {currentScene === 'apartment' ? 'Tu Apartamento' : 'Purple City'}
+              {({
+                apartment:  'Tu Apartamento',
+                cafe:       'Café Purple Beans',
+                store:      'Purple Market',
+                shop:       'Purple Sound Shop',
+                restaurant: 'Restaurante La Esquina',
+                delivery:   'Delivery Express',
+                bar:        'Bar Neon Nights',
+                academy:    'Academia SoundWave',
+                city:       'Purple City',
+              } as Record<string, string>)[currentScene] || 'Purple City'}
             </div>
           </div>
         </div>
@@ -265,10 +281,10 @@ function GameScene() {
         text={currentDialogue?.text || ''}
         portrait={currentDialogue?.portrait}
         options={currentDialogue?.options}
-        onNext={closeDialogue}
+        onNext={nextDialogue}
         onSelectOption={(optionId: string) => {
           console.log('Opción seleccionada:', optionId);
-          closeDialogue();
+          nextDialogue();
         }}
         showContinueIndicator={!currentDialogue?.options}
       />
@@ -310,6 +326,10 @@ function GameScene() {
         {gamePhase === 'rhythm_game' && <RhythmGame />}
       </AnimatePresence>
 
+      {/* Cashier Game — Minijuego de cajero */}
+      <AnimatePresence>
+        {gamePhase === 'working' && <CashierGame />}
+      </AnimatePresence>
       {/* Online Job Game */}
       {gamePhase === 'online_job' && (
         <OnlineJobGame onClose={() => { useGameStore.getState().setGamePhase('playing'); usePlayerStore.getState().setPlayerSitting(false); }} />

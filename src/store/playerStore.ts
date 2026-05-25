@@ -78,6 +78,7 @@ interface PlayerState {
   playerRef: any; // Referencia al mesh del jugador en Three.js
   wallBoxes: Array<{ id: string; min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }>;
   isSitting: boolean;
+  isSleeping: boolean;
 
   // Personaje
   characterGender: 'male' | 'female';
@@ -135,6 +136,7 @@ interface PlayerState {
   // Personaje
   setCharacterGender: (gender: 'male' | 'female') => void;
   setPlayerSitting: (sitting: boolean) => void;
+  setPlayerSleeping: (sleeping: boolean) => void;
 
   // Acciones - Sistema
   setSelectedCharacter: (character: CharacterModel) => void;
@@ -174,6 +176,7 @@ const INITIAL_STATE = {
   playerRef: null,
   wallBoxes: [],
   isSitting: false,
+  isSleeping: false,
   characterGender: 'male' as const,
 };
 
@@ -442,6 +445,10 @@ export const usePlayerStore = create<PlayerState>()(
 
         setPlayerSitting: (sitting: boolean) => {
           set({ isSitting: sitting });
+        },
+
+        setPlayerSleeping: (sleeping: boolean) => {
+          set({ isSleeping: sleeping });
         },
 
         // Sistema

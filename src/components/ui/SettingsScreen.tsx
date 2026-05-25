@@ -70,7 +70,7 @@ function SectionHead({ icon, title, right }: { icon: React.ReactNode; title: str
 /* ═══════════════════════════════════════════ */
 export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   const setScreen = useUIStore((s) => s.setScreen);
-  const { masterVolume, musicVolume, sfxVolume, isMuted, setMasterVolume, setMusicVolume, setSfxVolume, toggleMute } = useAudioStore();
+  const { masterVolume, musicVolume, sfxVolume, muted: isMuted, setMasterVolume, setMusicVolume, setSfxVolume, toggleMute } = useAudioStore();
   const { user, updateCharacterGender, logout } = useAuth();
   const { saveGame } = useInsForge();
   const setStoreGender = usePlayerStore((s) => s.setCharacterGender);
@@ -86,7 +86,9 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   const [genderMsg, setGenderMsg] = useState('');
   const [showConfirm, setShowConfirm] = useState<'reset' | 'logout' | null>(null);
 
-  const handleBack = () => { if (onClose) onClose(); else setScreen('main_menu'); };
+  const goBack = useUIStore((s) => s.goBack);
+  const previousScreen = useUIStore((s) => s.previousScreen);
+  const handleBack = () => { if (onClose) onClose(); else if (previousScreen) goBack(); else setScreen('main_menu'); };
 
   const handleSaveUsername = async () => {
     if (!user || !newUsername.trim() || newUsername.trim().length < 3) { setProfileMsg('Mínimo 3 caracteres'); return; }
@@ -117,7 +119,7 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   }, [saveGame]);
 
   const handleLogout = async () => { await logout(); setScreen('main_menu'); };
-  const handleReset = () => { setMasterVolume(100); setMusicVolume(80); setSfxVolume(70); setShowConfirm(null); };
+  const handleReset = () => { setMasterVolume(0.7); setMusicVolume(0.8); setSfxVolume(0.9); setShowConfirm(null); };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -260,9 +262,9 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
                 <div key={s.label}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-300 flex items-center gap-2"><span style={{ color: s.color }}>{s.ico}</span>{s.label}</span>
-                    <span className="text-xs font-mono font-bold tabular-nums" style={{ color: s.color }}>{s.value}%</span>
+                    <span className="text-xs font-mono font-bold tabular-nums" style={{ color: s.color }}>{Math.round(s.value * 100)}%</span>
                   </div>
-                  <Slider value={s.value} onChange={s.set} accent={s.color} />
+                  <Slider value={Math.round(s.value * 100)} onChange={(v) => s.set(v / 100)} accent={s.color} />
                 </div>
               ))}
             </div>
