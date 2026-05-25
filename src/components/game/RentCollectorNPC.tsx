@@ -47,6 +47,26 @@ export function RentCollectorNPC() {
   const isEvening = timeOfDay === 'evening';
   const shouldShow = isEvening && !paid;
 
+  const getDialogueText = (): string => {
+    if (hasCollectedToday) {
+      return 'Ya pagaste hoy. Nos vemos mañana, artista. 👋';
+    }
+    if (currentDay === 1) {
+      return `¡Hola, artista! Llegó la hora del pago. Son $${RENT_AMOUNT}. ¿Tienes para pagar?`;
+    }
+    if (currentDay >= 30 || currentLevel >= 4) {
+      return `Veo que te va bien. Igual son $${RENT_AMOUNT}. ¿Pagamos?`;
+    }
+    if (currentDay === 45) {
+      return `Felicidades, artista. Última renta: $${RENT_AMOUNT}. *sonríe*`;
+    }
+    const streak = usePlayerStore.getState().consecutiveDaysWithoutRent;
+    if (streak >= 2) {
+      return `¡Ya van ${streak} días sin pagar! Son $${RENT_AMOUNT}. ¡AHORA!`;
+    }
+    return `Hora de pagar. $${RENT_AMOUNT}. Sin excusas.`;
+  };
+
   // Reset al cambiar de día
   useEffect(() => {
     setHasCollectedToday(false);
@@ -54,7 +74,7 @@ export function RentCollectorNPC() {
     setShowBubble(false);
   }, [currentDay]);
 
-  // Play idle animation solo cuando es visible
+  // Play idle animation solo cuando es visible + auto-mostrar diálogo
   useEffect(() => {
     if (!shouldShow) return;
 
@@ -77,7 +97,17 @@ export function RentCollectorNPC() {
         actions[firstKey]!.setLoop(THREE.LoopRepeat, Infinity);
       }
     }
+
+    // Auto-mostrar diálogo al aparecer (después de un breve delay para que se vea la entrada)
+    const timer = setTimeout(() => {
+      const text = getDialogueText();
+      setBubbleText(text);
+      setShowBubble(true);
+      setShowPayButton(!hasCollectedToday);
+    }, 800);
+
     return () => {
+      clearTimeout(timer);
       Object.values(actions).forEach((a) => a?.stop());
     };
   }, [actions, shouldShow]);
@@ -86,26 +116,6 @@ export function RentCollectorNPC() {
   if (!shouldShow) {
     return null;
   }
-
-  const getDialogueText = (): string => {
-    if (hasCollectedToday) {
-      return 'Ya pagaste hoy. Nos vemos mañana, artista. 👋';
-    }
-    if (currentDay === 1) {
-      return `¡Hola, artista! Llegó la hora del pago. Son $${RENT_AMOUNT}. ¿Tienes para pagar?`;
-    }
-    if (currentDay >= 30 || currentLevel >= 4) {
-      return `Veo que te va bien. Igual son $${RENT_AMOUNT}. ¿Pagamos?`;
-    }
-    if (currentDay === 45) {
-      return `Felicidades, artista. Última renta: $${RENT_AMOUNT}. *sonríe*`;
-    }
-    const streak = usePlayerStore.getState().consecutiveDaysWithoutRent;
-    if (streak >= 2) {
-      return `¡Ya van ${streak} días sin pagar! Son $${RENT_AMOUNT}. ¡AHORA!`;
-    }
-    return `Hora de pagar. $${RENT_AMOUNT}. Sin excusas.`;
-  };
 
   const handleInteract = () => {
     const text = getDialogueText();
