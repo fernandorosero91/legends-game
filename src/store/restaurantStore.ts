@@ -13,7 +13,8 @@ import {
   DISH_CATALOG,
   CUSTOMER_MODELS,
   CUSTOMER_SPAWN,
-  CUSTOMER_WAIT,
+  DOOR_QUEUE_SLOTS,
+  MAX_WAITING_AT_DOOR,
   RESTAURANT_CONFIG,
   type Vec3,
 } from '../data/restaurantConfig';
@@ -32,10 +33,18 @@ export interface Customer {
   id: string;
   modelFile: string;
   modelScale: number;
+  /** Rotación Y base del modelo (calibración por GLB). */
+  modelBaseRotationY: number;
+  /** Ajuste vertical aplicado mientras está sentado (corrige animación sit). */
+  seatYOffset: number;
+  /** Nombres de animaciones del modelo. */
+  anims: { walk: string; sit: string };
   /** Posición actual en mundo (la actualiza el componente con useFrame). */
   position: Vec3;
   /** Posición destino al caminar; null = quieto. */
   targetPosition: Vec3 | null;
+  /** Cola de waypoints pendientes. Al llegar al targetPosition se saca el siguiente. */
+  pathQueue: Vec3[];
   state: CustomerState;
   /** Asiento asignado, si está sentado. */
   seatId: string | null;
@@ -43,6 +52,8 @@ export interface Customer {
   dishId: string | null;
   /** Timestamp epoch ms cuando entró al estado actual (para timers). */
   stateEnteredAt: number;
+  /** Slot de la puerta (0..MAX_WAITING_AT_DOOR-1) si está esperando, sino null. */
+  doorSlot: number | null;
 }
 
 interface PendingOrder {
@@ -64,6 +75,8 @@ interface ReadyDish {
 
 interface RestaurantState {
   active: boolean;
+  /** Permite spawnear clientes (se enciende cuando el jugador habla con el chef). */
+  spawnAllowed: boolean;
   customers: Customer[];
 
   /** Cliente actualmente seleccionado por el jugador (para asignar silla / tomar orden). */
@@ -87,6 +100,8 @@ interface RestaurantState {
   // ---------- acciones ----------
   startRestaurant: () => void;
   stopRestaurant: () => void;
+  /** Habilita el spawn de clientes (post-diálogo del chef). */
+  allowSpawning: () => void;
 
   spawnCustomer: () => void;
   removeCustomer: (id: string) => void;
@@ -110,6 +125,7 @@ let modelToggle = 0;
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   active: false,
+  spawnAllowed: false,
   customers: [],
   selectedCustomerId: null,
   carriedOrder: null,
@@ -121,6 +137,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   startRestaurant: () => {
     set({
       active: true,
+      spawnAllowed: false,
       customers: [],
       selectedCustomerId: null,
       carriedOrder: null,
@@ -132,24 +149,37 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   },
 
   stopRestaurant: () => {
-    set({ active: false, customers: [] });
+    set({ active: false, spawnAllowed: false, customers: [] });
+  },
+
+  allowSpawning: () => {
+    set({ spawnAllowed: true });
   },
 
   spawnCustomer: () => {
+    const { spawnAllowed, customers } = get();
+    if (!spawnAllowed) return;
+
+    // Sólo se pueden spawnear si hay un slot libre en la puerta.
+    const usedSlots = new Set(
+      customers
+        .filter((c) => c.doorSlot !== null && (c.state === 'walking_in' || c.state === 'waiting_door'))
+        .map((c) => c.doorSlot as number)
+    );
+    let freeSlot = -1;
+    for (let i = 0; i < MAX_WAITING_AT_DOOR; i++) {
+      if (!usedSlots.has(i)) {
+        freeSlot = i;
+        break;
+      }
+    }
+    if (freeSlot === -1) return;
+
     const id = `customer-${nextCustomerNum++}`;
     const model = CUSTOMER_MODELS[modelToggle % CUSTOMER_MODELS.length];
     modelToggle++;
 
-    // Calcular posición en la fila: offset en Z según cuántos ya esperan en la puerta.
-    const waitingCount = get().customers.filter(
-      (c) => c.state === 'waiting_door' || c.state === 'walking_in'
-    ).length;
-    const queueOffset = waitingCount * RESTAURANT_CONFIG.QUEUE_SPACING;
-    const waitTarget: Vec3 = [
-      CUSTOMER_WAIT[0],
-      CUSTOMER_WAIT[1],
-      CUSTOMER_WAIT[2] + queueOffset,
-    ];
+    const waitTarget: Vec3 = [...DOOR_QUEUE_SLOTS[freeSlot]] as Vec3;
 
     set((s) => ({
       customers: [
@@ -158,12 +188,17 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
           id,
           modelFile: model.file,
           modelScale: model.scale,
+          modelBaseRotationY: model.rotationY,
+          seatYOffset: model.seatYOffset,
+          anims: model.anims,
           position: [...CUSTOMER_SPAWN] as Vec3,
           targetPosition: waitTarget,
+          pathQueue: [],
           state: 'walking_in',
           seatId: null,
           dishId: null,
           stateEnteredAt: Date.now(),
+          doorSlot: freeSlot,
         },
       ],
     }));
@@ -205,20 +240,56 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   },
 
   assignSeat: (customerId, seatId, seatPos) => {
-    set((s) => ({
-      customers: s.customers.map((c) =>
-        c.id === customerId
-          ? {
-              ...c,
-              seatId,
-              state: 'walking_to_seat' as CustomerState,
-              targetPosition: seatPos,
-              stateEnteredAt: Date.now(),
-            }
-          : c
-      ),
-      selectedCustomerId: null,
-    }));
+    // 1) Mandamos al cliente seleccionado a su silla.
+    // 2) Avanzamos la fila: cualquiera que esté en un slot >= que el del
+    //    asignado, baja un slot (slot 1 → slot 0). Su targetPosition se
+    //    actualiza para que CAMINE al nuevo slot.
+    // 3) El slot superior queda libre, así el manager puede spawnar uno nuevo
+    //    que entrará directamente a la última posición.
+    set((s) => {
+      const assigned = s.customers.find((c) => c.id === customerId);
+      const freedSlot = assigned?.doorSlot ?? null;
+
+      const updated = s.customers.map((c) => {
+        if (c.id === customerId) {
+          // Va a la silla.
+          return {
+            ...c,
+            seatId,
+            state: 'walking_to_seat' as CustomerState,
+            targetPosition: seatPos,
+            pathQueue: [],
+            stateEnteredAt: Date.now(),
+            doorSlot: null,
+          };
+        }
+        // Adelantar fila: si el cliente espera en la puerta y su slot es
+        // mayor que el liberado, retrocede uno (avanza al frente).
+        if (
+          freedSlot !== null &&
+          c.doorSlot !== null &&
+          c.doorSlot > freedSlot &&
+          (c.state === 'waiting_door' || c.state === 'walking_in')
+        ) {
+          const newSlot = c.doorSlot - 1;
+          return {
+            ...c,
+            doorSlot: newSlot,
+            // Caminar hasta el nuevo slot. El estado vuelve a walking_in
+            // así handleArrival lo deja en waiting_door cuando llegue.
+            state: 'walking_in' as CustomerState,
+            targetPosition: [...DOOR_QUEUE_SLOTS[newSlot]] as Vec3,
+            pathQueue: [],
+          };
+        }
+        return c;
+      });
+
+      return {
+        customers: updated,
+        selectedCustomerId: null,
+      };
+    });
   },
 
   takeOrder: (customerId) => {

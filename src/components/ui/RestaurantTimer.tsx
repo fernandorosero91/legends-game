@@ -26,7 +26,10 @@ export function getRestaurantCooldownUntil(): number {
 }
 
 export function isRestaurantOnCooldown(): boolean {
-  return Date.now() < getRestaurantCooldownUntil();
+  // TEMP: cooldown deshabilitado a pedido. Para reactivarlo, descomentá la
+  // línea original y eliminá el `return false`.
+  return false;
+  // return Date.now() < getRestaurantCooldownUntil();
 }
 
 export function getRestaurantCooldownRemaining(): number {
@@ -40,6 +43,13 @@ function setRestaurantCooldown(minutes: number) {
 }
 
 // -------------------------------------------------
+
+/**
+ * Si está en `false`, el timer del turno NO arranca y los clientes pueden
+ * spawnearse indefinidamente — útil sólo durante la calibración de modelos.
+ * Para el flujo de juego normal, dejarlo en `true`.
+ */
+const TIMER_ENABLED = true;
 
 export function RestaurantTimer() {
   const dialogueActive = useUIStore((s) => s.dialogueActive);
@@ -68,6 +78,7 @@ export function RestaurantTimer() {
 
   // When dialogue closes AFTER the tutorial was seen, start the timer
   useEffect(() => {
+    if (!TIMER_ENABLED) return;
     if (chefTutorialSeen && !dialogueActive && !timerActive && !waitingForPayDialogue) {
       startTimer();
     }
@@ -138,8 +149,9 @@ export function RestaurantTimer() {
     // Pay the player
     addMoney(400);
 
-    // Set 10-minute cooldown
-    setRestaurantCooldown(10);
+    // TEMP: cooldown deshabilitado a pedido. Para reactivarlo, descomentá la
+    // siguiente línea.
+    // setRestaurantCooldown(10);
 
     // Show Chef dialogue
     setWaitingForPayDialogue(true);

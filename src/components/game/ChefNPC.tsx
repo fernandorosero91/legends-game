@@ -15,6 +15,12 @@ const MODEL_PATH = '/models/chef_animation (1).glb';
 interface ChefNPCProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
+  /**
+   * Rotación Y simple (radianes) — atajo cómodo para "girar" al chef sin
+   * tener que escribir el array completo de rotación.
+   * Si se pasa, sobreescribe la componente Y de `rotation`.
+   */
+  rotationY?: number;
   scale?: number;
   name?: string;
   onInteract?: () => void;
@@ -27,6 +33,7 @@ interface ChefNPCProps {
 export function ChefNPC({
   position = [100, 0, 0],
   rotation = [0, 0, 0],
+  rotationY,
   scale = 0.4,
   name = 'Chef Carlos',
   onInteract,
@@ -64,7 +71,11 @@ export function ChefNPC({
     <group
       ref={group}
       position={position}
-      rotation={rotation}
+      rotation={
+        rotationY !== undefined
+          ? [rotation[0], rotationY, rotation[2]]
+          : rotation
+      }
       scale={scale}
       onClick={(e) => {
         e.stopPropagation();

@@ -36,7 +36,7 @@ export function SeatMarker({ seat }: SeatMarkerProps) {
 
   return (
     <group position={seat.position}>
-      {/* Disco luminoso */}
+      {/* Disco luminoso visible */}
       <mesh
         position={[0, 0.02, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -51,12 +51,31 @@ export function SeatMarker({ seat }: SeatMarkerProps) {
           document.body.style.cursor = 'default';
         }}
       >
-        <circleGeometry args={[0.55, 32]} />
+        <circleGeometry args={[0.85, 32]} />
         <meshBasicMaterial
           color={hovered ? '#fde047' : '#a78bfa'}
           transparent
-          opacity={hovered ? 0.85 : 0.55}
+          opacity={hovered ? 0.9 : 0.6}
         />
+      </mesh>
+
+      {/* Hitbox invisible XL — más fácil de clickear desde cualquier ángulo. */}
+      <mesh
+        position={[0, 0.5, 0]}
+        onClick={onClick}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = 'default';
+        }}
+        visible={false}
+      >
+        <boxGeometry args={[1.6, 1.2, 1.6]} />
+        <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
       {/* Etiqueta */}

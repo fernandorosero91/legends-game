@@ -98,10 +98,12 @@ function ReadyDishMesh({
 }: ReadyDishMeshProps) {
   const { scene } = useGLTF(`/models/dishes/${modelFile}`);
 
+  // El group exterior NO escala, así la hitbox invisible vive en unidades
+  // de mundo y es fácil de clickear. El modelo va dentro de un sub-group
+  // con el scale real.
   return (
     <group
       position={CHEF_COUNTER_POSITION}
-      scale={scale}
       onClick={(e) => {
         e.stopPropagation();
         onPick();
@@ -116,9 +118,27 @@ function ReadyDishMesh({
         document.body.style.cursor = 'default';
       }}
     >
-      <primitive object={scene.clone()} />
+      {/* Hitbox invisible XL para captar clicks fácil. */}
+      <mesh visible={false}>
+        <boxGeometry args={[1.6, 1.6, 1.6]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+
+      {/* Modelo escalado al tamaño visual normal. */}
+      <group scale={scale}>
+        <primitive object={scene.clone()} />
+      </group>
+
+      {/* Halo sutil cuando hay hover (refuerza que es interactuable). */}
       {hovered && (
-        <Html position={[0, 6, 0]} center>
+        <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.4, 0.55, 32]} />
+          <meshBasicMaterial color="#fde047" transparent opacity={0.7} />
+        </mesh>
+      )}
+
+      {hovered && (
+        <Html position={[0, 0.6, 0]} center distanceFactor={7}>
           <div className="bg-green-600/95 text-white px-3 py-1 rounded-lg border-2 border-green-300 shadow-lg whitespace-nowrap pointer-events-none text-sm font-bold">
             ✋ Recoger {dishName}
           </div>

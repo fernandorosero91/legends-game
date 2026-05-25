@@ -29,6 +29,8 @@ export function RestaurantScene() {
 
   // Lista reactiva de clientes presentes en escena.
   const customers = useRestaurantStore(s => s.customers);
+  const spawnAllowed = useRestaurantStore(s => s.spawnAllowed);
+  const allowSpawning = useRestaurantStore(s => s.allowSpawning);
 
   const handleWork = () => {
     if (energy < 25) {
@@ -47,6 +49,11 @@ export function RestaurantScene() {
 
   const handleTalkToChef = () => {
     if (dialogueActive) return;
+
+    // Habilitar el spawn de clientes una vez que el jugador habla con el chef.
+    if (!spawnAllowed) {
+      allowSpawning();
+    }
 
     const portrait = '/models/chef_image.png';
 
@@ -94,7 +101,9 @@ export function RestaurantScene() {
       <Suspense fallback={null}>
         <ChefNPC
           position={[2, 0.2, -4]}
-          rotation={[0, Math.PI / 7, 0]}
+          /* rotationY: gira al chef en radianes. Math.PI/7 ≈ 25°.
+             Usa Math.PI para 180°, Math.PI/2 para 90°, etc. */
+          rotationY={Math.PI / 7}
           scale={1}
           name="Chef Carlos"
           onInteract={handleTalkToChef}
