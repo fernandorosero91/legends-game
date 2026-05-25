@@ -19,6 +19,26 @@ function playAudio(src: string, volume = 1) {
   } catch (_) {}
 }
 
+function playKeyClick() {
+  try {
+    const { sfxVolume, masterVolume, muted } = useAudioStore.getState();
+    if (muted) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.08 * sfxVolume * masterVolume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.06);
+    osc.onended = () => ctx.close();
+  } catch (_) {}
+}
+
 // ─── Productos ───────────────────────────────────────────
 const PRODUCT_POOL = [
   { name: 'Leche', emoji: '🥛', color: '#e0f0ff' },
@@ -50,13 +70,14 @@ interface DifficultyConfig {
 }
 
 function getDifficulty(level: number): DifficultyConfig {
-  if (level <= 1) return { products: 2, maxPrice: 5, useDecimals: false, timeLimit: 15 };
-  if (level <= 2) return { products: 2, maxPrice: 8, useDecimals: true, timeLimit: 13 };
-  if (level <= 3) return { products: 3, maxPrice: 8, useDecimals: false, timeLimit: 12 };
-  if (level <= 4) return { products: 3, maxPrice: 10, useDecimals: true, timeLimit: 11 };
-  if (level <= 5) return { products: 4, maxPrice: 10, useDecimals: true, timeLimit: 10 };
-  if (level <= 7) return { products: 4, maxPrice: 15, useDecimals: true, timeLimit: 9 };
-  return { products: 5, maxPrice: 20, useDecimals: true, timeLimit: 8 };
+  // Precios en pesos colombianos (miles), sin decimales
+  if (level <= 1) return { products: 2, maxPrice: 5000, useDecimals: false, timeLimit: 15 };
+  if (level <= 2) return { products: 2, maxPrice: 8000, useDecimals: false, timeLimit: 13 };
+  if (level <= 3) return { products: 3, maxPrice: 8000, useDecimals: false, timeLimit: 12 };
+  if (level <= 4) return { products: 3, maxPrice: 12000, useDecimals: false, timeLimit: 11 };
+  if (level <= 5) return { products: 4, maxPrice: 12000, useDecimals: false, timeLimit: 10 };
+  if (level <= 7) return { products: 4, maxPrice: 15000, useDecimals: false, timeLimit: 9 };
+  return { products: 5, maxPrice: 20000, useDecimals: false, timeLimit: 8 };
 }
 
 interface Product { name: string; emoji: string; price: number; color: string; }
@@ -64,12 +85,10 @@ interface Product { name: string; emoji: string; price: number; color: string; }
 function generateClient(difficulty: DifficultyConfig): Product[] {
   const shuffled = [...PRODUCT_POOL].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, difficulty.products).map(p => {
-    let price: number;
-    if (difficulty.useDecimals) {
-      price = Math.round((Math.random() * (difficulty.maxPrice - 1) + 1) * 4) / 4;
-    } else {
-      price = Math.floor(Math.random() * (difficulty.maxPrice - 1)) + 1;
-    }
+    // Precios colombianos redondeados a 500 pesos
+    const minPrice = 1500;
+    const raw = Math.random() * (difficulty.maxPrice - minPrice) + minPrice;
+    const price = Math.round(raw / 500) * 500;
     return { ...p, price };
   });
 }
@@ -180,11 +199,12 @@ export function CashierGame() {
 
   const handleKey = (key: string) => {
     if (feedback) return;
+    playKeyClick();
     if (key === 'C') { setInput(''); return; }
     if (key === '←') { setInput(prev => prev.slice(0, -1)); return; }
     if (key === '=') { handleSubmit(); return; }
     if (key === '.' && input.includes('.')) return;
-    if (input.length >= 7) return;
+    if (input.length >= 10) return;
     setInput(prev => prev + key);
   };
 
@@ -323,13 +343,13 @@ export function CashierGame() {
             {products.map((p, i) => (
               <div key={i} className="flex justify-between text-xs font-mono text-gray-700">
                 <span>{p.emoji} {p.name}</span>
-                <span>${p.price.toFixed(2)}</span>
+                <span>${p.price.toLocaleString()}</span>
               </div>
             ))}
             <div className="border-t border-dashed border-gray-300 mt-1 pt-1">
               <div className="flex justify-between text-xs font-mono font-bold text-gray-900">
                 <span>TOTAL</span>
-                <span>{feedback === 'correct' ? `$${correctTotal.toFixed(2)}` : '$ ???'}</span>
+                <span>{feedback === 'correct' ? `$${correctTotal.toLocaleString()}` : '$ ???'}</span>
               </div>
             </div>
           </motion.div>
@@ -395,7 +415,7 @@ export function CashierGame() {
                   <div className="text-center">
                     <div className="text-5xl mb-2">{feedback === 'correct' ? '✅' : '❌'}</div>
                     <p className="text-white font-bold text-lg">
-                      {feedback === 'correct' ? '¡Correcto! +$50' : `Era $${correctTotal.toFixed(2)}`}
+                      {feedback === 'correct' ? '¡Correcto! +$50' : `Era $${correctTotal.toLocaleString()}`}
                     </p>
                   </div>
                 </motion.div>
@@ -434,7 +454,7 @@ export function CashierGame() {
               style={{ backgroundColor: p.color, borderColor: `${p.color}88` }}
             >
               <span className="text-lg">{p.emoji}</span>
-              <span className="text-xs font-bold text-gray-700">${p.price.toFixed(2)}</span>
+              <span className="text-xs font-bold text-gray-700">${p.price.toLocaleString()}</span>
             </motion.div>
           ))}
         </div>

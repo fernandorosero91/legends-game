@@ -66,14 +66,14 @@ export function HUD({
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`fixed top-20 right-4 z-40 space-y-2 max-w-[280px] ${className}`}
+      className={`fixed top-20 right-4 z-40 ${showReputation ? 'space-y-1.5' : 'space-y-2'} max-w-[280px] ${className}`}
     >
       {/* Panel de Dinero */}
       <motion.div
         className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-yellow-500/30 rounded-lg px-3 py-2 shadow-xl"
         onMouseEnter={() => setHoveredStat('money')}
         onMouseLeave={() => setHoveredStat(null)}
-        whileHover={{ scale: 1.02, borderColor: '#eab308' }}
+        whileHover={{ scale: 1.05, borderColor: '#eab308' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export function HUD({
               </div>
             </div>
           </div>
-          {hoveredStat === 'money' && (
+          {!showReputation && hoveredStat === 'money' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -104,7 +104,7 @@ export function HUD({
         className={`bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-${energyStatus.color}-500/30 rounded-lg px-3 py-2 shadow-xl`}
         onMouseEnter={() => setHoveredStat('energy')}
         onMouseLeave={() => setHoveredStat(null)}
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.05 }}
       >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export function HUD({
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </div>
-        {hoveredStat === 'energy' && (
+        {!showReputation && hoveredStat === 'energy' && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -144,7 +144,7 @@ export function HUD({
         className={`bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-${hungerStatus.color}-500/30 rounded-lg px-3 py-2 shadow-xl`}
         onMouseEnter={() => setHoveredStat('hunger')}
         onMouseLeave={() => setHoveredStat(null)}
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.05 }}
       >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -168,7 +168,7 @@ export function HUD({
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </div>
-        {hoveredStat === 'hunger' && (
+        {!showReputation && hoveredStat === 'hunger' && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -184,7 +184,7 @@ export function HUD({
         className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-cyan-500/30 rounded-lg px-3 py-2 shadow-xl"
         onMouseEnter={() => setHoveredStat('listeners')}
         onMouseLeave={() => setHoveredStat(null)}
-        whileHover={{ scale: 1.02, borderColor: '#06b6d4' }}
+        whileHover={{ scale: 1.05, borderColor: '#06b6d4' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export function HUD({
               </div>
             </div>
           </div>
-          {hoveredStat === 'listeners' && (
+          {!showReputation && hoveredStat === 'listeners' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -216,7 +216,7 @@ export function HUD({
           className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-purple-500/30 rounded-lg px-3 py-2 shadow-xl"
           onMouseEnter={() => setHoveredStat('reputation')}
           onMouseLeave={() => setHoveredStat(null)}
-          whileHover={{ scale: 1.02, borderColor: '#a855f7' }}
+          whileHover={{ scale: 1.05, borderColor: '#a855f7' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -243,7 +243,7 @@ export function HUD({
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
-          {hoveredStat === 'reputation' && (
+          {!showReputation && hoveredStat === 'reputation' && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}

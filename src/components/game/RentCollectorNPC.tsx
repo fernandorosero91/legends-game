@@ -142,7 +142,13 @@ export function RentCollectorNPC() {
   return (
     <group
       ref={group}
-      position={[-3, 0.3, 3]}
+      position={(() => {
+        const level = useGameStore.getState().currentLevel;
+        if (level >= 4) return [15, 0.3, -10] as [number, number, number];
+        if (level >= 3) return [5, 0.3, 2] as [number, number, number];
+        if (level >= 2) return [3, 0.3, 5] as [number, number, number];
+        return [-3, 0.3, 3] as [number, number, number];
+      })()}
       rotation={[0, Math.PI / 4, 0]}
       onClick={(e) => {
         e.stopPropagation();

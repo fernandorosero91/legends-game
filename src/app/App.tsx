@@ -181,6 +181,7 @@ function GameScene() {
             currentLevel={currentLevel}
             levelName={levelNames[currentLevel] || 'Nivel Desconocido'}
             timeOfDay={timeOfDay}
+            monthlyListeners={monthlyListeners}
           />
 
           {/* HUD - Recursos del jugador */}

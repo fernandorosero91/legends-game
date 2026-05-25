@@ -9,6 +9,7 @@ import { CameraRig } from '../components/game/CameraRig';
 import { RoomLevel1 } from '../components/game/RoomLevel1';
 import { RoomLevel2 } from '../components/game/RoomLevel2';
 import { RoomLevel3 } from '../components/game/RoomLevel3';
+import { RoomLevel4 } from '../components/game/RoomLevel4';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
@@ -89,14 +90,15 @@ export const ApartmentScene = () => {
       addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
-    // Player2 (femenino) necesita Y más bajo para que la cola quede en la silla
     const gender = usePlayerStore.getState().characterGender;
-    const seatY = gender === 'female' ? -2.9 : 0;
-    usePlayerStore.getState().setPosition({ x: 0.3, y: seatY, z: -3.2 });
+    const seatY = gender === 'female' ? -1 : 0;
+    // Coordenadas según la habitación actual
+    const pos = currentRoom === 'studio_level_3'
+      ? { x: -7.6, y: seatY, z: -2 }   // escritorio del estudio
+      : { x: 0.3, y: seatY, z: -3.2 }; // escritorio nivel 1
+    usePlayerStore.getState().setPosition(pos);
     usePlayerStore.getState().setPlayerSitting(true);
-    setTimeout(() => {
-      setGamePhase('rhythm_game');
-    }, 800);
+    setTimeout(() => { setGamePhase('rhythm_game'); }, 800);
   };
 
   // Computador — trabajos online (sienta al jugador en la silla del PC)
@@ -105,11 +107,14 @@ export const ApartmentScene = () => {
       addNotification('warning', '💻 Necesitas al menos 15 de energía para trabajar');
       return;
     }
-    usePlayerStore.getState().setPosition({ x: 6.0, y: 0, z: -3.5 });
+    const gender = usePlayerStore.getState().characterGender;
+    const seatY = gender === 'female' ? -0.35 : 0;
+    const pos = currentRoom === 'studio_level_3'
+      ? { x: -6, y: seatY, z: -2 }   // escritorio del estudio
+      : { x: 6.0, y: seatY, z: -3.5 }; // PC nivel 1
+    usePlayerStore.getState().setPosition(pos);
     usePlayerStore.getState().setPlayerSitting(true);
-    setTimeout(() => {
-      useGameStore.getState().setGamePhase('online_job');
-    }, 800);
+    setTimeout(() => { useGameStore.getState().setGamePhase('online_job'); }, 800);
   };
 
   return (
@@ -118,7 +123,8 @@ export const ApartmentScene = () => {
 
       {/* Room — dynamic based on currentRoom and currentLevel */}
       <Suspense fallback={null}>
-        {currentRoom !== 'studio_level_3' && currentLevel >= 3 && <RoomLevel3 />}
+        {currentRoom !== 'studio_level_3' && currentLevel >= 4 && <RoomLevel4 />}
+        {currentRoom !== 'studio_level_3' && currentLevel === 3 && <RoomLevel3 />}
         {currentRoom !== 'studio_level_3' && currentLevel === 2 && <RoomLevel2 />}
         {currentRoom !== 'studio_level_3' && currentLevel < 2 && <RoomLevel1 />}
         {currentRoom === 'studio_level_3' && <StudioLevel3 />}
@@ -224,7 +230,13 @@ export const ApartmentScene = () => {
       </Suspense>
 
       {/* Player — spawn position adjusted per room and level */}
-      <Player position={currentLevel >= 3 ? [3, 0, -0.5] : currentLevel >= 2 ? [2.5, 0, 3] : [0, 0, 2]} />
+      <Player position={
+        currentRoom === 'studio_level_3' ? [-6, 0, 1] :
+        currentLevel >= 4 ? [15, 0, -12] :
+        currentLevel >= 3 ? [3, 0, -0.5] :
+        currentLevel >= 2 ? [2.5, 0, 3] :
+        [0, 0, 2]
+      } />
     </>
   );
 };

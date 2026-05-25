@@ -114,7 +114,7 @@ export function RoomLevel2() {
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleSleep = () => {
     if (energy >= 100) { addNotification('info', '😊 Ya tienes energía al máximo'); return; }
-    const BED_POS = { x: -1.75, y: 0.6, z: -0.1 };
+    const BED_POS = { x: -1.75, y: -0.5, z: -0.1 };
     const BED_EXIT = { x: 0.5, y: 0, z: -0.1 };
     if (playerRef) {
       playerRef.position.set(BED_POS.x, BED_POS.y, BED_POS.z);
