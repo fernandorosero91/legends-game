@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useUIStore } from '../../store/uiStore';
+import { useAudioStore } from '../../store/audioStore';
 import { useAuth } from '../../hooks/useInsForge';
 import { CityBackground } from './CityBackground';
 
@@ -66,21 +67,37 @@ export function MainMenu() {
     const existing = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
     if (existing) {
       bgMusicRef.current = existing;
+      const { musicVolume, masterVolume, muted } = useAudioStore.getState();
+      existing.volume = muted ? 0 : musicVolume * masterVolume;
       existing.play().catch(() => {});
     }
+
+    // Suscribirse a cambios de volumen para actualizar en tiempo real
+    const unsub = useAudioStore.subscribe((state) => {
+      const music = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
+      if (music) {
+        music.volume = state.muted ? 0 : state.musicVolume * state.masterVolume;
+      }
+    });
+    return () => unsub();
   }, []);
 
   const playBtnSound = useCallback(() => {
     // Ensure background music is playing (browser autoplay policy)
     if (bgMusicRef.current && bgMusicRef.current.paused) {
+      const { musicVolume, masterVolume, muted } = useAudioStore.getState();
+      bgMusicRef.current.volume = muted ? 0 : musicVolume * masterVolume;
       bgMusicRef.current.play().catch(() => {});
     }
     if (btnSfxRef.current) {
+      const { sfxVolume, masterVolume, muted } = useAudioStore.getState();
+      btnSfxRef.current.volume = muted ? 0 : sfxVolume * masterVolume;
       btnSfxRef.current.currentTime = 0;
       btnSfxRef.current.play().catch(() => {});
     } else {
+      const { sfxVolume, masterVolume, muted } = useAudioStore.getState();
       const sfx = new Audio('/audio/button.mp3');
-      sfx.volume = 0.5;
+      sfx.volume = muted ? 0 : sfxVolume * masterVolume;
       btnSfxRef.current = sfx;
       sfx.play().catch(() => {});
     }

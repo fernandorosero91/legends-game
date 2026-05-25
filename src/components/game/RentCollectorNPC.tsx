@@ -11,6 +11,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { useGameStore } from '@/store/gameStore';
 import { usePlayerStore } from '@/store/playerStore';
 import { useUIStore } from '@/store/uiStore';
+import { useAudioStore } from '@/store/audioStore';
 
 const MODEL_PATH = '/models/npcs/npc_rent_collector.glb';
 const IDLE_ANIM = 'Armature|mixamo.com|Layer0';
@@ -56,6 +57,14 @@ export function RentCollectorNPC() {
   // Play idle animation solo cuando es visible
   useEffect(() => {
     if (!shouldShow) return;
+
+    // Reproducir sonido de aparición
+    const { sfxVolume, masterVolume, muted } = useAudioStore.getState();
+    if (!muted) {
+      const audio = new Audio('/audio/npc_rent.mp3');
+      audio.volume = sfxVolume * masterVolume;
+      audio.play().catch(() => {});
+    }
 
     const action = actions[IDLE_ANIM];
     if (action) {

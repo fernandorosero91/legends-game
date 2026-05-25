@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '../../store/uiStore';
+import { useAudioStore } from '../../store/audioStore';
 import { CityBackground } from './CityBackground';
 
 export function LoadingScreen() {
@@ -19,16 +20,19 @@ export function LoadingScreen() {
     const existingMusic = (window as unknown as Record<string, unknown>).__legendsMusic as HTMLAudioElement | undefined;
     
     if (!existingMusic) {
+      const { musicVolume, masterVolume, muted } = useAudioStore.getState();
       const music = new Audio('/audio/inicio.mp3');
       music.loop = true;
-      music.volume = 0.35;
+      music.volume = muted ? 0 : musicVolume * masterVolume;
       music.preload = 'auto';
       musicRef.current = music;
       (window as unknown as Record<string, unknown>).__legendsMusic = music;
-      // Intentar reproducir (funciona en localhost, falla en producción — OK)
       music.play().catch(() => {});
     } else {
       musicRef.current = existingMusic;
+      // Actualizar volumen por si cambió en settings
+      const { musicVolume, masterVolume, muted } = useAudioStore.getState();
+      existingMusic.volume = muted ? 0 : musicVolume * masterVolume;
     }
   }, []);
 

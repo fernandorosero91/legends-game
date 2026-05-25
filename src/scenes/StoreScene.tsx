@@ -115,10 +115,10 @@ export function StoreScene() {
             className="flex flex-col items-center pointer-events-none"
             style={{ animation: 'floatBadge 2s ease-in-out infinite' }}
           >
-            <div className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg select-none">
-              💼 Trabajar
+            <div className="bg-purple-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg select-none">
+              Trabajar
             </div>
-            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-600" />
+            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-800" />
           </div>
         </Html>
         <mesh

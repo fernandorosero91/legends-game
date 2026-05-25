@@ -38,7 +38,7 @@ export const ApartmentScene = () => {
   const playerRef = usePlayerStore((s) => s.playerRef);
 
   // Posicion encima de la cama (ajustada visualmente)
-  const BED_POSITION = { x: -7.2, y: -0.7, z: 2.0 };
+  const BED_POSITION = { x: -7.2, y: -0.7, z: 4.2 };
   // Posicion de salida — al lado de la cama, fuera de la colision
   const BED_EXIT = { x: -5.0, y: 0.0, z: 2 };
 
@@ -67,7 +67,7 @@ export const ApartmentScene = () => {
       }
       advanceTime();
       addNotification('success', '😴 Descansaste bien. +50 energía. Avanzó el turno.');
-    }, 2500);
+    }, 4000);
   };
 
   // Descansar en el sofá
@@ -86,10 +86,11 @@ export const ApartmentScene = () => {
       addNotification('warning', '🎤 Necesitas al menos 30 de energía para grabar');
       return;
     }
-    // Position player at the chair and sit
-    usePlayerStore.getState().setPosition({ x: 0.3, y: 0, z: -3.2 });
+    // Player2 (femenino) necesita Y más bajo para que la cola quede en la silla
+    const gender = usePlayerStore.getState().characterGender;
+    const seatY = gender === 'female' ? -2.9 : 0;
+    usePlayerStore.getState().setPosition({ x: 0.3, y: seatY, z: -3.2 });
     usePlayerStore.getState().setPlayerSitting(true);
-    // Small delay to show sitting animation before opening minigame
     setTimeout(() => {
       setGamePhase('rhythm_game');
     }, 800);
