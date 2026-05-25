@@ -8,6 +8,7 @@ import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
 import { RoomLevel1 } from '../components/game/RoomLevel1';
 import { RoomLevel2 } from '../components/game/RoomLevel2';
+import { RoomLevel3 } from '../components/game/RoomLevel3';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
@@ -117,7 +118,8 @@ export const ApartmentScene = () => {
 
       {/* Room — dynamic based on currentRoom and currentLevel */}
       <Suspense fallback={null}>
-        {currentRoom !== 'studio_level_3' && currentLevel >= 2 && <RoomLevel2 />}
+        {currentRoom !== 'studio_level_3' && currentLevel >= 3 && <RoomLevel3 />}
+        {currentRoom !== 'studio_level_3' && currentLevel === 2 && <RoomLevel2 />}
         {currentRoom !== 'studio_level_3' && currentLevel < 2 && <RoomLevel1 />}
         {currentRoom === 'studio_level_3' && <StudioLevel3 />}
       </Suspense>
@@ -127,8 +129,7 @@ export const ApartmentScene = () => {
       {currentRoom !== 'studio_level_3' && (
         <>
           {/* Nivel 1 — zonas propias de room_level1 */}
-          {currentLevel < 2 && (
-            <>
+          {currentLevel < 2 && (            <>
               {/* 🪑 Silla frente al escritorio de grabación */}
               <Suspense fallback={null}>
                 <DeskChair position={[0.3, 0, -3.2]} rotation={[0, 0, 0]} />
@@ -223,7 +224,7 @@ export const ApartmentScene = () => {
       </Suspense>
 
       {/* Player — spawn position adjusted per room and level */}
-      <Player position={currentLevel >= 2 ? [2.5, 0, 3] : [0, 0, 2]} />
+      <Player position={currentLevel >= 3 ? [3, 0, -0.5] : currentLevel >= 2 ? [2.5, 0, 3] : [0, 0, 2]} />
     </>
   );
 };
