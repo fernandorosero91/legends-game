@@ -10,6 +10,7 @@ import { RoomLevel1 } from '../components/game/RoomLevel1';
 import { RoomLevel2 } from '../components/game/RoomLevel2';
 import { RoomLevel3 } from '../components/game/RoomLevel3';
 import { RoomLevel4 } from '../components/game/RoomLevel4';
+import { RoomLevel5 } from '../components/game/RoomLevel5';
 import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
@@ -123,7 +124,8 @@ export const ApartmentScene = () => {
 
       {/* Room — dynamic based on currentRoom and currentLevel */}
       <Suspense fallback={null}>
-        {currentRoom !== 'studio_level_3' && currentLevel >= 4 && <RoomLevel4 />}
+        {currentRoom !== 'studio_level_3' && currentLevel >= 5 && <RoomLevel5 />}
+        {currentRoom !== 'studio_level_3' && currentLevel === 4 && <RoomLevel4 />}
         {currentRoom !== 'studio_level_3' && currentLevel === 3 && <RoomLevel3 />}
         {currentRoom !== 'studio_level_3' && currentLevel === 2 && <RoomLevel2 />}
         {currentRoom !== 'studio_level_3' && currentLevel < 2 && <RoomLevel1 />}
@@ -232,6 +234,7 @@ export const ApartmentScene = () => {
       {/* Player — spawn position adjusted per room and level */}
       <Player position={
         currentRoom === 'studio_level_3' ? [-6, 0, 1] :
+        currentLevel >= 5 ? [1, 0, 2] :
         currentLevel >= 4 ? [15, 0, -12] :
         currentLevel >= 3 ? [3, 0, -0.5] :
         currentLevel >= 2 ? [2.5, 0, 3] :
