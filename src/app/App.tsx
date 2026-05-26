@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AnimatePresence } from 'framer-motion';
@@ -52,12 +52,28 @@ const SettingsScreen = lazy(() => import('../components/ui/SettingsScreen'));
 const CreditsScreen = lazy(() => import('../components/ui/CreditsScreen'));
 const LevelSelectScreen = lazy(() => import('../components/ui/LevelSelectScreen'));
 
+import { LevelUpScreen } from '../components/ui/LevelUpScreen';
+
 function GameScene() {
   // Estados del juego
   const { currentDay, currentLevel, timeOfDay, isPaused, togglePause, currentScene, setCurrentScene, gamePhase } = useGameStore();
   const { money, energy, hunger, monthlyListeners, reputation } = usePlayerStore();
   const { dialogueActive, currentDialogue, closeDialogue, nextDialogue } = useUIStore();
   const [showLocationMap, setShowLocationMap] = useState(false);
+  const [levelUpInfo, setLevelUpInfo] = useState<{ level: number; name: string } | null>(null);
+  const prevLevelRef = useRef(currentLevel);
+
+  // Detect level up
+  useEffect(() => {
+    if (currentLevel > prevLevelRef.current && prevLevelRef.current > 0) {
+      const levelNames: Record<number, string> = {
+        1: 'El Primer Beat', 2: 'Subsistir o Crear', 3: 'La Prueba del Fuego',
+        4: 'Momentum', 5: 'La Recta Final', 6: 'Leyenda',
+      };
+      setLevelUpInfo({ level: currentLevel, name: levelNames[currentLevel] || `Nivel ${currentLevel}` });
+    }
+    prevLevelRef.current = currentLevel;
+  }, [currentLevel]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -346,6 +362,17 @@ function GameScene() {
       {gamePhase === 'online_job' && (
         <OnlineJobGame onClose={() => { useGameStore.getState().setGamePhase('playing'); usePlayerStore.getState().setPlayerSitting(false); }} />
       )}
+
+      {/* Level Up Screen — pantalla épica al subir de nivel */}
+      <AnimatePresence>
+        {levelUpInfo && (
+          <LevelUpScreen
+            level={levelUpInfo.level}
+            levelName={levelUpInfo.name}
+            onComplete={() => setLevelUpInfo(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
