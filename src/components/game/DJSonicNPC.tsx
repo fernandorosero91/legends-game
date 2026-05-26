@@ -49,6 +49,7 @@ export function DJSonicNPC() {
   const showDialogue = useUIStore(state => state.showDialogue);
 
   const [hovered, setHovered] = useState(false);
+  const greetedRef = useRef(false);
 
   // Play idle animation (talkingonacellphone)
   useEffect(() => {
@@ -57,7 +58,6 @@ export function DJSonicNPC() {
       action.reset().fadeIn(0.3).play();
       action.setLoop(THREE.LoopRepeat, Infinity);
     } else {
-      // Fallback: try first available animation
       const firstKey = Object.keys(actions)[0];
       if (firstKey && actions[firstKey]) {
         actions[firstKey]!.reset().fadeIn(0.3).play();
@@ -68,6 +68,31 @@ export function DJSonicNPC() {
       Object.values(actions).forEach((a) => a?.stop());
     };
   }, [actions]);
+
+  // Auto-greet when entering studio
+  useEffect(() => {
+    if (greetedRef.current) return;
+    greetedRef.current = true;
+
+    setTimeout(() => {
+      let greetText = '';
+      if (currentDay <= 2) {
+        greetText = '¡Bienvenido al estudio, hermano! Aquí es donde la magia sucede. Siéntate frente al PC y graba tu primera canción.';
+      } else if (monthlyListeners >= 5000) {
+        greetText = '¡El productor estrella está aquí! Con esos números ya suenas como un profesional. Sigue así.';
+      } else if (monthlyListeners >= 1000) {
+        greetText = 'Mil oyentes y subiendo. Este estudio ya se siente diferente, ¿no? Vamos a grabar algo grande.';
+      } else {
+        greetText = '¿Listo para grabar? Recuerda: cuanto más practiques el ritmo, mejor sale la canción. ¡A darle!';
+      }
+
+      showDialogue({
+        id: `dj_sonic_studio_greet_${currentDay}`,
+        speaker: 'DJ Sonic',
+        text: greetText,
+      });
+    }, 800);
+  }, []);
 
   const handleInteract = () => {
     let dialogueText = '';
@@ -96,7 +121,7 @@ export function DJSonicNPC() {
     <group
       ref={group}
       position={[-3, 0, 0]}
-      rotation={[0, Math.PI / 4, 0]}
+      rotation={[0, -Math.PI * 0.75, 0]}
       onClick={(e) => {
         e.stopPropagation();
         handleInteract();
