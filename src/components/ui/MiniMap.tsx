@@ -8,13 +8,8 @@ interface MiniMapProps {
 export function MiniMap({ currentLocation, onOpenFullMap }: MiniMapProps) {
   const locations = [
     { id: 'apartment', name: 'Casa', emoji: '🏠', position: { x: 50, y: 50 } },
-    { id: 'cafe', name: 'Café', emoji: '☕', position: { x: 25, y: 30 } },
-    { id: 'store', name: 'Tienda', emoji: '🛍️', position: { x: 75, y: 30 } },
-    { id: 'shop', name: 'Música', emoji: '🎵', position: { x: 50, y: 20 } },
-    { id: 'restaurant', name: 'Rest.', emoji: '🍽️', position: { x: 20, y: 70 } },
-    { id: 'delivery', name: 'Delivery', emoji: '🚚', position: { x: 80, y: 70 } },
-    { id: 'bar', name: 'Bar', emoji: '🎧', position: { x: 35, y: 85 } },
-    { id: 'academy', name: 'Academia', emoji: '🎓', position: { x: 65, y: 85 } }
+    { id: 'store', name: 'Almacén', emoji: '🛍️', position: { x: 15, y: 50 } },
+    { id: 'restaurant', name: 'Rest.', emoji: '🍽️', position: { x: 85, y: 50 } },
   ];
 
   return (

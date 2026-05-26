@@ -5,7 +5,7 @@ import { devtools, persist } from 'zustand/middleware';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'dialogue' | 'rhythm_game' | 'online_job' | 'working' | 'shopping' | 'game_over' | 'victory';
-export type GameScene = 'apartment' | 'cafe' | 'store' | 'shop' | 'restaurant' | 'delivery' | 'bar' | 'academy' | 'city';
+export type GameScene = 'apartment' | 'store' | 'restaurant';
 export type ApartmentRoom = 'room_level1' | 'studio_level_3' | 'studio_music';
 
 interface GameState {

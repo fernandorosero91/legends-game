@@ -141,21 +141,11 @@ function GameScene() {
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
     
-    // Si selecciona la tienda, abrir el modal de compras
-    if (locationId === 'shop') {
-      setShopOpen(true);
-    }
-    
     // Mostrar notificación
     const locationNames: Record<string, string> = {
       apartment: 'Tu Apartamento',
-      cafe: 'Café Purple Beans',
-      store: 'Almacén StreetWear',
-      shop: 'Purple Sound Shop',
+      store: 'Purple Market',
       restaurant: 'Restaurante La Esquina',
-      delivery: 'Delivery Express',
-      bar: 'Bar Neon Nights',
-      academy: 'Academia SoundWave'
     };
     
     useUIStore.getState().addNotification('info', `Viajando a ${locationNames[locationId] || locationId}...`);
@@ -262,14 +252,8 @@ function GameScene() {
           <span className="text-sm text-white font-bold">
             {({
               apartment:  'Tu Apartamento',
-              cafe:       'Café Purple Beans',
               store:      'Purple Market',
-              shop:       'Purple Sound Shop',
               restaurant: 'Restaurante La Esquina',
-              delivery:   'Delivery Express',
-              bar:        'Bar Neon Nights',
-              academy:    'Academia SoundWave',
-              city:       'Purple City',
             } as Record<string, string>)[currentScene] || 'Purple City'}
           </span>
         </div>
