@@ -51,6 +51,13 @@ const EQUIPMENT_MODELS: Record<string, EquipmentConfig> = {
   audio_interface:   { model: '/models/shop/audio_interface.glb',   defaultScale: 0.25 },
   midi_controller:   { model: '/models/shop/midi_controller.glb',   defaultScale: 0.02 },
   beat_pack:         { model: '/models/shop/beat_pack.glb',         defaultScale: 0.3 },
+  // Apartment upgrades
+  motivational_poster: { model: '/models/shop/motivational_poster.glb', defaultScale: 0.5 },
+  led_lights:          { model: '/models/shop/led_lights.glb',          defaultScale: 0.4 },
+  comfy_couch:         { model: '/models/shop/comfy_couch.glb',         defaultScale: 0.5 },
+  new_bed:             { model: '/models/shop/new_bed.glb',             defaultScale: 0.5 },
+  studio_decor:        { model: '/models/shop/studio_decor.glb',        defaultScale: 0.4 },
+  soundproofing:       { model: '/models/shop/soundproofing.glb',       defaultScale: 0.4 },
 };
 
 // ─── DB Service ──────────────────────────────────────────────────────────────
