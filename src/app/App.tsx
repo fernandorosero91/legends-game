@@ -157,26 +157,26 @@ function GameScene() {
       <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'none' : 'block' }}>
         <Canvas
           frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'never' : 'always'}
-          shadows={{ type: THREE.PCFShadowMap }}
-          camera={{ fov: 50, near: 0.1, far: 500, position: [0, 12, 15] }}
+          shadows={{ type: THREE.BasicShadowMap }}
+          camera={{ fov: 50, near: 0.5, far: 80, position: [0, 12, 15] }}
+          dpr={[1, 1.5]}
+          performance={{ min: 0.5 }}
+          gl={{ antialias: true, powerPreference: 'high-performance', stencil: false, depth: true }}
         >
           <color attach="background" args={['#6542b5']} />
-          <ambientLight intensity={1.8} />
+          <ambientLight intensity={2.2} />
           <directionalLight
             position={[5, 12, 5]}
-            intensity={2}
+            intensity={1.8}
             castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-far={50}
-            shadow-camera-left={-15}
-            shadow-camera-right={15}
-            shadow-camera-top={15}
-            shadow-camera-bottom={-15}
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
+            shadow-camera-far={30}
+            shadow-camera-left={-12}
+            shadow-camera-right={12}
+            shadow-camera-top={12}
+            shadow-camera-bottom={-12}
           />
-          <hemisphereLight args={['#e8e0ff', '#b97a20', 0.6]} />
-          {/* Extra fill light from below to brighten the floor */}
-          <pointLight position={[0, 8, 0]} intensity={1.5} distance={25} color="#ffffff" />
           <SceneManager />
         </Canvas>
       </div>

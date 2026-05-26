@@ -16,7 +16,7 @@
  * - P = exit edit mode
  */
 
-import { Suspense, useMemo, useState, useCallback, useEffect } from 'react';
+import { Suspense, useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -240,9 +240,14 @@ export function RoomEquipment() {
     };
   }, [editMode, grabbedItem]);
 
-  // ─── Mouse tracking: snap to surfaces ──────────────────────────────────────
+  // ─── Mouse tracking: snap to surfaces (throttled to 30fps) ──────────────────
+  const frameCount = useRef(0);
   useFrame(({ pointer, camera, scene: r3fScene }) => {
     if (!editMode || !grabbedItem) return;
+
+    // Only raycast every 2nd frame (30fps instead of 60fps)
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
 
     const ray = new THREE.Raycaster();
     ray.setFromCamera(pointer, camera);

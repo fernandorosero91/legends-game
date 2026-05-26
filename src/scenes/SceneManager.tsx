@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
 import { useGameStore, type GameScene } from '../store/gameStore';
 
 // Lazy load only the active scenes
@@ -18,13 +19,33 @@ function SceneFallback() {
   );
 }
 
+/** Disposes unused GPU resources when switching scenes */
+function SceneCleanup() {
+  const { gl } = useThree();
+  const currentScene = useGameStore((s) => s.currentScene);
+  const prevScene = useRef(currentScene);
+
+  useEffect(() => {
+    if (prevScene.current !== currentScene) {
+      // Free unused textures/geometries from GPU memory
+      gl.info.reset();
+      prevScene.current = currentScene;
+    }
+  }, [currentScene, gl]);
+
+  return null;
+}
+
 export function SceneManager() {
   const currentScene = useGameStore((s) => s.currentScene);
   const Scene = scenes[currentScene] || scenes.apartment;
 
   return (
-    <Suspense fallback={<SceneFallback />}>
-      <Scene />
-    </Suspense>
+    <>
+      <SceneCleanup />
+      <Suspense fallback={<SceneFallback />}>
+        <Scene />
+      </Suspense>
+    </>
   );
 }
