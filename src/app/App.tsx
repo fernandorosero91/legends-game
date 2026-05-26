@@ -29,6 +29,7 @@ import { GameSideButtons } from '../components/ui/GameSideButtons';
 import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
 import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
+import { useNarrativeEngine } from '../hooks/useNarrativeEngine';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -62,6 +63,9 @@ function GameScene() {
 
   // Hook de InsForge para guardado
   const { user, saveGame } = useInsForge();
+
+  // Motor narrativo — dispara diálogos automáticos según estado del juego
+  useNarrativeEngine();
 
   // Asegurar que el gamePhase sea 'playing' al entrar a la escena
   useEffect(() => {

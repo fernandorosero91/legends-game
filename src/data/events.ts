@@ -214,11 +214,17 @@ export const DAILY_RENT_EVENTS: NarrativeEvent[] = Array.from({ length: 45 }, (_
 
 // ===== EXPORTAR TODOS LOS EVENTOS =====
 
+/** Story-driven narrative events (excludes generic daily rent — handled by RentSystem) */
 export const ALL_NARRATIVE_EVENTS: NarrativeEvent[] = [
   ...ACT1_EVENTS,
   ...ACT2_EVENTS,
   ...ACT3_EVENTS,
   ...SPECIAL_EVENTS,
+];
+
+/** All events including daily rent (for reference/stats only) */
+export const ALL_EVENTS_WITH_RENT: NarrativeEvent[] = [
+  ...ALL_NARRATIVE_EVENTS,
   ...DAILY_RENT_EVENTS,
 ];
 

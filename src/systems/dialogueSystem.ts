@@ -7,9 +7,17 @@
 import { useUIStore } from '../store/uiStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
-import { DIALOGUES_BY_ACT } from '../data/dialogues';
-import { NARRATIVE_EVENTS } from '../data/events';
+import { ALL_DIALOGUES, ACT1_DIALOGUES, ACT2_DIALOGUES, ACT3_DIALOGUES, SPECIAL_DIALOGUES } from '../data/dialogues';
+import { ALL_NARRATIVE_EVENTS } from '../data/events';
 import type { Dialogue, TriggerCondition, NarrativeEvent } from '../types/dialogue';
+
+/** All dialogues grouped by act for stats */
+const DIALOGUES_BY_ACT = {
+  act1: ACT1_DIALOGUES,
+  act2: ACT2_DIALOGUES,
+  act3: ACT3_DIALOGUES,
+  special: SPECIAL_DIALOGUES,
+};
 
 export class DialogueSystem {
   /**
@@ -55,12 +63,7 @@ export class DialogueSystem {
    * Obtiene un diálogo por ID
    */
   static getDialogueById(dialogueId: string): Dialogue | null {
-    // Buscar en todos los actos
-    for (const act of Object.values(DIALOGUES_BY_ACT)) {
-      const dialogue = act.find((d) => d.id === dialogueId);
-      if (dialogue) return dialogue;
-    }
-    return null;
+    return ALL_DIALOGUES.find((d) => d.id === dialogueId) || null;
   }
 
   /**
@@ -71,7 +74,7 @@ export class DialogueSystem {
     const { monthlyListeners, dialogueFlags } = usePlayerStore.getState();
 
     // Obtener eventos del día actual
-    const todayEvents = NARRATIVE_EVENTS.filter((event) => {
+    const todayEvents = ALL_NARRATIVE_EVENTS.filter((event) => {
       // Verificar si ya fue ejecutado
       if (event.once && dialogueFlags[event.id]) return false;
 
