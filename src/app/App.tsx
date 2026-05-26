@@ -101,13 +101,7 @@ function GameScene() {
     }
   }, []);
 
-  // Mostrar tutorial la primera vez
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('legends-map-tutorial');
-    if (!hasSeenTutorial && currentDay === 1) {
-      setShowTutorial(true);
-    }
-  }, [currentDay]);
+  // Mostrar tutorial la primera vez — ahora manejado por NewPlayerTutorial en App
 
   // Nombre del nivel
   const levelNames: Record<number, string> = {
@@ -135,10 +129,7 @@ function GameScene() {
   }, [togglePause]);
 
   const handleCloseTutorial = () => {
-    setShowTutorial(false);
-    localStorage.setItem('legends-map-tutorial', 'seen');
-    // Tras el tutorial, mostrar el menú de selección de niveles
-    useUIStore.getState().setScreen('level_select');
+    // Handled by NewPlayerTutorial at App level
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -170,9 +161,9 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'none' : 'block' }}>
+      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working' || gamePhase === 'online_job') ? 'none' : 'block' }}>
         <Canvas
-          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'never' : 'always'}
+          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working' || gamePhase === 'online_job') ? 'never' : 'always'}
           shadows={{ type: THREE.BasicShadowMap }}
           camera={{ fov: 50, near: 0.5, far: 80, position: [0, 12, 15] }}
           dpr={[1, 1.5]}
@@ -198,7 +189,7 @@ function GameScene() {
       </div>
 
       {/* HUD elements — hidden during minigames for performance */}
-      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && (
+      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && gamePhase !== 'online_job' && (
         <>
           {/* TopBar - Información del día y nivel */}
           <TopBar
@@ -286,11 +277,7 @@ function GameScene() {
         )}
       </AnimatePresence>
 
-      {/* Tutorial del mapa */}
-      <MapTutorial
-        isOpen={showTutorial}
-        onClose={handleCloseTutorial}
-      />
+      {/* Tutorial moved to App level — NewPlayerTutorial component */}
 
       {/* CameraHUD - Controles e interacción */}
       <CameraHUD
@@ -493,6 +480,29 @@ function EquipmentEditIndicator() {
   );
 }
 
+/** Shows tutorial for new players — triggers on first visit to level_select */
+function NewPlayerTutorial() {
+  const currentScreen = useUIStore((s) => s.currentScreen);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // Only show on level_select (not game)
+    if (currentScreen === 'level_select') {
+      const seen = localStorage.getItem('legends-tutorial-completed');
+      if (!seen) {
+        setShow(true);
+      }
+    }
+  }, [currentScreen]);
+
+  const handleClose = () => {
+    setShow(false);
+    localStorage.setItem('legends-tutorial-completed', 'true');
+  };
+
+  return <MapTutorial isOpen={show} onClose={handleClose} />;
+}
+
 function App() {
   const currentScreen = useUIStore((s) => s.currentScreen);
   const isLoading = useUIStore((s) => s.isLoading);
@@ -520,6 +530,9 @@ function App() {
     <div className="w-screen h-screen overflow-hidden bg-purple-950">
       {/* Inicializador del juego */}
       <GameInitializer />
+
+      {/* Tutorial para nuevos jugadores (se muestra sobre cualquier pantalla) */}
+      <NewPlayerTutorial />
 
       {/* Pantalla de carga */}
       {(currentScreen === 'loading' || isLoading) && (

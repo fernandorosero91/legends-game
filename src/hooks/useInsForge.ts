@@ -10,6 +10,17 @@ import { saveService } from '../services/saveService';
 import { useAuthStore, type AuthUser } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useGameStore } from '../store/gameStore';
+import {
+  isOnline,
+  cacheUserSession,
+  getCachedSession,
+  clearCachedSession,
+  cacheGameState,
+  loadCachedGameState,
+  queueSyncOperation,
+  syncPendingOperations,
+  attachSyncListener,
+} from '../services/offlineService';
 
 export type { AuthUser } from '../store/authStore';
 
@@ -64,16 +75,41 @@ export function useInsForge() {
     if (!sessionChecked) {
       setSessionChecked(true);
       checkSession();
+      attachSyncListener(); // Start offline sync listener
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionChecked]);
 
   const checkSession = useCallback(async () => {
+    // If offline, try to load cached session
+    if (!isOnline()) {
+      console.log('[useInsForge] Offline — loading cached session');
+      const cached = await getCachedSession();
+      if (cached) {
+        setUser(cached);
+        usePlayerStore.getState().setCharacterGender((cached.characterGender || 'male') as 'male' | 'female');
+        // Load cached game state
+        await loadCachedGameState();
+        console.log('[useInsForge] ✅ Offline mode — using cached data for:', cached.username);
+      } else {
+        setUser(null);
+      }
+      return;
+    }
+
     try {
       const { data: userData, error: userError } = await insforge.auth.getCurrentUser();
       
       if (userError || !userData?.user) {
-        setUser(null);
+        // Online but no session — try cached as fallback
+        const cached = await getCachedSession();
+        if (cached) {
+          setUser(cached);
+          await loadCachedGameState();
+          console.log('[useInsForge] Session expired but cached data available');
+        } else {
+          setUser(null);
+        }
         return;
       }
 
@@ -142,8 +178,25 @@ export function useInsForge() {
           // No save found, that's fine
         }
       }
+
+      // Cache session + game state for offline access
+      await cacheUserSession({
+        id: userRecord.id, email: userRecord.email, username: userRecord.username,
+        emailVerified: userData.user.emailVerified || false, characterGender: userRecord.character_gender || 'male',
+      });
+      await cacheGameState();
+
+      // Sync any pending offline operations
+      syncPendingOperations();
     } catch {
-      setUser(null);
+      // Online failed — try cached session
+      const cached = await getCachedSession();
+      if (cached) {
+        setUser(cached);
+        await loadCachedGameState();
+      } else {
+        setUser(null);
+      }
     }
   }, [setUser]);
 
@@ -292,6 +345,13 @@ export function useInsForge() {
         console.log('[useInsForge] No saved game found, starting fresh');
       }
 
+      // Cache for offline access
+      await cacheUserSession({
+        id: userData.id, email: userData.email, username: userData.username,
+        emailVerified: true, characterGender: userData.character_gender || 'male',
+      });
+      await cacheGameState();
+
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Error al iniciar sesión' };
@@ -305,8 +365,10 @@ export function useInsForge() {
       await insforge.auth.signOut();
       setUser(null);
       setSaves([]);
-      // Reset session check so it re-checks on next login
       setSessionChecked(false);
+      
+      // Clear offline cache
+      await clearCachedSession();
       
       // ⚠️ CRITICAL: Reset all game stores to initial state
       // This prevents stale data from previous user showing up
@@ -324,25 +386,36 @@ export function useInsForge() {
   const saveGame = useCallback(async (slotName: string = 'auto') => {
     if (!user) return { success: false, error: 'Debes iniciar sesión para guardar' };
     setIsSaving(true);
+
+    // Always cache locally first (instant)
+    await cacheGameState();
+
+    // If offline, queue for later sync
+    if (!isOnline()) {
+      await queueSyncOperation({ type: 'save_game', data: { userId: user.id, slotName } });
+      setLastSaveTime(Date.now());
+      setIsSaving(false);
+      return { success: true };
+    }
+
     try {
-      // Refresh session before saving to avoid expired token (401)
       const { data: refreshedUser } = await insforge.auth.getCurrentUser();
       if (!refreshedUser) {
-        setUser(null);
-        return { success: false, error: 'Sesión expirada. Inicia sesión de nuevo.' };
+        // Can't reach server — save locally
+        await queueSyncOperation({ type: 'save_game', data: { userId: user.id, slotName } });
+        setLastSaveTime(Date.now());
+        setIsSaving(false);
+        return { success: true };
       }
 
       await saveService.saveGame(user.id, slotName);
       setLastSaveTime(Date.now());
       return { success: true };
     } catch (error: any) {
-      // If token is invalid, clear session
-      if (error.message?.includes('Invalid token') || error.message?.includes('401')) {
-        setUser(null);
-        setSessionChecked(false);
-        return { success: false, error: 'Sesión expirada. Inicia sesión de nuevo.' };
-      }
-      return { success: false, error: error.message || 'Error al guardar' };
+      // Save failed online — queue for sync
+      await queueSyncOperation({ type: 'save_game', data: { userId: user.id, slotName } });
+      setLastSaveTime(Date.now());
+      return { success: true }; // From user perspective, it saved (locally)
     } finally {
       setIsSaving(false);
     }
