@@ -52,7 +52,7 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
   const currentAnimRef = useRef<string>('');
 
   // Carga del modelo
-  const modelFile = customer?.modelFile || '/models/lit_killah_animado.glb';
+  const modelFile = customer?.modelFile || '/models/npcs/lit_killah_animado.glb';
   const { scene, animations } = useGLTF(modelFile);
 
   // Clonado por instancia (skeleton independiente).
@@ -371,6 +371,6 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
  */
 export const CustomerNPC = memo(CustomerNPCImpl, (a, b) => a.id === b.id);
 
-useGLTF.preload('/models/lit_killah_animado.glb');
-useGLTF.preload('/models/hombre_npc_animado_cel.glb');
-useGLTF.preload('/models/hombre_caminando_como_mujer.glb');
+useGLTF.preload('/models/npcs/lit_killah_animado.glb');
+useGLTF.preload('/models/npcs/hombre_npc_animado_cel.glb');
+useGLTF.preload('/models/npcs/hombre_caminando_como_mujer.glb');

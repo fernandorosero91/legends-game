@@ -9,8 +9,8 @@ import { useGLTF } from '@react-three/drei';
 
 // Critical models to preload
 const PRELOAD_MODELS = [
-  '/models/player1.glb',
-  '/models/player2.glb',
+  '/models/players/player1.glb',
+  '/models/players/player2.glb',
 ];
 
 // Preload room models (fetch the JSON and preload each GLB)

@@ -230,7 +230,7 @@ export const CUSTOMER_MODELS: {
 }[] = [
   {
     // Modelo: Lit Killah (Mixamo). Calibrado a estatura humana ~1.8u.
-    file: '/models/lit_killah_animado.glb',
+    file: '/models/npcs/lit_killah_animado.glb',
     scale: 2,
     offsetY: 0,
     seatYOffset: -0.5,
@@ -240,7 +240,7 @@ export const CUSTOMER_MODELS: {
   {
     // Modelo: hombre joven con celular. Mismo rig/escala que litkillah.
     // Clips dentro del GLB: 'walking_phone', 'sit_down'.
-    file: '/models/hombre_npc_animado_cel.glb',
+    file: '/models/npcs/hombre_npc_animado_cel.glb',
     scale: 0.9,
     offsetY: 0,
     seatYOffset: -0.5,
@@ -250,7 +250,7 @@ export const CUSTOMER_MODELS: {
   {
     // Modelo: hombre con caminado tipo mujer. Mismo rig/escala que litkillah.
     // Clips dentro del GLB: 'walking_girl', 'sit_down'.
-    file: '/models/hombre_caminando_como_mujer.glb',
+    file: '/models/npcs/hombre_caminando_como_mujer.glb',
     scale: 1.3,
     offsetY: 0,
     seatYOffset: -0.5,

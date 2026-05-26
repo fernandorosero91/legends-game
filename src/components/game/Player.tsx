@@ -32,7 +32,7 @@ interface PlayerProps {
 export function Player({ position = [0, 0, 0] }: PlayerProps) {
   const characterGender = usePlayerStore((s) => s.characterGender);
   const gender = characterGender || 'male';
-  const modelPath = gender === 'female' ? '/models/player2.glb' : '/models/player1.glb';
+  const modelPath = gender === 'female' ? '/models/players/player2.glb' : '/models/players/player1.glb';
   const ANIMS = gender === 'female' ? ANIMS_FEMALE : ANIMS_MALE;
 
   const group = useRef<THREE.Group>(null);
@@ -279,4 +279,4 @@ function hitWall(x: number, z: number, walls: Array<{ id: string; min: { x: numb
 }
 
 // Only preload player1 (male) by default — player2 loads on demand
-useGLTF.preload('/models/player1.glb');
+useGLTF.preload('/models/players/player1.glb');

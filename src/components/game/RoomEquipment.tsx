@@ -43,14 +43,14 @@ interface EquipmentConfig {
 }
 
 const EQUIPMENT_MODELS: Record<string, EquipmentConfig> = {
-  usb_mic:           { model: '/models/usb_mic.glb',           defaultScale: 0.3 },
-  basic_mic:         { model: '/models/basic_mic.glb',         defaultScale: 0.3 },
-  pro_mic:           { model: '/models/pro_mic.glb',           defaultScale: 0.1 },
-  studio_headphones: { model: '/models/studio_headphones.glb', defaultScale: 0.3 },
-  studio_monitor:    { model: '/models/studio_monitor.glb',    defaultScale: 0.5 },
-  audio_interface:   { model: '/models/audio_interface.glb',   defaultScale: 0.25 },
-  midi_controller:   { model: '/models/midi_controller.glb',   defaultScale: 0.02 },
-  beat_pack:         { model: '/models/beat_pack.glb',         defaultScale: 0.3 },
+  usb_mic:           { model: '/models/shop/usb_mic.glb',           defaultScale: 0.3 },
+  basic_mic:         { model: '/models/shop/basic_mic.glb',         defaultScale: 0.3 },
+  pro_mic:           { model: '/models/shop/pro_mic.glb',           defaultScale: 0.1 },
+  studio_headphones: { model: '/models/shop/studio_headphones.glb', defaultScale: 0.3 },
+  studio_monitor:    { model: '/models/shop/studio_monitor.glb',    defaultScale: 0.5 },
+  audio_interface:   { model: '/models/shop/audio_interface.glb',   defaultScale: 0.25 },
+  midi_controller:   { model: '/models/shop/midi_controller.glb',   defaultScale: 0.02 },
+  beat_pack:         { model: '/models/shop/beat_pack.glb',         defaultScale: 0.3 },
 };
 
 // ─── DB Service ──────────────────────────────────────────────────────────────

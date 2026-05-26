@@ -162,7 +162,7 @@ export function RestaurantTimer() {
         '¡Excelente trabajo, mesero! Has completado tu turno. ' +
         'Aquí tienes tu pago de $400 por las horas trabajadas. ' +
         '¡Descansa un poco y vuelve cuando estés listo para otro turno!',
-      portrait: '/models/chef_image.png',
+      portrait: '/models/npcs/chef_image.png',
     });
   };
 

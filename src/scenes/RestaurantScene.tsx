@@ -55,7 +55,7 @@ export function RestaurantScene() {
       allowSpawning();
     }
 
-    const portrait = '/models/chef_image.png';
+    const portrait = '/models/npcs/chef_image.png';
 
     showDialogue({
       id: 'chef-carlos-greet',

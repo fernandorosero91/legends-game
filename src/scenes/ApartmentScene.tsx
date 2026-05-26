@@ -250,7 +250,7 @@ export const ApartmentScene = () => {
 
 /** Silla de escritorio — GLB con texturas KTX2 */
 function DeskChair({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  const { scene } = useGLTF('/models/accesorios/silla-inter.glb', '/draco/');
+  const { scene } = useGLTF('/models/furniture/silla-inter.glb', '/draco/');
   const clone = useMemo(() => {
     const c = scene.clone();
     c.traverse((child: any) => {
@@ -269,7 +269,7 @@ function DeskChair({ position, rotation }: { position: [number, number, number];
 
 /** Sofá — modelo GLB */
 function SofaModel({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  const { scene } = useGLTF('/models/accesorios/sofa_3230.glb', '/draco/');
+  const { scene } = useGLTF('/models/furniture/sofa_3230.glb', '/draco/');
   const clone = useMemo(() => {
     const c = scene.clone();
     c.traverse((child: any) => {
@@ -286,4 +286,4 @@ function SofaModel({ position, rotation }: { position: [number, number, number];
   );
 }
 
-useGLTF.preload('/models/accesorios/sofa_3230.glb');
+useGLTF.preload('/models/furniture/sofa_3230.glb');
