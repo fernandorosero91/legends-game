@@ -14,7 +14,6 @@ import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useUIStore } from '../store/uiStore';
 import { useAudioStore } from '../store/audioStore';
-import { useAuthStore } from '../store/authStore';
 
 // Sonido de clic/beep de caja registradora usando Web Audio API
 function playBeep(type: 'enter' | 'exit') {
@@ -46,34 +45,25 @@ export function StoreScene() {
   const addNotification = useUIStore(state => state.addNotification);
   const muted = useAudioStore(state => state.muted);
   const { showDialogue, queueDialogue } = useUIStore();
-  const user = useAuthStore(state => state.user);
   const enteredRef = useRef(false);
 
-  // Clave por usuario para que no persista entre cuentas
-  const sandraKey = `legends-sandra-intro-${user?.id || 'guest'}`;
-
-  // Sonido + diálogo de Sandra al entrar
+  // Sonido + diálogo de Sandra al entrar (siempre)
   useEffect(() => {
     if (enteredRef.current) return;
     enteredRef.current = true;
     if (!muted) setTimeout(() => playBeep('enter'), 300);
 
-    const alreadySeen = localStorage.getItem(sandraKey) === 'true';
-    if (!alreadySeen) {
-      setTimeout(() => {
-        showDialogue({
-          id: SANDRA_HIRE_DIALOGUE[0].id,
-          speaker: SANDRA_HIRE_DIALOGUE[0].speaker,
-          text: SANDRA_HIRE_DIALOGUE[0].text,
-        });
-        SANDRA_HIRE_DIALOGUE.slice(1).forEach(line => {
-          queueDialogue({ id: line.id, speaker: line.speaker, text: line.text });
-        });
-        // Marcar como visto DESPUÉS de encolar (no antes)
-        localStorage.setItem(sandraKey, 'true');
-      }, 1200);
-    }
-  }, [muted, showDialogue, queueDialogue, sandraKey]);
+    setTimeout(() => {
+      showDialogue({
+        id: SANDRA_HIRE_DIALOGUE[0].id,
+        speaker: SANDRA_HIRE_DIALOGUE[0].speaker,
+        text: SANDRA_HIRE_DIALOGUE[0].text,
+      });
+      SANDRA_HIRE_DIALOGUE.slice(1).forEach(line => {
+        queueDialogue({ id: line.id, speaker: line.speaker, text: line.text });
+      });
+    }, 800);
+  }, [muted, showDialogue, queueDialogue]);
 
   const handleWork = () => {
     if (energy < 20) {
@@ -86,8 +76,8 @@ export function StoreScene() {
 
   const handleExit = () => {
     if (!muted) playBeep('exit');
-    setCurrentScene('city');
-    addNotification('info', 'Volviste a Purple City');
+    setCurrentScene('apartment');
+    addNotification('info', 'Volviste al apartamento');
   };
 
   return (
