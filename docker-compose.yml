@@ -9,5 +9,8 @@ services:
         - VITE_INSFORGE_URL=${VITE_INSFORGE_URL}
         - VITE_INSFORGE_ANON_KEY=${VITE_INSFORGE_ANON_KEY}
     restart: unless-stopped
-    expose:
+    ports:
       - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.legends-game.loadbalancer.server.port=80"
