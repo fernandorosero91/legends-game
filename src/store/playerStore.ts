@@ -218,10 +218,15 @@ export const usePlayerStore = create<PlayerState>()(
         },
 
         consumeEnergy: (amount: number) => {
-          const { energy } = get();
-          if (energy >= amount) {
+          const { energy, hunger } = get();
+          // Penalización: si hambre = 0, cuesta el doble
+          const finalCost = hunger === 0 ? Math.ceil(amount * 2) : amount;
+          if (energy >= finalCost) {
+            // Consume hambre proporcional (30% del costo base)
+            const hungerCost = Math.max(3, Math.ceil(amount * 0.3));
             set((state) => ({
-              energy: Math.max(0, state.energy - amount),
+              energy: Math.max(0, state.energy - finalCost),
+              hunger: Math.max(0, state.hunger - hungerCost),
             }));
             return true;
           }

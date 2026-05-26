@@ -15,27 +15,24 @@ export class EnergySystem {
   static readonly RECORDING_COST = 25;
 
   /**
-   * Consume energía del jugador
+   * Consume energía del jugador.
+   * La penalización por hambre y el desgaste de hambre se manejan en playerStore.consumeEnergy().
    */
   static consume(amount: number, activity: string = 'Actividad'): boolean {
     const success = usePlayerStore.getState().consumeEnergy(amount);
     
     if (success) {
-      console.log(`[Energy] ${activity}: -${amount} energía`);
+      const { energy, hunger } = usePlayerStore.getState();
+      console.log(`[Energy] ${activity}: -${amount} energía (quedan ${energy}, hambre ${hunger})`);
       
-      // Advertir si la energía está baja
-      const currentEnergy = usePlayerStore.getState().energy;
-      if (currentEnergy <= 20) {
-        useUIStore.getState().addNotification(
-          'warning',
-          '⚠️ Energía baja. Considera descansar o dormir.'
-        );
+      if (hunger === 0) {
+        useUIStore.getState().addNotification('error', '🍽️ ¡Hambre crítica! Energía x2. ¡Come algo!');
+      }
+      if (energy <= 20) {
+        useUIStore.getState().addNotification('warning', '⚠️ Energía baja. Descansa o duerme.');
       }
     } else {
-      useUIStore.getState().addNotification(
-        'error',
-        '❌ No tienes suficiente energía para esta actividad.'
-      );
+      useUIStore.getState().addNotification('error', '❌ No tienes suficiente energía.');
     }
     
     return success;

@@ -10,7 +10,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useGameStore } from '@/store/gameStore';
 import { useUIStore } from '@/store/uiStore';
 import { ShopSystem } from '@/systems/shopSystem';
-import { EQUIPMENT_ITEMS, APARTMENT_ITEMS } from '@/data/shopItems';
+import { EQUIPMENT_ITEMS, APARTMENT_ITEMS, FOOD_ITEMS } from '@/data/shopItems';
 import type { ShopItem } from '@/types/shop';
 
 // ===== ITEMS DISPONIBLES EN LA TIENDA =====
@@ -29,11 +29,18 @@ const ITEM_EMOJIS: Record<string, string> = {
   midi_controller: '🎹',
   // Apartment items
   motivational_poster: '🖼️',
-  led_lighting: '💡',
+  led_lights: '💡',
   comfy_couch: '🛋️',
   new_bed: '🛏️',
   studio_decor: '🎨',
   soundproofing: '🔇',
+  // Food items
+  instant_ramen: '🍜',
+  sandwich: '🥪',
+  home_cooked: '🍲',
+  coffee: '☕',
+  energy_drink: '⚡',
+  gourmet_meal: '🥘',
 };
 
 interface CartItemUI {
@@ -50,10 +57,10 @@ interface CartShopModalProps {
 export function CartShopModal({ className = '', forceOpen = false, onClose }: CartShopModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [cart, setCart] = useState<CartItemUI[]>([]);
-  const [activeTab, setActiveTab] = useState<'shop' | 'cart'>('shop');
+  const [activeTab, setActiveTab] = useState<'shop' | 'food' | 'cart'>('shop');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
-  const { money, inventory } = usePlayerStore();
+  const { money, inventory, hunger, energy } = usePlayerStore();
   const { currentLevel } = useGameStore();
 
   // Abrir externamente
@@ -76,6 +83,30 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
   const lockedItems = ACCESSORY_ITEMS.filter(
     (item) => item.levelRequired > currentLevel
   );
+
+  // Food items disponibles
+  const availableFood = FOOD_ITEMS.filter(
+    (item) => item.levelRequired <= currentLevel
+  );
+
+  // Comprar y consumir comida instantáneamente
+  const buyAndEatFood = (item: ShopItem) => {
+    if (money < item.price) {
+      useUIStore.getState().addNotification('error', `❌ No tienes suficiente dinero ($${item.price})`);
+      return;
+    }
+    const success = usePlayerStore.getState().spendMoney(item.price);
+    if (!success) return;
+
+    // Aplicar efecto
+    if (item.effect.type === 'hunger') {
+      usePlayerStore.getState().addHunger(item.effect.value as number);
+      useUIStore.getState().addNotification('success', `🍽️ ${item.name} — +${item.effect.value} hambre`);
+    } else if (item.effect.type === 'energy') {
+      usePlayerStore.getState().addEnergy(item.effect.value as number);
+      useUIStore.getState().addNotification('success', `⚡ ${item.name} — +${item.effect.value} energía`);
+    }
+  };
 
   // Verificar si el jugador ya tiene el item
   const isOwned = (itemId: string) =>
@@ -238,17 +269,27 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
               <div className="flex border-b border-purple-500/20">
                 <button
                   onClick={() => setActiveTab('shop')}
-                  className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide transition-colors ${
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-colors ${
                     activeTab === 'shop'
                       ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
-                  🎙️ Accesorios ({availableItems.length})
+                  🎙️ Equipo ({availableItems.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('food')}
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-colors ${
+                    activeTab === 'food'
+                      ? 'text-orange-300 border-b-2 border-orange-400 bg-orange-500/10'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  🍽️ Comida ({availableFood.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('cart')}
-                  className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide transition-colors relative ${
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-colors relative ${
                     activeTab === 'cart'
                       ? 'text-yellow-300 border-b-2 border-yellow-400 bg-yellow-500/10'
                       : 'text-gray-500 hover:text-gray-300'
@@ -408,6 +449,93 @@ export function CartShopModal({ className = '', forceOpen = false, onClose }: Ca
                         })}
                       </>
                     )}
+                  </div>
+                )}
+
+                {/* ===== TAB: COMIDA ===== */}
+                {activeTab === 'food' && (
+                  <div className="p-4 space-y-3">
+                    {/* Status de hambre y energía */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 text-center">
+                        <p className="text-[10px] text-orange-400 uppercase font-bold">Hambre</p>
+                        <p className={`text-lg font-black ${hunger > 50 ? 'text-green-400' : hunger > 20 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {hunger}%
+                        </p>
+                      </div>
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-center">
+                        <p className="text-[10px] text-green-400 uppercase font-bold">Energía</p>
+                        <p className={`text-lg font-black ${energy > 50 ? 'text-green-400' : energy > 20 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {energy}%
+                        </p>
+                      </div>
+                    </div>
+
+                    {hunger <= 30 && (
+                      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                        <span className="text-sm">⚠️</span>
+                        <p className="text-xs text-red-300">
+                          {hunger === 0 ? '¡Hambre crítica! Tu energía se gasta el doble.' : 'Hambre baja. Come algo para mantener tu rendimiento.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Food items */}
+                    {availableFood.map((item) => {
+                      const canAfford = money >= item.price;
+                      const emoji = ITEM_EMOJIS[item.id] || '🍽️';
+                      const isFull = item.effect.type === 'hunger' && hunger >= 100;
+                      const isMaxEnergy = item.effect.type === 'energy' && energy >= 100;
+                      const disabled = !canAfford || isFull || isMaxEnergy;
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`rounded-xl border p-3 transition-all ${
+                            disabled
+                              ? 'border-gray-700/30 bg-gray-900/30 opacity-60'
+                              : 'border-orange-500/30 bg-orange-500/5 hover:border-orange-400/50 hover:bg-orange-500/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-orange-500/15 flex items-center justify-center text-2xl shrink-0">
+                              {emoji}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white">{item.name}</h3>
+                                <span className={`text-sm font-bold ${canAfford ? 'text-yellow-300' : 'text-red-400'}`}>
+                                  ${item.price}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400">{item.description}</p>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                                  item.effect.type === 'hunger'
+                                    ? 'bg-orange-500/10 text-orange-300 border-orange-500/20'
+                                    : 'bg-green-500/10 text-green-300 border-green-500/20'
+                                }`}>
+                                  {item.effect.type === 'hunger' ? `+${item.effect.value} hambre` : `+${item.effect.value} energía`}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => buyAndEatFood(item)}
+                              disabled={disabled}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                                disabled
+                                  ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                  : 'bg-orange-600 hover:bg-orange-500 text-white active:scale-95'
+                              }`}
+                            >
+                              {isFull || isMaxEnergy ? 'Lleno' : !canAfford ? '💸' : 'Comer'}
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
 
