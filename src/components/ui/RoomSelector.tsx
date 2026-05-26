@@ -20,18 +20,44 @@ const ROOM_OPTIONS: RoomOption[] = [
   {
     id: 'room_level1',
     name: 'Habitación Principal',
-    icon: '🏠',
+    icon: 'bedroom',
     description: 'Tu primera habitación con cama, escritorio y sofá.',
     levelRequired: 1,
   },
   {
     id: 'studio_level_3',
     name: 'Estudio de Grabación',
-    icon: '🎵',
+    icon: 'studio',
     description: 'Estudio profesional con piano, monitores y equipo de producción.',
     levelRequired: 3,
   },
 ];
+
+/** SVG icons for room types */
+function RoomIcon({ type, className = '' }: { type: string; className?: string }) {
+  if (type === 'bedroom') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" />
+        <path d="M3 15h18" />
+        <path d="M7 15V9h10v6" />
+        <path d="M5 21h14" />
+        <path d="M7 9a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2" />
+      </svg>
+    );
+  }
+  if (type === 'studio') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+        <line x1="8" y1="22" x2="16" y2="22" />
+      </svg>
+    );
+  }
+  return <span className={className}>🏠</span>;
+}
 
 export function RoomSelector() {
   const [isOpen, setIsOpen] = useState(false);
@@ -72,11 +98,11 @@ export function RoomSelector() {
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
         tabIndex={-1}
-        className="fixed bottom-24 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 text-white shadow-lg border border-purple-500/50 hover:border-purple-400 transition-all"
+        className="fixed bottom-[72px] left-4 z-40 flex items-center gap-3 px-4 py-2.5 w-[220px] rounded-xl bg-gradient-to-br from-purple-700 to-purple-900 text-white shadow-lg border border-purple-500/50 hover:border-purple-400 transition-all"
         title="Cambiar habitación"
       >
-        <span className="text-lg">{currentRoomData?.icon || '🏠'}</span>
-        <span className="text-xs font-medium">{currentRoomData?.name || 'Habitación'}</span>
+        <RoomIcon type={currentRoomData?.icon || 'bedroom'} className="w-5 h-5 text-purple-200" />
+        <span className="text-sm font-bold">{currentRoomData?.name || 'Habitación'}</span>
         <svg
           className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -135,7 +161,11 @@ export function RoomSelector() {
                           : 'hover:bg-purple-800/30 border border-transparent hover:border-purple-500/30'
                       }`}
                     >
-                      <span className="text-2xl mt-0.5">{isLocked ? '🔒' : room.icon}</span>
+                      {isLocked ? (
+                        <span className="text-2xl mt-0.5">🔒</span>
+                      ) : (
+                        <RoomIcon type={room.icon} className="w-6 h-6 mt-0.5 text-purple-300" />
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-white truncate">

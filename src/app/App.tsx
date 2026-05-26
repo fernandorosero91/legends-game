@@ -26,7 +26,10 @@ import { CashierGame } from '../components/cashier/CashierGame';
 import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { GameSideButtons } from '../components/ui/GameSideButtons';
+import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
+import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
+import { useNarrativeEngine } from '../hooks/useNarrativeEngine';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -60,6 +63,9 @@ function GameScene() {
 
   // Hook de InsForge para guardado
   const { user, saveGame } = useInsForge();
+
+  // Motor narrativo — dispara diálogos automáticos según estado del juego
+  useNarrativeEngine();
 
   // Asegurar que el gamePhase sea 'playing' al entrar a la escena
   useEffect(() => {
@@ -118,6 +124,18 @@ function GameScene() {
   };
 
   const handleLocationSelect = (locationId: string) => {
+    // Restaurant cooldown check
+    if (locationId === 'restaurant' && isRestaurantOnCooldown()) {
+      const remaining = getRestaurantCooldownRemaining();
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      useUIStore.getState().addNotification(
+        'warning',
+        `Vuelve a tomar otro turno en ${min > 0 ? `${min}m ` : ''}${sec}s`
+      );
+      return;
+    }
+
     setCurrentScene(locationId as any);
     setShowLocationMap(false);
     
@@ -203,6 +221,12 @@ function GameScene() {
             onOpenFullMap={() => setShowLocationMap(true)}
           />
 
+          {/* Restaurant Timer — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantTimer />}
+
+          {/* Restaurant Orders HUD — visible only in restaurant scene */}
+          {currentScene === 'restaurant' && <RestaurantOrdersHUD />}
+
           {/* Tienda — CartShopModal */}
           <CartShopModal 
             forceOpen={shopOpen} 
@@ -228,25 +252,24 @@ function GameScene() {
       )}
 
       {/* Indicador de ubicación actual */}
-      <div className="fixed bottom-8 left-8 z-40 bg-black/70 backdrop-blur-md border-2 border-purple-500 rounded-xl px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">📍</span>
-          <div>
-            <div className="text-xs text-purple-400 font-medium">Ubicación</div>
-            <div className="text-sm text-white font-bold">
-              {({
-                apartment:  'Tu Apartamento',
-                cafe:       'Café Purple Beans',
-                store:      'Purple Market',
-                shop:       'Purple Sound Shop',
-                restaurant: 'Restaurante La Esquina',
-                delivery:   'Delivery Express',
-                bar:        'Bar Neon Nights',
-                academy:    'Academia SoundWave',
-                city:       'Purple City',
-              } as Record<string, string>)[currentScene] || 'Purple City'}
-            </div>
-          </div>
+      <div className="fixed bottom-4 left-4 z-40 bg-black/70 backdrop-blur-md border border-purple-500/50 rounded-xl px-4 py-2.5 w-[220px]">
+        <div className="flex items-center gap-3">
+          <svg className="w-5 h-5 text-purple-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 3.69 2.93l.137.09Zm.46-5.85a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+          </svg>
+          <span className="text-sm text-white font-bold">
+            {({
+              apartment:  'Tu Apartamento',
+              cafe:       'Café Purple Beans',
+              store:      'Purple Market',
+              shop:       'Purple Sound Shop',
+              restaurant: 'Restaurante La Esquina',
+              delivery:   'Delivery Express',
+              bar:        'Bar Neon Nights',
+              academy:    'Academia SoundWave',
+              city:       'Purple City',
+            } as Record<string, string>)[currentScene] || 'Purple City'}
+          </span>
         </div>
       </div>
 

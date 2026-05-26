@@ -3,12 +3,23 @@ import { CameraRig } from '../components/game/CameraRig';
 import { PropPlaceholder } from '../components/game/PropPlaceholder';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
+import { isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
 
 export function CityScene() {
   const setCurrentScene = useGameStore(state => state.setCurrentScene);
+  const currentLevel = useGameStore(state => state.currentLevel);
   const addNotification = useUIStore(state => state.addNotification);
 
   const handleGoToLocation = (location: string) => {
+    // Restaurant cooldown check
+    if (location === 'restaurant' && isRestaurantOnCooldown()) {
+      const remaining = getRestaurantCooldownRemaining();
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      addNotification('warning', `Vuelve a tomar otro turno en ${min > 0 ? `${min}m ` : ''}${sec}s`);
+      return;
+    }
+
     setCurrentScene(location as any);
     addNotification('info', `Entrando a ${location}...`);
   };
