@@ -68,8 +68,8 @@ export class ShopSystem {
     // Aplicar efecto del item
     this.applyItemEffect(item);
 
-    // Equipar automáticamente si es equipamiento
-    if (item.category === 'equipment' && item.effect.permanent) {
+    // Equipar automáticamente si es equipamiento o mejora de apartamento
+    if ((item.category === 'equipment' || item.category === 'apartment') && item.effect.permanent) {
       usePlayerStore.getState().equipItem(itemId);
     }
 

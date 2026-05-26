@@ -37,17 +37,11 @@ interface LocationMapProps {
   onClose: () => void;
 }
 
-/* Positions tuned to match mapa.png landmarks */
+/* Positions tuned to match mapa.png landmarks — only active locations */
 const LOCATIONS: Location[] = [
-  { id: 'apartment',  shortName: 'Hogar',       name: 'Mi Apartamento',       description: 'Descansa, graba y trabaja online.', icon: <IcoHome />,       x: 48, y: 44, color: '#a5b4fc', borderColor: '#6366f1' },
-  { id: 'city',       shortName: 'Estudio',      name: 'Estudio de Grabación', description: 'Graba tus canciones.',              icon: <IcoMic />,        x: 24, y: 34, color: '#67e8f9', borderColor: '#06b6d4' },
-  { id: 'cafe',       shortName: 'Café',         name: 'Purple Beans Café',    description: 'Trabaja como barista.',              icon: <IcoCoffee />,     x: 34, y: 52, color: '#fcd34d', borderColor: '#d97706' },
-  { id: 'store',      shortName: 'Almacén',      name: 'StreetWear Almacén',   description: 'Trabaja como cajero.',               icon: <IcoShirt />,      x: 10, y: 48, color: '#6ee7b7', borderColor: '#059669' },
-  { id: 'delivery',   shortName: 'Delivery',     name: 'Delivery Express',     description: 'Trabaja como repartidor.',           icon: <IcoTruck />,      x: 22, y: 68, color: '#93c5fd', borderColor: '#2563eb' },
-  { id: 'academy',    shortName: 'Academia',     name: 'Academia SoundWave',   description: 'Trabaja como instructor.',           icon: <IcoGrad />,       x: 66, y: 30, color: '#c4b5fd', borderColor: '#7c3aed' },
-  { id: 'shop',       shortName: 'Tienda',       name: 'Purple Sound Shop',    description: 'Equipamiento musical.',              icon: <IcoMusic />,      x: 88, y: 18, color: '#c4b5fd', borderColor: '#7c3aed' },
-  { id: 'restaurant', shortName: 'Restaurante',  name: 'Restaurante La Esquina', description: 'Trabaja como mesero.',             icon: <IcoUtensils />,   x: 82, y: 50, color: '#fda4af', borderColor: '#e11d48' },
-  { id: 'bar',        shortName: 'Bar',          name: 'Neon Nights Club',     description: 'Trabaja como DJ.',                   icon: <IcoHeadphones />, x: 50, y: 72, color: '#f9a8d4', borderColor: '#db2777' },
+  { id: 'apartment',  shortName: 'Hogar',       name: 'Mi Apartamento',         description: 'Descansa, graba y trabaja online.', icon: <IcoHome />,     x: 48, y: 44, color: '#a5b4fc', borderColor: '#6366f1' },
+  { id: 'store',      shortName: 'Almacén',     name: 'Purple Market',          description: 'Trabaja como cajero.',               icon: <IcoShirt />,    x: 10, y: 48, color: '#6ee7b7', borderColor: '#059669' },
+  { id: 'restaurant', shortName: 'Restaurante', name: 'Restaurante La Esquina', description: 'Trabaja como mesero.',               icon: <IcoUtensils />, x: 82, y: 50, color: '#fda4af', borderColor: '#e11d48' },
 ];
 
 export function LocationMap({ currentLocation, onSelectLocation, onClose }: LocationMapProps) {

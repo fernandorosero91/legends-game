@@ -15,6 +15,7 @@ import { StudioLevel3 } from '../components/game/StudioLevel3';
 import { InteractableZone } from '../components/game/InteractableZone';
 import { RentCollectorNPC } from '../components/game/RentCollectorNPC';
 import { DJSonicNPC } from '../components/game/DJSonicNPC';
+import { RoomEquipment } from '../components/game/RoomEquipment';
 import { useGLTF, useKTX2 } from '@react-three/drei';
 import { Suspense, useEffect, useMemo } from 'react';
 import { usePlayerStore } from '../store/playerStore';
@@ -231,6 +232,9 @@ export const ApartmentScene = () => {
         <RentCollectorNPC />
       </Suspense>
 
+      {/* Equipment purchased from shop — rendered as 3D models */}
+      <RoomEquipment />
+
       {/* Player — spawn position adjusted per room and level */}
       <Player position={
         currentRoom === 'studio_level_3' ? [-6, 0, 1] :
@@ -246,7 +250,7 @@ export const ApartmentScene = () => {
 
 /** Silla de escritorio — GLB con texturas KTX2 */
 function DeskChair({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  const { scene } = useGLTF('/models/accesorios/silla-inter.glb', '/draco/');
+  const { scene } = useGLTF('/models/furniture/silla-inter.glb', '/draco/');
   const clone = useMemo(() => {
     const c = scene.clone();
     c.traverse((child: any) => {
@@ -265,7 +269,7 @@ function DeskChair({ position, rotation }: { position: [number, number, number];
 
 /** Sofá — modelo GLB */
 function SofaModel({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
-  const { scene } = useGLTF('/models/accesorios/sofa_3230.glb', '/draco/');
+  const { scene } = useGLTF('/models/furniture/sofa_3230.glb', '/draco/');
   const clone = useMemo(() => {
     const c = scene.clone();
     c.traverse((child: any) => {
@@ -282,4 +286,4 @@ function SofaModel({ position, rotation }: { position: [number, number, number];
   );
 }
 
-useGLTF.preload('/models/accesorios/sofa_3230.glb');
+// Sofa loads on-demand when player has purchased it

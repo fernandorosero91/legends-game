@@ -10,7 +10,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-const MODEL_PATH = '/models/chef_animation (1).glb';
+const MODEL_PATH = '/models/npcs/chef_animation.glb';
 
 interface ChefNPCProps {
   position?: [number, number, number];
@@ -115,4 +115,4 @@ export function ChefNPC({
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+// Chef model loads on-demand when restaurant scene renders

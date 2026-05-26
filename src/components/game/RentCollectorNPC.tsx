@@ -271,4 +271,4 @@ export function RentCollectorNPC() {
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+// Rent collector loads on-demand when apartment scene renders at evening

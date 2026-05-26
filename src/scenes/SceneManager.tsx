@@ -1,17 +1,12 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
 import { useGameStore, type GameScene } from '../store/gameStore';
 
-// Lazy load all scenes — only the active scene is loaded into memory
+// Lazy load only the active scenes
 const scenes: Record<GameScene, React.LazyExoticComponent<() => JSX.Element>> = {
   apartment: lazy(() => import('./ApartmentScene').then(m => ({ default: m.ApartmentScene }))),
-  cafe: lazy(() => import('./CafeScene').then(m => ({ default: m.CafeScene }))),
   store: lazy(() => import('./StoreScene').then(m => ({ default: m.StoreScene }))),
-  shop: lazy(() => import('./ShopScene').then(m => ({ default: m.ShopScene }))),
   restaurant: lazy(() => import('./RestaurantScene').then(m => ({ default: m.RestaurantScene }))),
-  delivery: lazy(() => import('./DeliveryScene').then(m => ({ default: m.DeliveryScene }))),
-  bar: lazy(() => import('./BarScene').then(m => ({ default: m.BarScene }))),
-  academy: lazy(() => import('./AcademyScene').then(m => ({ default: m.AcademyScene }))),
-  city: lazy(() => import('./CityScene').then(m => ({ default: m.CityScene }))),
 };
 
 // Minimal 3D fallback while scene chunk loads
@@ -24,13 +19,33 @@ function SceneFallback() {
   );
 }
 
+/** Disposes unused GPU resources when switching scenes */
+function SceneCleanup() {
+  const { gl } = useThree();
+  const currentScene = useGameStore((s) => s.currentScene);
+  const prevScene = useRef(currentScene);
+
+  useEffect(() => {
+    if (prevScene.current !== currentScene) {
+      // Free unused textures/geometries from GPU memory
+      gl.info.reset();
+      prevScene.current = currentScene;
+    }
+  }, [currentScene, gl]);
+
+  return null;
+}
+
 export function SceneManager() {
   const currentScene = useGameStore((s) => s.currentScene);
   const Scene = scenes[currentScene] || scenes.apartment;
 
   return (
-    <Suspense fallback={<SceneFallback />}>
-      <Scene />
-    </Suspense>
+    <>
+      <SceneCleanup />
+      <Suspense fallback={<SceneFallback />}>
+        <Scene />
+      </Suspense>
+    </>
   );
 }
