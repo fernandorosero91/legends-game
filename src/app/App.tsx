@@ -30,6 +30,8 @@ import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining
 import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
 import { useNarrativeEngine } from '../hooks/useNarrativeEngine';
+import { useAuthStore } from '../store/authStore';
+import { insforge } from '../services/insforge';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -297,6 +299,9 @@ function GameScene() {
         showMobileControls={window.innerWidth < 768}
       />
 
+      {/* Equipment Edit Mode HUD */}
+      <EquipmentEditIndicator />
+
       {/* DialogBox - Sistema de diálogos */}
       <DialogBox
         isOpen={dialogueActive}
@@ -391,6 +396,89 @@ function LeaderboardWrapper() {
       filter={filter}
       onFilterChange={setFilter}
     />
+  );
+}
+
+/** Floating indicator when equipment edit mode is active */
+function EquipmentEditIndicator() {
+  const [active, setActive] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'p' || e.key === 'P') {
+        setActive((prev) => !prev);
+        setSaved(false);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const handleSaveAsDefault = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      // Copy all user positions for this room to DEFAULT
+      const { currentRoom, currentLevel } = useGameStore.getState();
+      const roomKey = `${currentRoom}_lv${currentLevel}`;
+
+      // Get user's current positions for this room
+      const { data: userPositions } = await insforge.database
+        .from('equipment_positions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('room_key', roomKey);
+
+      if (userPositions && userPositions.length > 0) {
+        // Upsert each one as DEFAULT
+        for (const row of userPositions) {
+          await insforge.database
+            .from('equipment_positions')
+            .upsert([{
+              user_id: 'DEFAULT',
+              room_key: row.room_key,
+              item_id: row.item_id,
+              position_x: row.position_x,
+              position_y: row.position_y,
+              position_z: row.position_z,
+              rotation_y: row.rotation_y,
+              scale: row.scale,
+              updated_at: new Date().toISOString(),
+            }], { onConflict: 'user_id,room_key,item_id' });
+        }
+        setSaved(true);
+        useUIStore.getState().addNotification('success', `✅ Posiciones guardadas como default para ${roomKey}`);
+      } else {
+        useUIStore.getState().addNotification('warning', 'No hay posiciones tuyas en esta habitación');
+      }
+    } catch (err) {
+      useUIStore.getState().addNotification('error', 'Error al guardar defaults');
+    }
+    setSaving(false);
+  };
+
+  if (!active) return null;
+
+  return (
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] bg-cyan-900/90 backdrop-blur-md border border-cyan-400/60 rounded-xl px-5 py-3 shadow-2xl">
+      <div className="text-cyan-200 font-bold text-sm text-center">🛠️ MODO EDICIÓN DE EQUIPOS</div>
+      <div className="text-cyan-300/70 text-xs mt-1 text-center space-y-0.5">
+        <p>Click = agarrar/soltar • Mover ratón = posicionar</p>
+        <p>Scroll = altura • R/T = rotar • +/- = tamaño</p>
+        <p className="text-cyan-400 font-semibold mt-1">P para salir y guardar</p>
+      </div>
+      {/* Admin: Save as default for all users */}
+      <button
+        onClick={handleSaveAsDefault}
+        disabled={saving}
+        className="mt-2 w-full py-1.5 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-bold hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+      >
+        {saving ? '⏳ Guardando...' : saved ? '✅ Guardado como default' : '💾 Guardar como default (admin)'}
+      </button>
+    </div>
   );
 }
 
