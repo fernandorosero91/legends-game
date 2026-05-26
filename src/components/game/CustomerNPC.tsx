@@ -371,6 +371,4 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
  */
 export const CustomerNPC = memo(CustomerNPCImpl, (a, b) => a.id === b.id);
 
-useGLTF.preload('/models/npcs/lit_killah_animado.glb');
-useGLTF.preload('/models/npcs/hombre_npc_animado_cel.glb');
-useGLTF.preload('/models/npcs/hombre_caminando_como_mujer.glb');
+// Models load on-demand via Suspense when restaurant scene renders

@@ -135,4 +135,4 @@ export function DJSonicNPC() {
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+// DJ Sonic loads on-demand when studio scene renders

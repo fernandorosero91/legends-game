@@ -115,4 +115,4 @@ export function ChefNPC({
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+// Chef model loads on-demand when restaurant scene renders

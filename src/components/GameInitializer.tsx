@@ -1,71 +1,28 @@
 /**
  * 🎮 LEGENDS: Game Initializer
- * Preloads critical 3D assets (GLB models) so they're ready when the game starts.
- * Also preloads audio files.
+ * Only preloads the absolute minimum needed to start the game.
+ * Everything else loads on-demand when the user navigates to it.
  */
 
 import { useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
-
-// Critical models to preload
-const PRELOAD_MODELS = [
-  '/models/players/player1.glb',
-  '/models/players/player2.glb',
-];
-
-// Preload room models (fetch the JSON and preload each GLB)
-async function preloadRoomModels() {
-  const rooms = [
-    { json: '/data/room_level1.json', base: '/models/environments/rooms/room_level1/' },
-    { json: '/data/studio_level_3.json', base: '/models/environments/rooms/studio_level_3/' },
-  ];
-
-  for (const room of rooms) {
-    try {
-      const response = await fetch(room.json);
-      const objects = await response.json();
-      const uniqueNames = new Set<string>();
-      objects.forEach((obj: { name: string }) => uniqueNames.add(obj.name));
-
-      for (const name of uniqueNames) {
-        fetch(`${room.base}${name}.glb`).catch(() => {});
-      }
-
-      console.log(`[GameInitializer] Preloading ${uniqueNames.size} models from ${room.json}`);
-    } catch {
-      // Ignore room load failures
-    }
-  }
-
-  // Also preload NPC models
-  fetch('/models/npcs/dj_sonic.glb').catch(() => {});
-  fetch('/models/npcs/npc_rent_collector.glb').catch(() => {});
-}
-
-// Preload audio files
-function preloadAudio() {
-  const audioFiles = ['/audio/inicio.mp3', '/audio/button.mp3', '/audio/level-complete.mp3', '/audio/winner-game.mp3'];
-  audioFiles.forEach(src => {
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.src = src;
-  });
-}
+import { usePlayerStore } from '../store/playerStore';
 
 export function GameInitializer() {
   useEffect(() => {
-    // Preload player models via drei
-    PRELOAD_MODELS.forEach(path => {
-      try { useGLTF.preload(path); } catch { /* ignore */ }
-    });
-    
-    // Preload room models
-    preloadRoomModels();
-    
-    // Preload audio
-    preloadAudio();
-    
-    console.log('[GameInitializer] Asset preloading initiated');
+    // Only preload the active player model (not both)
+    const gender = usePlayerStore.getState().characterGender;
+    const playerModel = gender === 'female' ? '/models/players/player2.glb' : '/models/players/player1.glb';
+    try { useGLTF.preload(playerModel); } catch { /* ignore */ }
+
+    // Preload only the starting room JSON (GLBs load lazily via Suspense in the room component)
+    fetch('/data/room_level1.json').catch(() => {});
+
+    // Audio: only preload button click (tiny, used everywhere)
+    const btn = new Audio('/audio/button.mp3');
+    btn.preload = 'auto';
+
+    console.log('[GameInitializer] Minimal preload done (player + room1 JSON + button audio)');
   }, []);
 
   return null;

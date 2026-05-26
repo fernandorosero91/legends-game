@@ -193,4 +193,4 @@ export function SandraOwner({
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+// Sandra loads on-demand when store scene renders

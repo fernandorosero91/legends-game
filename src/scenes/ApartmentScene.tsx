@@ -286,4 +286,4 @@ function SofaModel({ position, rotation }: { position: [number, number, number];
   );
 }
 
-useGLTF.preload('/models/furniture/sofa_3230.glb');
+// Sofa loads on-demand when player has purchased it
