@@ -375,6 +375,7 @@ export class RhythmSystem {
    */
   private static calculateEquipmentBonus(inventory: any[]): number {
     const equipmentItems = [
+      'usb_mic',
       'basic_mic',
       'pro_mic',
       'studio_headphones',
@@ -385,12 +386,13 @@ export class RhythmSystem {
     ];
 
     const bonuses: Record<string, number> = {
-      basic_mic: 5,
-      pro_mic: 15,
-      studio_headphones: 8,
-      studio_monitor: 12,
-      audio_interface: 18,
-      midi_controller: 10,
+      usb_mic: 4,
+      basic_mic: 8,
+      pro_mic: 18,
+      studio_headphones: 10,
+      studio_monitor: 14,
+      audio_interface: 20,
+      midi_controller: 12,
       soundproofing: 10,
     };
 
