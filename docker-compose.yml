@@ -6,8 +6,13 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_INSFORGE_URL=${VITE_INSFORGE_URL}
+        - VITE_INSFORGE_BASE_URL=${VITE_INSFORGE_BASE_URL}
         - VITE_INSFORGE_ANON_KEY=${VITE_INSFORGE_ANON_KEY}
+        - VITE_INSFORGE_PROJECT_ID=${VITE_INSFORGE_PROJECT_ID}
+        - VITE_INSFORGE_PROJECT_NAME=${VITE_INSFORGE_PROJECT_NAME}
+        - VITE_INSFORGE_REGION=${VITE_INSFORGE_REGION}
+        - VITE_APP_NAME=${VITE_APP_NAME}
+        - VITE_APP_VERSION=${VITE_APP_VERSION}
     restart: unless-stopped
     ports:
       - "80"
