@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  legends-game:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_INSFORGE_URL=${VITE_INSFORGE_URL}
+        - VITE_INSFORGE_ANON_KEY=${VITE_INSFORGE_ANON_KEY}
+    restart: unless-stopped
+    expose:
+      - "80"
