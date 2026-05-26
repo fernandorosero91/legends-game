@@ -46,8 +46,5 @@ export function DishModel({
   );
 }
 
-// Pre-load all dish models
-useGLTF.preload('/models/dishes/pizza.glb');
-useGLTF.preload('/models/dishes/hamburguesa.glb');
-useGLTF.preload('/models/dishes/bandeja_paisa.glb');
-useGLTF.preload('/models/dishes/perro caliente.glb');
+// Dishes load on-demand when the restaurant scene renders them (inside Suspense)
+// No preload needed — saves ~13MB of initial load time
