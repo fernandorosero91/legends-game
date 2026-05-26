@@ -170,9 +170,9 @@ function GameScene() {
   return (
     <>
       {/* Escena 3D */}
-      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'none' : 'block' }}>
+      <div className="w-screen h-screen" style={{ display: (gamePhase === 'rhythm_game' || gamePhase === 'working' || gamePhase === 'online_job') ? 'none' : 'block' }}>
         <Canvas
-          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working') ? 'never' : 'always'}
+          frameloop={(gamePhase === 'rhythm_game' || gamePhase === 'working' || gamePhase === 'online_job') ? 'never' : 'always'}
           shadows={{ type: THREE.BasicShadowMap }}
           camera={{ fov: 50, near: 0.5, far: 80, position: [0, 12, 15] }}
           dpr={[1, 1.5]}
@@ -198,7 +198,7 @@ function GameScene() {
       </div>
 
       {/* HUD elements — hidden during minigames for performance */}
-      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && (
+      {gamePhase !== 'rhythm_game' && gamePhase !== 'working' && gamePhase !== 'online_job' && (
         <>
           {/* TopBar - Información del día y nivel */}
           <TopBar
