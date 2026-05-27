@@ -6,6 +6,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useUIStore } from '@/store/uiStore';
 import { usePlayerStore } from '@/store/playerStore';
@@ -84,23 +85,40 @@ export function LevelSelectScreen() {
   const startLevel = useGameStore((s) => s.startLevel);
   const monthlyListeners = usePlayerStore((s) => s.monthlyListeners);
 
-  // Calcular estrellas dinámicamente por oyentes
-  // 1 estrella: alcanzó el mínimo del nivel
-  // 2 estrellas: alcanzó el 60% del siguiente nivel
-  // 3 estrellas: alcanzó la meta del nivel (máximo)
+  // Calcular estrellas dinámicamente por oyentes y sincronizar con store
   const getStarsForLevel = (levelId: number): number => {
-    // Si ya hay estrellas guardadas, usarlas
-    if (levelStars[levelId] && levelStars[levelId] > 0) return levelStars[levelId];
     const listenerGoals: Record<number, [number, number]> = {
       1: [0, 500], 2: [500, 1000], 3: [1000, 3000],
       4: [3000, 5000], 5: [5000, 7000], 6: [7000, 10000],
     };
     const [min, max] = listenerGoals[levelId] ?? [0, 500];
-    if (monthlyListeners >= max) return 3;
-    if (monthlyListeners >= min + (max - min) * 0.6) return 2;
-    if (monthlyListeners >= min) return 1;
-    return 0;
+    let calculated = 0;
+    if (monthlyListeners >= max) calculated = 3;
+    else if (monthlyListeners >= min + (max - min) * 0.6) calculated = 2;
+    else if (monthlyListeners >= min) calculated = 1;
+
+    const stored = levelStars[levelId] ?? 0;
+    return Math.max(stored, calculated);
   };
+
+  // Sincronizar estrellas calculadas con el store
+  useEffect(() => {
+    const listenerGoals: Record<number, [number, number]> = {
+      1: [0, 500], 2: [500, 1000], 3: [1000, 3000],
+      4: [3000, 5000], 5: [5000, 7000], 6: [7000, 10000],
+    };
+    for (const levelId of LEVEL_IDS_TO_SHOW) {
+      const [min, max] = listenerGoals[levelId] ?? [0, 500];
+      let calculated = 0;
+      if (monthlyListeners >= max) calculated = 3;
+      else if (monthlyListeners >= min + (max - min) * 0.6) calculated = 2;
+      else if (monthlyListeners >= min) calculated = 1;
+      const stored = levelStars[levelId] ?? 0;
+      if (calculated > stored) {
+        setLevelStars(levelId, calculated);
+      }
+    }
+  }, [monthlyListeners, levelStars, setLevelStars]);
 
   const levels = LEVELS.filter((l) => LEVEL_IDS_TO_SHOW.includes(l.id));
 
