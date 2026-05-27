@@ -483,19 +483,46 @@ export function useInsForge() {
 
   const refreshLeaderboard = useCallback(async () => {
     try {
+      // Leaderboard dinámico: leer directamente de game_saves + users
       const { data, error } = await insforge.database
-        .from('leaderboard').select('*').order('final_listeners', { ascending: false }).limit(100);
-      if (error) return;
-      setTopPlayers((data || []) as LeaderboardEntry[]);
-      if (data && data.length > 0) {
-        const n = data.length;
+        .from('game_saves')
+        .select('id, user_id, monthly_listeners, current_day, current_level, total_songs_recorded, money, reputation, updated_at, users(username)')
+        .gt('monthly_listeners', 0)
+        .order('monthly_listeners', { ascending: false })
+        .limit(100);
+      if (error) {
+        // Fallback: intentar tabla leaderboard estática
+        const { data: fallback } = await insforge.database
+          .from('leaderboard').select('*').order('final_listeners', { ascending: false }).limit(100);
+        if (fallback) setTopPlayers(fallback as LeaderboardEntry[]);
+        return;
+      }
+      // Mapear game_saves a formato LeaderboardEntry
+      const entries: LeaderboardEntry[] = (data || []).map((row: any) => ({
+        id: row.id,
+        user_id: row.user_id,
+        username: row.users?.username || 'Jugador',
+        final_listeners: row.monthly_listeners,
+        final_day: row.current_day,
+        total_songs: row.total_songs_recorded,
+        won: row.monthly_listeners >= 10000,
+        completed_at: row.updated_at,
+        final_money: row.money || 0,
+        final_reputation: row.reputation || 0,
+        total_jobs_completed: 0,
+        perfect_songs: 0,
+        collaborations: 0,
+      }));
+      setTopPlayers(entries);
+      if (entries.length > 0) {
+        const n = entries.length;
         setGlobalStats({
           totalPlayers: n,
-          totalWinners: data.filter((p: any) => p.won).length,
-          averageListeners: Math.round(data.reduce((s: number, p: any) => s + p.final_listeners, 0) / n),
-          highestListeners: Math.max(...data.map((p: any) => p.final_listeners)),
-          averageDays: Math.round(data.reduce((s: number, p: any) => s + p.final_day, 0) / n),
-          averageSongs: Math.round(data.reduce((s: number, p: any) => s + p.total_songs, 0) / n),
+          totalWinners: entries.filter((p) => p.won).length,
+          averageListeners: Math.round(entries.reduce((s, p) => s + p.final_listeners, 0) / n),
+          highestListeners: Math.max(...entries.map((p) => p.final_listeners)),
+          averageDays: Math.round(entries.reduce((s, p) => s + p.final_day, 0) / n),
+          averageSongs: Math.round(entries.reduce((s, p) => s + p.total_songs, 0) / n),
         });
       }
     } catch { /* ignore */ }

@@ -385,7 +385,11 @@ function LeaderboardWrapper() {
 
   const filtered = filter === 'all' ? entries
     : filter === 'winners' ? entries.filter((e: any) => e.won)
-    : entries; // 'week' filter would need date logic
+    : entries.filter((e: any) => {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        return new Date(e.completedAt) >= oneWeekAgo;
+      });
 
   return (
     <LeaderboardScreen
