@@ -152,7 +152,7 @@ function generateAIQuestionsInBackground(level: number, jobId: string, jobName: 
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-type Phase = 'select_job' | 'working' | 'results';
+type Phase = 'select_job' | 'generating' | 'working' | 'results';
 
 export function OnlineJobGame({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('select_job');
@@ -191,25 +191,59 @@ export function OnlineJobGame({ onClose }: { onClose: () => void }) {
     });
   }, [currentLevel]);
 
-  const handleSelectJob = (job: OnlineJob) => {
+  const handleSelectJob = async (job: OnlineJob) => {
     if (energy < job.energyCost) {
       addNotification('warning', `⚡ Necesitas ${job.energyCost} de energía`);
       return;
     }
     setSelectedJob(job);
     consumeEnergy(job.energyCost);
+    setPhase('generating');
 
-    // Use AI cache for this specific job if available, otherwise static
+    // Try to get AI questions in real-time
+    let finalQuestions: Question[] | null = null;
+
+    // First check cache
     const cached = getCachedQuestions(job.id);
-    const finalQuestions = cached || getQuestionsForJob(job.id);
+    if (cached) {
+      finalQuestions = cached;
+    } else {
+      // Generate with AI in real-time
+      try {
+        const { insforge } = await import('../../services/insforge');
+        const difficulty = currentLevel <= 2 ? 'fáciles' : currentLevel <= 4 ? 'dificultad media' : 'difíciles';
+        const completion = await insforge.ai.chat.completions.create({
+          model: 'openai/gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: `Genera 5 preguntas de trivia en español sobre "${job.name}", ${difficulty}. Las preguntas deben ser variadas y creativas sobre temas relacionados con ese trabajo. Responde SOLO JSON: [{"question":"...","options":["a","b","c","d"],"correct":0}]. "correct" = índice 0-3.`
+          }],
+          temperature: 0.95,
+          maxTokens: 700,
+        });
+        const content = completion.choices[0]?.message?.content || '';
+        const match = content.match(/\[[\s\S]*\]/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          if (Array.isArray(parsed) && parsed.length >= 3) {
+            finalQuestions = parsed.slice(0, 5);
+          }
+        }
+      } catch (err) {
+        console.warn('[OnlineJob] AI failed, using static questions:', err);
+      }
+    }
+
+    // Fallback to static questions
+    if (!finalQuestions) {
+      finalQuestions = getQuestionsForJob(job.id);
+    }
+
     setQuestions(finalQuestions);
     setCurrentQuestion(0);
     setCorrectAnswers(0);
     setTimeLeft(currentLevel <= 2 ? 15 : currentLevel <= 4 ? 12 : 10);
     setPhase('working');
-
-    // Generate new AI questions for this job in background for next round
-    generateAIQuestionsInBackground(currentLevel, job.id, job.name);
   };
 
   // Timer
@@ -338,6 +372,24 @@ export function OnlineJobGame({ onClose }: { onClose: () => void }) {
               <defs><linearGradient id="wg"><stop offset="0%" stopColor="#7c3aed"/><stop offset="50%" stopColor="#22d3ee"/><stop offset="100%" stopColor="#fbbf24"/></linearGradient></defs>
             </svg>
           </div>
+
+          {/* ── GENERATING QUESTIONS ──────────────────────────── */}
+          {phase === 'generating' && (
+            <div className="absolute inset-0 flex items-center justify-center p-4 z-10">
+              <div className="w-full max-w-sm bg-black/50 backdrop-blur-md rounded-2xl p-8 border border-cyan-400/20 text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="w-12 h-12 rounded-full border-3 border-cyan-400/30 border-t-cyan-400 animate-spin" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Generando preguntas...</h3>
+                <p className="text-sm text-gray-400">La IA está creando preguntas únicas para ti</p>
+                <div className="mt-4 flex justify-center gap-1">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" style={{ animationDelay: `${i * 0.3}s` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── SELECT JOB ─────────────────────────────────────── */}
           {phase === 'select_job' && (
