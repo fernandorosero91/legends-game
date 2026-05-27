@@ -128,13 +128,13 @@ function generateAIQuestionsInBackground(level: number, jobId: string, jobName: 
 
       const difficulty = level <= 2 ? 'fáciles' : level <= 4 ? 'dificultad media' : 'difíciles';
       const completion = await insforge.ai.chat.completions.create({
-        model: 'deepseek/deepseek-v4-flash',
+        model: 'openai/gpt-4o-mini',
         messages: [{
           role: 'user',
           content: `Genera 5 preguntas de trivia en español sobre "${jobName}", ${difficulty}. Las preguntas deben ser sobre temas relacionados con ese trabajo. Responde SOLO JSON: [{"question":"...","options":["a","b","c","d"],"correct":0}]. "correct" = índice 0-3.`
         }],
-        temperature: 0.95,
-        maxTokens: 500,
+        temperature: 0.9,
+        maxTokens: 600,
       });
       const content = completion.choices[0]?.message?.content || '';
       const match = content.match(/\[[\s\S]*\]/);
@@ -144,7 +144,9 @@ function generateAIQuestionsInBackground(level: number, jobId: string, jobName: 
           sessionStorage.setItem(cacheKey, JSON.stringify(parsed.slice(0, 5)));
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[OnlineJob] AI generation failed, using static questions:', err);
+    }
   })();
 }
 
