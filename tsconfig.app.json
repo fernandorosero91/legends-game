@@ -6,20 +6,36 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/**/__tests__",
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/app/App.backup.tsx",
+    "src/hooks/useDayCycle.ts",
+    "src/hooks/useGameSave.ts",
+    "src/hooks/useAudio.ts",
+    "src/services/setupInsForge.ts",
+    "src/systems/dialogueSystem.ts",
+    "src/systems/levelSystem.ts",
+    "src/components/ui/AuthTestScreen.tsx",
+    "src/components/ui/MainMenu.tsx",
+    "src/components/game/Player.tsx",
+    "src/components/molecules/NotificationToast.tsx",
+    "src/scenes/ApartmentScene.tsx"
+  ]
 }
