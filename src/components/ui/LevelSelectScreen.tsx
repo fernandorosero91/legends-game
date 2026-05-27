@@ -8,6 +8,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useUIStore } from '@/store/uiStore';
+import { usePlayerStore } from '@/store/playerStore';
 import { LEVELS } from '@/data/levels';
 
 /* ------------------------------------------------------------------ */
@@ -79,7 +80,27 @@ export function LevelSelectScreen() {
   const highestUnlockedLevel = useGameStore((s) => s.highestUnlockedLevel);
   const currentLevel = useGameStore((s) => s.currentLevel);
   const levelStars = useGameStore((s) => s.levelStars);
+  const setLevelStars = useGameStore((s) => s.setLevelStars);
   const startLevel = useGameStore((s) => s.startLevel);
+  const monthlyListeners = usePlayerStore((s) => s.monthlyListeners);
+
+  // Calcular estrellas dinámicamente por oyentes
+  // 1 estrella: alcanzó el mínimo del nivel
+  // 2 estrellas: alcanzó el 60% del siguiente nivel
+  // 3 estrellas: alcanzó la meta del nivel (máximo)
+  const getStarsForLevel = (levelId: number): number => {
+    // Si ya hay estrellas guardadas, usarlas
+    if (levelStars[levelId] && levelStars[levelId] > 0) return levelStars[levelId];
+    const listenerGoals: Record<number, [number, number]> = {
+      1: [0, 500], 2: [500, 1000], 3: [1000, 3000],
+      4: [3000, 5000], 5: [5000, 7000], 6: [7000, 10000],
+    };
+    const [min, max] = listenerGoals[levelId] ?? [0, 500];
+    if (monthlyListeners >= max) return 3;
+    if (monthlyListeners >= min + (max - min) * 0.6) return 2;
+    if (monthlyListeners >= min) return 1;
+    return 0;
+  };
 
   const levels = LEVELS.filter((l) => LEVEL_IDS_TO_SHOW.includes(l.id));
 
@@ -187,7 +208,7 @@ export function LevelSelectScreen() {
         <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {levels.map((level, index) => {
             const unlocked = level.id <= effectiveUnlocked;
-            const stars = levelStars[level.id] ?? 0;
+            const stars = getStarsForLevel(level.id);
             const accent = LEVEL_ACCENTS[level.id] ?? LEVEL_ACCENTS[2];
             const completed = stars > 0;
 

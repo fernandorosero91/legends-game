@@ -28,6 +28,8 @@ interface ChefNPCProps {
   labelOffset?: [number, number, number];
   /** Offset 3D donde aparece el nombre flotante del NPC */
   nameOffset?: [number, number, number];
+  /** Si true, oculta el label de interacción (cuando el juego ya empezó) */
+  hideLabel?: boolean;
 }
 
 export function ChefNPC({
@@ -39,6 +41,7 @@ export function ChefNPC({
   onInteract,
   labelOffset = [0, 1.0, 0],
   nameOffset = [0, 1.15, 0],
+  hideLabel = false,
 }: ChefNPCProps) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(MODEL_PATH);
@@ -93,21 +96,27 @@ export function ChefNPC({
     >
       <primitive object={scene} />
 
+      {/* Hitbox invisible más grande para facilitar el clic */}
+      <mesh position={[0, 3, 0]}>
+        <boxGeometry args={[3, 6, 3]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
       {/* Indicador de interacción al hover */}
-      {hovered && (
-        <Html position={labelOffset} center distanceFactor={6}>
-          <div className="bg-purple-900/95 text-white px-4 py-2 rounded-lg border-2 border-purple-400 shadow-lg whitespace-nowrap pointer-events-none">
+      {hovered && !hideLabel && (
+        <Html position={labelOffset} center>
+          <div className="bg-purple-900/95 text-white px-3 py-1.5 rounded-lg border-2 border-purple-400 shadow-lg whitespace-nowrap pointer-events-none">
             <div className="flex items-center gap-2">
-              <kbd className="bg-purple-700 px-3 py-1 rounded font-bold text-sm">E</kbd>
-              <span className="font-medium">Hablar con {name}</span>
+              <kbd className="bg-purple-700 px-2 py-0.5 rounded font-bold text-xs">CLICK</kbd>
+              <span className="font-medium text-sm">Hablar con {name}</span>
             </div>
           </div>
         </Html>
       )}
 
       {/* Nombre siempre visible */}
-      <Html position={nameOffset} center distanceFactor={6}>
-        <div className="bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap pointer-events-none">
+      <Html position={nameOffset} center>
+        <div className="bg-black/70 text-white px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap pointer-events-none">
           {name}
         </div>
       </Html>

@@ -166,7 +166,6 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
       if (dist > ARRIVAL_EPS) {
         const step = RESTAURANT_CONFIG.CUSTOMER_WALK_SPEED * delta;
         const move = Math.min(step, dist);
-        // Movimiento en línea recta. Sin colisiones, sin pathfinding.
         g.position.x = px + (dx / dist) * move;
         g.position.z = pz + (dz / dist) * move;
         g.rotation.y = Math.atan2(dx, dz);
@@ -332,14 +331,14 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
       )}
 
       {showOrderBubble && (
-        <Html position={[0, 2.4, 0]} center distanceFactor={6}>
+        <Html zIndexRange={[0, 0]} position={[0, 2.4, 0]} center>
           <div className="bg-white rounded-2xl border-4 border-purple-500 shadow-2xl p-2 pointer-events-none">
             <img
               src={dish!.imageUrl}
               alt={dish!.name}
               className="w-20 h-20 rounded-xl object-cover"
             />
-            <div className="text-center text-xs font-bold text-purple-900 mt-1">
+            <div className="text-center text-[11px] font-semibold text-purple-900 mt-1">
               {dish!.name}
             </div>
           </div>
@@ -347,16 +346,16 @@ function CustomerNPCImpl({ id }: CustomerNPCProps) {
       )}
 
       {showOrderTakenBadge && (
-        <Html position={[0, 2.4, 0]} center distanceFactor={6}>
-          <div className="bg-amber-500/95 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg pointer-events-none">
+        <Html zIndexRange={[0, 0]} position={[0, 2.4, 0]} center>
+          <div className="bg-amber-500/95 text-white px-3 py-1 rounded-full text-[11px] font-semibold shadow-lg pointer-events-none">
             ⏳ Esperando comida
           </div>
         </Html>
       )}
 
       {hovered && hoverHint && !showOrderBubble && (
-        <Html position={[0, 2.0, 0]} center distanceFactor={6}>
-          <div className="bg-purple-900/95 text-white px-3 py-1 rounded-lg border-2 border-purple-400 shadow-lg whitespace-nowrap pointer-events-none text-sm font-medium">
+        <Html zIndexRange={[0, 0]} position={[0, 2.0, 0]} center>
+          <div className="bg-purple-900/95 text-white px-3 py-1 rounded-lg border-2 border-purple-400 shadow-lg whitespace-nowrap pointer-events-none text-[11px] font-semibold">
             {hoverHint}
           </div>
         </Html>

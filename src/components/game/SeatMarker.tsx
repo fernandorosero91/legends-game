@@ -79,8 +79,8 @@ export function SeatMarker({ seat }: SeatMarkerProps) {
       </mesh>
 
       {/* Etiqueta */}
-      <Html position={[0, 1.2, 0]} center distanceFactor={7}>
-        <div className="bg-purple-900/95 text-white px-3 py-1 rounded-lg border-2 border-purple-400 shadow-lg whitespace-nowrap pointer-events-none text-xs font-medium">
+      <Html position={[0, 1.2, 0]} center zIndexRange={[0, 0]} style={{ pointerEvents: 'none' }}>
+        <div className="bg-purple-900/90 text-white px-2 py-1 rounded-md border border-purple-400 shadow-md whitespace-nowrap pointer-events-none text-[11px] font-semibold">
           Sentar aquí
         </div>
       </Html>

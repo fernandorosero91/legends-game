@@ -16,14 +16,14 @@ export interface SeatConfig {
   rotationY: number;
 }
 
-/** Punto de aparición de los clientes (un par de pasos atrás de la puerta). */
-export const CUSTOMER_SPAWN: Vec3 = [-7, 0, -8];
+/** Punto de aparición de los clientes (dentro del restaurante, cerca de la puerta). */
+export const CUSTOMER_SPAWN: Vec3 = [-6, 0, -6];
 
 /** Compatibilidad — alias del primer slot de la puerta. */
-export const CUSTOMER_WAIT: Vec3 = [-6, 0, -5];
+export const CUSTOMER_WAIT: Vec3 = [-6, 0, -4];
 
 /** Punto al que caminan los clientes cuando salen del restaurante. */
-export const CUSTOMER_EXIT: Vec3 = [-6, 0, -10];
+export const CUSTOMER_EXIT: Vec3 = [-6, 0, -7];
 
 /**
  * Slots de la FILA de espera. Los clientes hacen una fila ordenada de 2:
@@ -246,16 +246,6 @@ export const CUSTOMER_MODELS: {
     seatYOffset: -0.5,
     rotationY: 0,
     anims: { walk: 'walking_phone', sit: 'sit_down' },
-  },
-  {
-    // Modelo: hombre con caminado tipo mujer. Mismo rig/escala que litkillah.
-    // Clips dentro del GLB: 'walking_girl', 'sit_down'.
-    file: '/models/npcs/hombre_caminando_como_mujer.glb',
-    scale: 1.3,
-    offsetY: 0,
-    seatYOffset: -0.5,
-    rotationY: 0,
-    anims: { walk: 'walking_girl', sit: 'sit_down' },
   },
 ];
 
