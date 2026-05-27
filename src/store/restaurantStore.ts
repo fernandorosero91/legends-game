@@ -240,25 +240,45 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   },
 
   assignSeat: (customerId, seatId, seatPos) => {
-    // 1) Mandamos al cliente seleccionado a su silla.
-    // 2) Avanzamos la fila: cualquiera que esté en un slot >= que el del
-    //    asignado, baja un slot (slot 1 → slot 0). Su targetPosition se
-    //    actualiza para que CAMINE al nuevo slot.
-    // 3) El slot superior queda libre, así el manager puede spawnar uno nuevo
-    //    que entrará directamente a la última posición.
+    // Generar ruta segura según la silla destino.
+    // Layout: barra Z[-4.5,-2], mesas Z[2.8,5.1]
+    // Pasillo seguro: Z entre -1 y 2 (entre barra y mesas)
+    const CORRIDOR_Z = 0.5;
+
+    // Determinar si la silla es de mesa izquierda o derecha
+    const isLeftTable = seatPos[0] < 0; // Mesa 2 (izquierda)
+
+    // Ruta: ir al pasillo → alinearse en X → entrar a la silla
+    let pathToSeat: Vec3[];
+    if (isLeftTable) {
+      // Mesa izquierda: bajar por X=-6, luego entrar por Z
+      pathToSeat = [
+        [-6, seatPos[1], CORRIDOR_Z],       // pasillo izquierdo
+        [seatPos[0], seatPos[1], CORRIDOR_Z], // alinearse en X
+        seatPos,                              // silla
+      ];
+    } else {
+      // Mesa derecha: ir al centro, luego a la derecha
+      pathToSeat = [
+        [-1, seatPos[1], CORRIDOR_Z],        // pasillo central
+        [seatPos[0], seatPos[1], CORRIDOR_Z], // alinearse en X
+        seatPos,                              // silla
+      ];
+    }
+
     set((s) => {
       const assigned = s.customers.find((c) => c.id === customerId);
       const freedSlot = assigned?.doorSlot ?? null;
 
       const updated = s.customers.map((c) => {
         if (c.id === customerId) {
-          // Va a la silla.
+          const [first, ...rest] = pathToSeat;
           return {
             ...c,
             seatId,
             state: 'walking_to_seat' as CustomerState,
-            targetPosition: seatPos,
-            pathQueue: [],
+            targetPosition: first,
+            pathQueue: rest,
             stateEnteredAt: Date.now(),
             doorSlot: null,
           };

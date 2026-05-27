@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { Html } from '@react-three/drei';
 import { Player } from '../components/game/Player';
 import { CameraRig } from '../components/game/CameraRig';
 import { InteractableZone } from '../components/game/InteractableZone';
@@ -53,31 +54,31 @@ export function RestaurantScene() {
     // Habilitar el spawn de clientes una vez que el jugador habla con el chef.
     if (!spawnAllowed) {
       allowSpawning();
+
+      const portrait = '/models/npcs/chef_image.png';
+
+      showDialogue({
+        id: 'chef-carlos-greet',
+        speaker: 'Chef Carlos',
+        text: '¡Bienvenido al restaurante, mesero! Antes de empezar tu turno, déjame explicarte cómo funciona esto.',
+        portrait,
+      });
+
+      queueDialogue({
+        id: 'chef-carlos-tutorial',
+        speaker: 'Chef Carlos',
+        text:
+          'Cómo funciona el turno:\n' +
+          '1. Los clientes entran por la puerta y esperan ahí.\n' +
+          '2. Haz click en un cliente para seleccionarlo y luego click en una silla libre. El cliente irá y se sentará.\n' +
+          '3. Cuando esté listo, levantará la mano y mostrará una burbuja con el plato que pidió.\n' +
+          '4. Haz click en el cliente para tomar la orden y luego ven a verme para darme el pedido.\n' +
+          '5. Yo tardaré 15 segundos en preparar el plato. Cuando esté listo, haz click sobre el plato para llevarlo al cliente.\n' +
+          '6. El cliente comerá, se levantará y dejará tu propina sobre la mesa. ¡Recógela!\n\n' +
+          'Cada cliente atendido te da $250. ¡Vamos a trabajar!',
+        portrait,
+      });
     }
-
-    const portrait = '/models/npcs/chef_image.png';
-
-    showDialogue({
-      id: 'chef-carlos-greet',
-      speaker: 'Chef Carlos',
-      text: '¡Bienvenido al restaurante, mesero! Antes de empezar tu turno, déjame explicarte cómo funciona esto.',
-      portrait,
-    });
-
-    queueDialogue({
-      id: 'chef-carlos-tutorial',
-      speaker: 'Chef Carlos',
-      text:
-        'Cómo funciona el turno:\n' +
-        '1. Los clientes entran por la puerta y esperan ahí.\n' +
-        '2. Haz click en un cliente para seleccionarlo y luego click en una silla libre. El cliente irá y se sentará.\n' +
-        '3. Cuando esté listo, levantará la mano y mostrará una burbuja con el plato que pidió.\n' +
-        '4. Haz click en el cliente para tomar la orden y luego ven a verme para darme el pedido.\n' +
-        '5. Yo tardaré 15 segundos en preparar el plato. Cuando esté listo, haz click sobre el plato para llevarlo al cliente.\n' +
-        '6. El cliente comerá, se levantará y dejará tu propina sobre la mesa. ¡Recógela!\n\n' +
-        'Cada cliente atendido te da $250. ¡Vamos a trabajar!',
-      portrait,
-    });
   };
 
   const handleExit = () => {
@@ -101,16 +102,38 @@ export function RestaurantScene() {
       <Suspense fallback={null}>
         <ChefNPC
           position={[2, 0.2, -4]}
-          /* rotationY: gira al chef en radianes. Math.PI/7 ≈ 25°.
-             Usa Math.PI para 180°, Math.PI/2 para 90°, etc. */
           rotationY={Math.PI / 7}
           scale={1}
           name="Chef Carlos"
           onInteract={handleTalkToChef}
           labelOffset={[0, 2.4, 0]}
           nameOffset={[0, 2.8, 0]}
+          hideLabel={spawnAllowed}
         />
       </Suspense>
+
+      {/* Letrero flotante sobre el Chef — se oculta al empezar a trabajar */}
+      {!spawnAllowed && (
+        <group position={[2, 0, -4]}>
+          <Html position={[0, 5, 0]} center zIndexRange={[10, 10]}>
+            <div
+              className="flex flex-col items-center pointer-events-none"
+              style={{ animation: 'floatBadge 2s ease-in-out infinite' }}
+            >
+              <div className="bg-orange-600 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg select-none">
+                🍽️ Trabajar
+              </div>
+              <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-orange-600" />
+            </div>
+          </Html>
+          <mesh position={[0, 4, 0]} onClick={(e) => { e.stopPropagation(); handleTalkToChef(); }}
+            onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+            onPointerOut={() => { document.body.style.cursor = 'default'; }}>
+            <boxGeometry args={[2, 1, 1]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </group>
+      )}
 
       {/* Marcadores de sillas (sólo visibles con cliente seleccionado) */}
       {RESTAURANT_SEATS.map((seat) => (

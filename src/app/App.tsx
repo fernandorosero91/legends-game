@@ -26,6 +26,7 @@ import { CashierGame } from '../components/cashier/CashierGame';
 import { OnlineJobGame } from '../components/jobs/OnlineJobGame';
 import { CartShopModal } from '../components/ui/CartShopModal';
 import { GameSideButtons } from '../components/ui/GameSideButtons';
+import { SceneTransition } from '../components/ui/SceneTransition';
 import { RestaurantTimer, isRestaurantOnCooldown, getRestaurantCooldownRemaining } from '../components/ui/RestaurantTimer';
 import { RestaurantOrdersHUD } from '../components/ui/RestaurantOrdersHUD';
 import { useInsForge } from '../hooks/useInsForge';
@@ -655,6 +656,9 @@ function App() {
         onDismiss={removeNotification}
         position="top-right"
       />
+
+      {/* Transición entre escenas */}
+      <SceneTransition />
     </div>
   );
 }

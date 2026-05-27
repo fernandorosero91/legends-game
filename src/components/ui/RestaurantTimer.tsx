@@ -56,6 +56,7 @@ export function RestaurantTimer() {
   const currentDialogue = useUIStore((s) => s.currentDialogue);
   const showDialogue = useUIStore((s) => s.showDialogue);
   const setCurrentScene = useGameStore((s) => s.setCurrentScene);
+  const isPaused = useGameStore((s) => s.isPaused);
   const addMoney = usePlayerStore((s) => s.addMoney);
   const addNotification = useUIStore((s) => s.addNotification);
 
@@ -68,6 +69,16 @@ export function RestaurantTimer() {
   const musicRef = useRef<Howl | null>(null);
   const intervalRef = useRef<number | null>(null);
   const bellPlayedAt6 = useRef(false);
+
+  // Pausar/reanudar música cuando el juego se pausa
+  useEffect(() => {
+    if (!musicRef.current) return;
+    if (isPaused) {
+      musicRef.current.pause();
+    } else {
+      musicRef.current.play();
+    }
+  }, [isPaused]);
 
   // Detect when the chef-carlos-tutorial dialogue is the current one
   useEffect(() => {
@@ -118,6 +129,10 @@ export function RestaurantTimer() {
 
     // Start countdown
     intervalRef.current = window.setInterval(() => {
+      // No contar si el juego está pausado
+      const { isPaused } = useGameStore.getState();
+      if (isPaused) return;
+
       setSecondsLeft((prev) => {
         const next = prev - 1;
 

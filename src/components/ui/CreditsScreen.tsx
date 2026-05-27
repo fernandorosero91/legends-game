@@ -112,20 +112,13 @@ export function CreditsScreen() {
 
   const credits = [
     {
-      title: 'UI/UX Design & Frontend',
-      team: [{ name: 'Nicol', role: 'Frontend Lead', contributions: '42 componentes UI, Sistema de diseno, Testing' }],
-    },
-    {
-      title: 'Narrative Design & Content',
-      team: [{ name: 'Yeraldin', role: 'Narrative Designer', contributions: '9 personajes, 50+ dialogos, 60+ eventos, 6 beats musicales' }],
-    },
-    {
-      title: 'Systems & Game Logic',
-      team: [{ name: 'Felipe', role: 'Systems Developer', contributions: '13 sistemas de juego, 7 stores, 8 hooks, Integracion 3D' }],
-    },
-    {
-      title: 'Backend & Integration',
-      team: [{ name: 'Fernando', role: 'Backend Developer', contributions: 'InsForge integration, Auth, Save/Load, Leaderboard' }],
+      title: 'Desarrolladores',
+      team: [
+        { name: 'Nicol', role: '', contributions: '' },
+        { name: 'Yeraldin', role: '', contributions: '' },
+        { name: 'Felipe', role: '', contributions: '' },
+        { name: 'Fernando', role: '', contributions: '' },
+      ],
     },
   ];
 
@@ -141,9 +134,9 @@ export function CreditsScreen() {
   ];
 
   const specialThanks = [
+    'Universidad Cooperativa de Colombia',
+    'Docente: Jonathan Mideros',
     'A todos los que creyeron en este proyecto',
-    'A la comunidad de desarrolladores indie',
-    'A los musicos que inspiran Purple City',
     'A ti, por jugar LEGENDS',
   ];
 
@@ -189,38 +182,50 @@ export function CreditsScreen() {
             <p className="text-sm text-gray-500 italic">"Si algo vale la pena, vale la pena la lucha."</p>
           </motion.div>
 
-          {/* Team sections */}
-          {credits.map((section, idx) => {
-            const color = sectionColors[section.title] || '#22d3ee';
-            const icon = sectionIcons[section.title];
-            return (
-              <motion.div key={section.title}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + idx * 0.1, duration: 0.4 }}
-                className="rounded-2xl border border-white/[0.06] p-5 md:p-6 space-y-4"
-                style={{ background: 'linear-gradient(145deg, rgba(20,10,45,0.6), rgba(10,6,22,0.7))', backdropFilter: 'blur(16px)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${color}15`, border: `1px solid ${color}25`, color }}>
-                    {icon}
+          {/* Team — un solo cuadro bonito */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }}
+            className="rounded-2xl border border-white/[0.08] p-6 md:p-8 text-center"
+            style={{ background: 'linear-gradient(145deg, rgba(20,10,45,0.7), rgba(10,6,22,0.8))', backdropFilter: 'blur(16px)', boxShadow: '0 8px 40px rgba(124,58,237,0.1)' }}>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <span className="text-2xl">👨‍💻</span>
+              <h3 className="text-lg font-black text-white tracking-wider uppercase">Desarrolladores</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {['Nicol Muñoz', 'Fernando Rosero', 'Yeraldin Araujo', 'Felipe Narvaez'].map((name, i) => (
+                <motion.div
+                  key={name}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + i * 0.1 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black"
+                    style={{
+                      background: `linear-gradient(135deg, ${['#22d3ee','#c084fc','#34d399','#f59e0b'][i]}30, ${['#22d3ee','#c084fc','#34d399','#f59e0b'][i]}10)`,
+                      border: `2px solid ${['#22d3ee','#c084fc','#34d399','#f59e0b'][i]}40`,
+                      color: ['#22d3ee','#c084fc','#34d399','#f59e0b'][i],
+                      boxShadow: `0 0 20px ${['#22d3ee','#c084fc','#34d399','#f59e0b'][i]}20`,
+                    }}>
+                    {name[0]}
                   </div>
-                  <h3 className="text-base font-bold tracking-wider" style={{ color }}>{section.title}</h3>
-                </div>
-                {section.team.map((member) => (
-                  <div key={member.name} className="flex items-start gap-3 pl-1">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-base font-black flex-shrink-0"
-                      style={{ background: `linear-gradient(135deg, ${color}30, ${color}10)`, border: `1px solid ${color}30`, color }}>
-                      {member.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-100 tracking-wide">{member.name}</p>
-                      <p className="text-xs font-semibold tracking-wider" style={{ color }}>{member.role}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{member.contributions}</p>
-                    </div>
-                  </div>
-                ))}
-              </motion.div>
-            );
-          })}
+                  <p className="text-sm font-bold text-white">{name}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Universidad */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.4 }}
+            className="rounded-2xl border border-white/[0.06] p-5 md:p-6 text-center"
+            style={{ background: 'linear-gradient(145deg, rgba(20,10,45,0.6), rgba(10,6,22,0.7))', backdropFilter: 'blur(16px)' }}>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <span className="text-xl">🎓</span>
+              <h3 className="text-base font-bold text-cyan-400 tracking-wider">Universidad Cooperativa de Colombia</h3>
+            </div>
+            <p className="text-sm text-gray-300">Docente: <span className="font-semibold text-white">Jonathan Mideros</span></p>
+          </motion.div>
 
           {/* Technologies */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.4 }}
